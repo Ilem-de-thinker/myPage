@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payments & Wallet — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Manage payouts, wallet balance, transaction ledger, and Nigerian bank withdrawals." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-slate-200 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-slate-400">Seller Workspace</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="page-builder.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            <span>Page Builder</span>
+          </a>
+          <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Products & Stock</span>
+          </a>
+          <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Orders Pipeline</span>
+          </a>
+          <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Customer Book</span>
+          </a>
+          <a href="payments.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-soft text-brand-dark font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Payments & Wallet</span>
+          </a>
+          <a href="escrow.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Escrow Vault</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-200">
+        <a href="billing.html" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
+          <span>Billing & Plan</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">Wallet & Settlements</h1>
+          <p class="text-xs text-slate-500">Same-day Nigerian bank payouts (GTBank, Zenith, Opay, Access)</p>
+        </div>
+
+        <button id="open-payout-modal-btn" class="px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span>Withdraw to Bank</span>
+        </button>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        
+        <!-- 3 BALANCE METRIC CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          
+          <!-- Card 1: Available Balance -->
+          <div class="bg-gradient-to-br from-ink to-slate-900 text-white p-6 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
+            <div class="flex items-center justify-between text-xs text-slate-300">
+              <span>Available for Withdrawal</span>
+              <span class="w-2 h-2 rounded-full bg-brand"></span>
+            </div>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-white tabular-naira" id="available-bal">₦142,500</p>
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800">
+              <span>Settlement Bank:</span>
+              <span class="font-semibold text-emerald-300">GTBank (0144***992)</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Pending Escrow Hold -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Held in Escrow Protection</span>
+              <span class="text-accent font-bold">🛡️ Locked</span>
+            </div>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-accent tabular-naira">₦48,000</p>
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+              <span>Order #MP-8920 (Abuja)</span>
+              <a href="escrow.html" class="text-xs font-semibold text-brand hover:underline">View Escrow →</a>
+            </div>
+          </div>
+
+          <!-- Card 3: Total Lifetime Processed -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Total Processed (2026)</span>
+              <span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold text-[10px]">99.8% Success</span>
+            </div>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-ink tabular-naira">₦14,250,000</p>
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+              <span>Paystack & Direct Transfers</span>
+              <span class="text-slate-400">420 transactions</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TRANSACTION LEDGER TABLE -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="font-display font-bold text-sm text-ink">Transaction Ledger</h2>
+              <p class="text-xs text-slate-400">Credits, debits, escrow settlements, and payouts</p>
+            </div>
+
+            <!-- Filter tabs -->
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs">
+              <button class="px-3 py-1 rounded-lg bg-white font-bold text-slate-800 shadow-xs">All</button>
+              <button class="px-3 py-1 rounded-lg text-slate-600 hover:text-ink">Credits</button>
+              <button class="px-3 py-1 rounded-lg text-slate-600 hover:text-ink">Payouts</button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <tr>
+                  <th class="p-4">Date</th>
+                  <th class="p-4">Reference & Description</th>
+                  <th class="p-4">Channel / Gateway</th>
+                  <th class="p-4">Type</th>
+                  <th class="p-4 text-right">Amount (₦)</th>
+                  <th class="p-4 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="p-4 text-slate-500">07 Oct 2026, 10:15 AM</td>
+                  <td class="p-4">
+                    <span class="font-bold text-ink">#MP-8921</span>
+                    <span class="block text-[11px] text-slate-400">Chioma Okeke · Emerald Silk Boubou</span>
+                  </td>
+                  <td class="p-4">Paystack Card (1.5% fee)</td>
+                  <td class="p-4"><span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Credit</span></td>
+                  <td class="p-4 text-right font-bold text-brand tabular-naira text-sm">+₦24,500</td>
+                  <td class="p-4 text-right"><span class="text-emerald-700 font-semibold">● Successful</span></td>
+                </tr>
+
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="p-4 text-slate-500">07 Oct 2026, 06:12 AM</td>
+                  <td class="p-4">
+                    <span class="font-bold text-ink">#WD-77192</span>
+                    <span class="block text-[11px] text-slate-400">Automatic Payout to GTBank (0144***992)</span>
+                  </td>
+                  <td class="p-4">NIP Bank Transfer</td>
+                  <td class="p-4"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Payout</span></td>
+                  <td class="p-4 text-right font-bold text-slate-900 tabular-naira text-sm">-₦94,200</td>
+                  <td class="p-4 text-right"><span class="text-emerald-700 font-semibold">● Settled</span></td>
+                </tr>
+
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="p-4 text-slate-500">06 Oct 2026, 04:30 PM</td>
+                  <td class="p-4">
+                    <span class="font-bold text-ink">#MP-8919</span>
+                    <span class="block text-[11px] text-slate-400">Funke Adebayo · Sunset Orange Set</span>
+                  </td>
+                  <td class="p-4">Direct Bank Transfer</td>
+                  <td class="p-4"><span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Credit</span></td>
+                  <td class="p-4 text-right font-bold text-brand tabular-naira text-sm">+₦19,500</td>
+                  <td class="p-4 text-right"><span class="text-emerald-700 font-semibold">● Successful</span></td>
+                </tr>
+
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="p-4 text-slate-500">05 Oct 2026, 01:10 PM</td>
+                  <td class="p-4">
+                    <span class="font-bold text-ink">#META-BC-104</span>
+                    <span class="block text-[11px] text-slate-400">WhatsApp Broadcast Fee (142 recipients)</span>
+                  </td>
+                  <td class="p-4">Meta Cloud API (At Cost)</td>
+                  <td class="p-4"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Utility Fee</span></td>
+                  <td class="p-4 text-right font-bold text-slate-600 tabular-naira text-sm">-₦580</td>
+                  <td class="p-4 text-right"><span class="text-emerald-700 font-semibold">● Paid</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- WITHDRAWAL PAYOUT MODAL -->
+    <div id="payout-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold">₦</div>
+            <h3 class="font-display font-bold text-base text-ink">Withdraw to Nigerian Bank</h3>
+          </div>
+          <button id="close-payout-modal" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+
+        <form id="payout-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Withdrawal Amount (₦)</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400">₦</span>
+              <input type="number" id="withdraw-amount" value="50000" max="142500" class="w-full pl-8 pr-16 py-2.5 rounded-xl border border-slate-300 font-bold tabular-naira text-sm focus:outline-none focus:border-brand" required/>
+              <button type="button" onclick="document.getElementById('withdraw-amount').value = 142500" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand bg-brand-soft px-2 py-1 rounded">
+                MAX
+              </button>
+            </div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Available balance: ₦142,500</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Select Bank</label>
+            <select id="payout-bank" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:border-brand">
+              <option selected>Guaranty Trust Bank (GTBank)</option>
+              <option>Zenith Bank Plc</option>
+              <option>Access Bank Plc</option>
+              <option>Opay Digital Services</option>
+              <option>PalmPay</option>
+              <option>Moniepoint Microfinance Bank</option>
+              <option>Kuda Bank</option>
+              <option>United Bank for Africa (UBA)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">10-Digit NUBAN Account Number</label>
+            <input type="text" id="nuban-input" value="0144892992" maxlength="10" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm focus:outline-none focus:border-brand" required/>
+          </div>
+
+          <!-- Resolved Account Name Verification Box -->
+          <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs space-y-1">
+            <span class="text-slate-500 text-[10px] uppercase font-semibold">Verified Account Name:</span>
+            <p class="font-bold text-emerald-950 text-xs" id="resolved-name">AMAKA OKAFOR ENTERPRISES</p>
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-2">
+            <button type="button" id="cancel-payout" class="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-xs shadow-sm">
+              Confirm Instant Payout
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Payout initiated</p>
+    </div>
+
+    <script>
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('payout-modal');
+        document.getElementById('open-payout-modal-btn').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('close-payout-modal').addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('cancel-payout').addEventListener('click', () => modal.classList.add('hidden'));
+
+        document.getElementById('payout-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const amt = document.getElementById('withdraw-amount').value;
+          modal.classList.add('hidden');
+          showToast(`Transfer of ₦${Number(amt).toLocaleString('en-NG')} initiated to GTBank! Arrives in 60 seconds.`, '🏦');
+        });
+      });
+    </script>
+  </body>
+</html>

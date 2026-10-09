@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storefront Page Builder — mypage.ng</title>
+    <meta name="description" content="Customize your WhatsApp commerce storefront blocks, themes, and live preview." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .draggable-item.dragging {
+        opacity: 0.4;
+        border-style: dashed;
+      }
+      .drag-over {
+        border-color: #16A34A !important;
+        background-color: #F0FDF4 !important;
+      }
+    </style>
+  </head>
+  <body class="h-screen flex flex-col bg-slate-100 overflow-hidden text-slate-800 antialiased">
+    
+    <!-- Top Header Navigation -->
+    <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 z-30">
+      <div class="flex items-center gap-4">
+        <a href="dashboard.html" class="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-ink">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+          <span class="hidden sm:inline">Back to Dashboard</span>
+        </a>
+        <div class="h-5 w-px bg-slate-200 hidden sm:block"></div>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-extrabold text-sm sm:text-base text-ink">Page Builder</span>
+          <span class="text-xs text-slate-400">· amaka.mypage.ng</span>
+        </div>
+      </div>
+
+      <!-- Viewport Device Switcher -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+        <button id="view-mobile" class="px-3 py-1.5 rounded-lg font-semibold bg-white text-ink shadow-xs flex items-center gap-1.5 transition-all">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+          <span class="hidden sm:inline">Mobile (375px)</span>
+        </button>
+        <button id="view-desktop" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-ink flex items-center gap-1.5 transition-all">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg>
+          <span class="hidden sm:inline">Desktop</span>
+        </button>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-2 mr-2">
+          <span class="text-xs text-slate-500 hidden sm:inline" id="publish-status-text">Published Live</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="publish-toggle" checked class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand"></div>
+          </label>
+        </div>
+
+        <a href="store.html" target="_blank" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 hidden sm:inline-flex items-center gap-1">
+          <span>Preview</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+
+        <button id="save-page-btn" class="px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+          <span>Save Changes</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 3-PANEL BUILDER WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden">
+      
+      <!-- LEFT PANEL: BLOCKS LIST & REORDER -->
+      <aside class="w-72 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 z-20">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 class="font-display font-bold text-xs uppercase tracking-wider text-slate-500">Storefront Blocks</h2>
+            <p class="text-[11px] text-slate-400">Drag to reorder hierarchy</p>
+          </div>
+          <button id="add-block-btn" class="px-2.5 py-1 rounded-lg bg-brand-soft text-brand-dark font-bold text-xs hover:bg-emerald-200 transition-colors">
+            + Block
+          </button>
+        </div>
+
+        <!-- Draggable Blocks List Container -->
+        <div class="flex-1 p-3 overflow-y-auto space-y-2" id="blocks-container">
+          <!-- Injected via vanilla JS -->
+        </div>
+
+        <!-- Bottom theme quick colors -->
+        <div class="p-4 border-t border-slate-200 bg-slate-50/50 space-y-2">
+          <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Brand Accent Tint</label>
+          <div class="flex items-center gap-2">
+            <button class="color-picker-btn w-6 h-6 rounded-full bg-[#16A34A] ring-2 ring-brand ring-offset-1" data-color="#16A34A" title="WhatsApp Green"></button>
+            <button class="color-picker-btn w-6 h-6 rounded-full bg-[#0F172A]" data-color="#0F172A" title="Minimal Slate"></button>
+            <button class="color-picker-btn w-6 h-6 rounded-full bg-[#D97706]" data-color="#D97706" title="Warm Terracotta"></button>
+            <button class="color-picker-btn w-6 h-6 rounded-full bg-[#4F46E5]" data-color="#4F46E5" title="Indigo Chic"></button>
+            <button class="color-picker-btn w-6 h-6 rounded-full bg-[#E11D48]" data-color="#E11D48" title="Berry Rose"></button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER PANEL: LIVE PREVIEW CANVAS -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center items-start bg-slate-200/70" id="canvas-wrapper">
+        
+        <!-- Interactive Preview Container (Simulates phone frame or full width) -->
+        <div id="preview-frame" class="w-full max-w-[390px] bg-white rounded-[2.5rem] shadow-2xl border-8 border-slate-800 overflow-hidden transition-all duration-300 min-h-[720px] flex flex-col relative">
+          
+          <!-- Phone Speaker Island -->
+          <div id="phone-notch" class="h-6 bg-slate-800 flex items-center justify-center">
+            <div class="w-20 h-3 bg-slate-900 rounded-full"></div>
+          </div>
+
+          <!-- Dynamic Rendered Canvas Storefront -->
+          <div id="canvas-rendered-content" class="flex-1 flex flex-col bg-white text-slate-800">
+            <!-- Dynamically re-rendered by vanilla JS when blocks change -->
+          </div>
+
+        </div>
+
+      </main>
+
+      <!-- RIGHT PANEL: BLOCK SETTINGS INSPECTOR -->
+      <aside class="w-80 bg-white border-l border-slate-200 flex flex-col justify-between shrink-0 z-20 overflow-y-auto">
+        <div class="p-5 border-b border-slate-200">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-bold text-sm text-ink" id="inspector-title">Block Settings</h3>
+            <span class="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded" id="inspector-type">HERO</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">Customize copy, image, and options</p>
+        </div>
+
+        <div class="p-5 space-y-4 flex-1" id="inspector-fields">
+          <!-- Dynamically populated based on active selected block -->
+        </div>
+
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <button id="delete-block-btn" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>Delete Block</span>
+          </button>
+          <span class="text-[11px] text-slate-400">Live preview active</span>
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Settings updated</p>
+    </div>
+
+    <!-- Page Builder Vanilla JS Engine -->
+    <script>
+      // Builder State Model
+      const STATE = {
+        brandColor: '#16A34A',
+        isPublished: true,
+        selectedBlockId: 'b-hero',
+        blocks: [
+          {
+            id: 'b-hero',
+            type: 'hero',
+            name: 'Hero Header',
+            visible: true,
+            title: 'Luxury Ready-to-Wear Boubous',
+            subtitle: 'Hand-tailored Nigerian silk & chiffon for bold women.',
+            ctaText: 'Shop New Arrivals',
+            image: 'https://picsum.photos/seed/bouboufashion/600/300'
+          },
+          {
+            id: 'b-products',
+            type: 'products',
+            name: 'Featured Catalog',
+            visible: true,
+            title: 'Trending This Week',
+            showPrices: true,
+            itemCount: 4
+          },
+          {
+            id: 'b-about',
+            type: 'about',
+            name: 'About the Designer',
+            visible: true,
+            title: 'Crafted with Love in Lekki',
+            story: 'Amaka Stitches started in 2021 with one manual sewing machine. Today we dress thousands of Nigerian queens worldwide.'
+          },
+          {
+            id: 'b-reviews',
+            type: 'reviews',
+            name: 'Customer Testimonials',
+            visible: true,
+            title: 'What Lagos Queens Say',
+            rating: '4.9 ★ (420+ Verified Orders)'
+          },
+          {
+            id: 'b-whatsapp',
+            type: 'whatsapp',
+            name: 'Sticky WhatsApp Bar',
+            visible: true,
+            buttonText: 'Order on WhatsApp',
+            prefilledMessage: 'Hi Amaka Stitches! I am browsing your shop on mypage.ng and would like to order...'
+          }
+        ]
+      };
+
+      function showToast(msg, icon = "✓") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        document.getElementById('toast-icon').textContent = icon;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      // Render Left Panel Blocks List
+      function renderBlocksList() {
+        const container = document.getElementById('blocks-container');
+        container.innerHTML = STATE.blocks.map((block, idx) => `
+          <div 
+            class="draggable-item flex items-center justify-between p-3 rounded-xl border transition-all cursor-move ${block.id === STATE.selectedBlockId ? 'border-brand bg-brand-soft/20 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'}"
+            draggable="true" 
+            data-id="${block.id}" 
+            data-index="${idx}"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="text-slate-400 select-none text-xs">⋮⋮</span>
+              <div>
+                <h4 class="font-bold text-xs text-ink">${block.name}</h4>
+                <p class="text-[10px] text-slate-400 uppercase font-semibold">${block.type}</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button onclick="toggleVisibility('${block.id}', event)" class="p-1 text-slate-400 hover:text-slate-700" title="Toggle visibility">
+                ${block.visible ? '👁️' : '🙈'}
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        attachDragEvents();
+      }
+
+      // Render Center Canvas Live Storefront
+      function renderCanvas() {
+        const canvas = document.getElementById('canvas-rendered-content');
+        
+        // Brand Nav Header inside Canvas
+        let html = `
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-10">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg overflow-hidden bg-emerald-100">
+                <img src="https://picsum.photos/seed/fashionamaka/80/80" alt="Logo" class="w-full h-full object-cover"/>
+              </div>
+              <span class="font-display font-bold text-xs text-ink">Amaka Stitches</span>
+            </div>
+            <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">● Online</span>
+          </div>
+        `;
+
+        STATE.blocks.forEach(block => {
+          if (!block.visible) return;
+
+          if (block.type === 'hero') {
+            html += `
+              <div class="p-4 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 relative cursor-pointer hover:ring-2 hover:ring-brand/40" onclick="selectBlock('${block.id}')">
+                <div class="h-36 rounded-xl overflow-hidden mb-3 relative bg-slate-200">
+                  <img src="${block.image}" class="w-full h-full object-cover"/>
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  <span class="absolute bottom-2 left-2 text-[10px] font-bold text-white uppercase bg-emerald-700/80 px-2 py-0.5 rounded">New Collection</span>
+                </div>
+                <h2 class="font-display font-extrabold text-base text-ink mb-1">${block.title}</h2>
+                <p class="text-xs text-slate-500 mb-3">${block.subtitle}</p>
+                <button class="w-full py-2 rounded-lg text-white font-bold text-xs shadow-xs" style="background-color: ${STATE.brandColor}">
+                  ${block.ctaText} →
+                </button>
+              </div>
+            `;
+          }
+
+          if (block.type === 'products') {
+            html += `
+              <div class="p-4 border-b border-slate-100 cursor-pointer hover:ring-2 hover:ring-brand/40" onclick="selectBlock('${block.id}')">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-display font-bold text-xs text-ink">${block.title}</h3>
+                  <span class="text-[10px] font-semibold text-brand">View All (18)</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div class="border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                    <img src="https://picsum.photos/seed/bouboufashion/200/200" class="w-full h-24 object-cover rounded-lg mb-1.5"/>
+                    <h5 class="font-bold text-[11px] text-ink truncate">Emerald Silk Boubou</h5>
+                    <p class="font-bold text-brand tabular-naira text-xs">₦24,500</p>
+                  </div>
+                  <div class="border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                    <img src="https://picsum.photos/seed/ankaradress/200/200" class="w-full h-24 object-cover rounded-lg mb-1.5"/>
+                    <h5 class="font-bold text-[11px] text-ink truncate">Sunset Orange Set</h5>
+                    <p class="font-bold text-brand tabular-naira text-xs">₦19,500</p>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          if (block.type === 'about') {
+            html += `
+              <div class="p-4 border-b border-slate-100 bg-slate-50/50 cursor-pointer hover:ring-2 hover:ring-brand/40" onclick="selectBlock('${block.id}')">
+                <h3 class="font-display font-bold text-xs text-ink mb-1.5">${block.title}</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">${block.story}</p>
+              </div>
+            `;
+          }
+
+          if (block.type === 'reviews') {
+            html += `
+              <div class="p-4 border-b border-slate-100 cursor-pointer hover:ring-2 hover:ring-brand/40" onclick="selectBlock('${block.id}')">
+                <h3 class="font-display font-bold text-xs text-ink mb-1">${block.title}</h3>
+                <p class="text-[11px] text-amber-600 font-semibold mb-2">${block.rating}</p>
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-[11px] italic text-slate-600">
+                  "The fabric quality was exactly as shown on the WhatsApp page. Delivered to Lekki in 2 hours!"
+                </div>
+              </div>
+            `;
+          }
+
+          if (block.type === 'whatsapp') {
+            html += `
+              <div class="p-3 sticky bottom-2 mx-3 my-2 rounded-xl text-white shadow-lg flex items-center justify-center gap-2 text-xs font-bold cursor-pointer" style="background-color: ${STATE.brandColor}" onclick="selectBlock('${block.id}')">
+                <span>💬</span>
+                <span>${block.buttonText}</span>
+              </div>
+            `;
+          }
+        });
+
+        canvas.innerHTML = html;
+      }
+
+      // Render Right Panel Inspector
+      function renderInspector() {
+        const block = STATE.blocks.find(b => b.id === STATE.selectedBlockId);
+        if (!block) return;
+
+        document.getElementById('inspector-title').textContent = block.name;
+        document.getElementById('inspector-type').textContent = block.type;
+
+        const fields = document.getElementById('inspector-fields');
+        
+        if (block.type === 'hero') {
+          fields.innerHTML = `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Headline Text</label>
+              <input type="text" id="edit-title" value="${block.title}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Subtitle</label>
+              <textarea id="edit-subtitle" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand">${block.subtitle}</textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">CTA Button Label</label>
+              <input type="text" id="edit-cta" value="${block.ctaText}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Hero Image URL</label>
+              <input type="text" id="edit-image" value="${block.image}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+          `;
+          attachInspectorListeners(block);
+        } else if (block.type === 'products') {
+          fields.innerHTML = `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Section Title</label>
+              <input type="text" id="edit-title" value="${block.title}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <span class="text-xs text-slate-700 font-semibold">Display Naira Prices</span>
+              <input type="checkbox" checked class="rounded text-brand w-4 h-4"/>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-500">
+              Products are automatically synced from your <a href="products.html" class="text-brand font-semibold underline">Products Catalog</a>.
+            </div>
+          `;
+          attachInspectorListeners(block);
+        } else if (block.type === 'about') {
+          fields.innerHTML = `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">About Title</label>
+              <input type="text" id="edit-title" value="${block.title}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Brand Story</label>
+              <textarea id="edit-story" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand">${block.story}</textarea>
+            </div>
+          `;
+          attachInspectorListeners(block);
+        } else if (block.type === 'whatsapp') {
+          fields.innerHTML = `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Sticky Button Text</label>
+              <input type="text" id="edit-btntext" value="${block.buttonText}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pre-filled WhatsApp Message</label>
+              <textarea id="edit-prefmsg" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:border-brand">${block.prefilledMessage}</textarea>
+            </div>
+          `;
+          attachInspectorListeners(block);
+        } else {
+          fields.innerHTML = `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Section Title</label>
+              <input type="text" id="edit-title" value="${block.title || ''}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-brand"/>
+            </div>
+          `;
+          attachInspectorListeners(block);
+        }
+      }
+
+      function attachInspectorListeners(block) {
+        const titleEl = document.getElementById('edit-title');
+        const subtitleEl = document.getElementById('edit-subtitle');
+        const ctaEl = document.getElementById('edit-cta');
+        const storyEl = document.getElementById('edit-story');
+        const btntextEl = document.getElementById('edit-btntext');
+
+        if (titleEl) titleEl.addEventListener('input', (e) => { block.title = e.target.value; renderCanvas(); });
+        if (subtitleEl) subtitleEl.addEventListener('input', (e) => { block.subtitle = e.target.value; renderCanvas(); });
+        if (ctaEl) ctaEl.addEventListener('input', (e) => { block.ctaText = e.target.value; renderCanvas(); });
+        if (storyEl) storyEl.addEventListener('input', (e) => { block.story = e.target.value; renderCanvas(); });
+        if (btntextEl) btntextEl.addEventListener('input', (e) => { block.buttonText = e.target.value; renderCanvas(); });
+      }
+
+      function selectBlock(id) {
+        STATE.selectedBlockId = id;
+        renderBlocksList();
+        renderInspector();
+      }
+
+      function toggleVisibility(id, event) {
+        event.stopPropagation();
+        const b = STATE.blocks.find(item => item.id === id);
+        if (b) {
+          b.visible = !b.visible;
+          renderBlocksList();
+          renderCanvas();
+          showToast(`${b.name} is now ${b.visible ? 'visible' : 'hidden'}`);
+        }
+      }
+
+      // Drag and drop vanilla JS reordering
+      let draggedIndex = null;
+      function attachDragEvents() {
+        const items = document.querySelectorAll('.draggable-item');
+        items.forEach(item => {
+          item.addEventListener('dragstart', (e) => {
+            draggedIndex = parseInt(item.dataset.index, 10);
+            item.classList.add('dragging');
+          });
+
+          item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            document.querySelectorAll('.draggable-item').forEach(i => i.classList.remove('drag-over'));
+          });
+
+          item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            item.classList.add('drag-over');
+          });
+
+          item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+          });
+
+          item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            const targetIndex = parseInt(item.dataset.index, 10);
+            if (draggedIndex !== null && targetIndex !== draggedIndex) {
+              const movedItem = STATE.blocks.splice(draggedIndex, 1)[0];
+              STATE.blocks.splice(targetIndex, 0, movedItem);
+              renderBlocksList();
+              renderCanvas();
+              showToast('Blocks order updated!');
+            }
+          });
+
+          item.addEventListener('click', () => {
+            selectBlock(item.dataset.id);
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        renderBlocksList();
+        renderCanvas();
+        renderInspector();
+
+        // Viewport Switcher
+        const viewMobile = document.getElementById('view-mobile');
+        const viewDesktop = document.getElementById('view-desktop');
+        const previewFrame = document.getElementById('preview-frame');
+        const phoneNotch = document.getElementById('phone-notch');
+
+        viewMobile.addEventListener('click', () => {
+          previewFrame.className = 'w-full max-w-[390px] bg-white rounded-[2.5rem] shadow-2xl border-8 border-slate-800 overflow-hidden transition-all duration-300 min-h-[720px] flex flex-col relative';
+          phoneNotch.classList.remove('hidden');
+          viewMobile.classList.add('bg-white', 'text-ink', 'shadow-xs');
+          viewMobile.classList.remove('text-slate-600');
+          viewDesktop.classList.remove('bg-white', 'text-ink', 'shadow-xs');
+          viewDesktop.classList.add('text-slate-600');
+        });
+
+        viewDesktop.addEventListener('click', () => {
+          previewFrame.className = 'w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-300 overflow-hidden transition-all duration-300 min-h-[720px] flex flex-col relative';
+          phoneNotch.classList.add('hidden');
+          viewDesktop.classList.add('bg-white', 'text-ink', 'shadow-xs');
+          viewDesktop.classList.remove('text-slate-600');
+          viewMobile.classList.remove('bg-white', 'text-ink', 'shadow-xs');
+          viewMobile.classList.add('text-slate-600');
+        });
+
+        // Theme color pickers
+        document.querySelectorAll('.color-picker-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            STATE.brandColor = btn.dataset.color;
+            document.querySelectorAll('.color-picker-btn').forEach(b => b.classList.remove('ring-2', 'ring-brand', 'ring-offset-1'));
+            btn.classList.add('ring-2', 'ring-brand', 'ring-offset-1');
+            renderCanvas();
+            showToast(`Theme color updated to ${btn.title}`);
+          });
+        });
+
+        // Publish Toggle
+        document.getElementById('publish-toggle').addEventListener('change', (e) => {
+          STATE.isPublished = e.target.checked;
+          const statusText = document.getElementById('publish-status-text');
+          statusText.textContent = STATE.isPublished ? 'Published Live' : 'Unpublished (Draft)';
+          showToast(STATE.isPublished ? 'Store is live online!' : 'Store unpublished (draft mode)', '⚡');
+        });
+
+        // Save Page
+        document.getElementById('save-page-btn').addEventListener('click', () => {
+          localStorage.setItem('mypage_builder_blocks', JSON.stringify(STATE.blocks));
+          showToast('All storefront changes saved successfully!');
+        });
+
+        // Add block simulation
+        document.getElementById('add-block-btn').addEventListener('click', () => {
+          const newBlock = {
+            id: 'b-' + Date.now(),
+            type: 'custom',
+            name: 'Announcement Bar',
+            visible: true,
+            title: '🔥 Free Lagos delivery for orders over ₦50,000 this week!'
+          };
+          STATE.blocks.push(newBlock);
+          selectBlock(newBlock.id);
+          renderBlocksList();
+          renderCanvas();
+          showToast('Added Announcement Bar block!');
+        });
+
+        // Delete block
+        document.getElementById('delete-block-btn').addEventListener('click', () => {
+          if (STATE.blocks.length <= 1) {
+            showToast('You must keep at least one block!', '⚠️');
+            return;
+          }
+          STATE.blocks = STATE.blocks.filter(b => b.id !== STATE.selectedBlockId);
+          STATE.selectedBlockId = STATE.blocks[0].id;
+          renderBlocksList();
+          renderCanvas();
+          renderInspector();
+          showToast('Block removed from storefront.');
+        });
+      });
+    </script>
+  </body>
+</html>

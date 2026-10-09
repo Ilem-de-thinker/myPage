@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pricing Plans — mypage.ng | Simple & Fair Nigerian SME Pricing</title>
+    <meta name="description" content="Transparent pricing for Nigerian sellers. Start free, or upgrade to Pro for ₦3,500/month with unlimited products and WhatsApp broadcasts." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: {
+                DEFAULT: '#F97316',
+                soft: '#FFEDD5',
+                dark: '#EA580C',
+              },
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col antialiased">
+    
+    <!-- Top notification banner -->
+    <div class="bg-ink text-slate-200 text-xs py-2 px-4 border-b border-slate-800 text-center">
+      <span>🇳🇬 Pay with Nigerian Debit Cards, USSD, Opay, PalmPay or Direct Bank Transfer. Zero hidden foreign fees.</span>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          </div>
+          <span class="font-display font-extrabold text-xl tracking-tight text-ink">mypage<span class="text-brand">.ng</span></span>
+        </a>
+
+        <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-body">
+          <a href="index.html#how-it-works" class="hover:text-brand">How it works</a>
+          <a href="index.html#features" class="hover:text-brand">Features</a>
+          <a href="pricing.html" class="text-brand font-semibold">Pricing</a>
+          <a href="directory.html" class="hover:text-brand">Verified Sellers</a>
+          <a href="store.html" class="hover:text-brand">Demo Store</a>
+        </nav>
+
+        <div class="flex items-center gap-3">
+          <a href="login.html" class="text-sm font-medium text-slate-700 hover:text-ink px-3 py-2">Log in</a>
+          <a href="register.html" class="bg-brand hover:bg-brand-dark text-white font-semibold text-sm px-4 py-2.5 rounded-lg shadow-sm">Get Started Free</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Pricing Header & Billing Toggle -->
+    <main class="flex-1 py-16 sm:py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
+          <span class="text-brand font-semibold text-xs uppercase tracking-wider bg-brand-soft px-3 py-1 rounded-full">Transparent Pricing</span>
+          <h1 class="text-4xl sm:text-5xl font-display font-extrabold text-ink tracking-tight">
+            Plans built for Nigerian hustle
+          </h1>
+          <p class="text-lg text-body">
+            No expensive USD subscriptions. No debit card billing surprises. Choose a plan that matches your monthly order volume.
+          </p>
+
+          <!-- Monthly / Annual Toggle -->
+          <div class="pt-4 flex items-center justify-center gap-3">
+            <span id="label-monthly" class="text-sm font-semibold text-ink">Billed Monthly</span>
+            <button id="billing-toggle" type="button" class="w-14 h-8 bg-brand rounded-full p-1 transition-colors relative focus:outline-none" aria-label="Toggle billing frequency">
+              <span id="billing-knob" class="w-6 h-6 bg-white rounded-full block shadow-md transform transition-transform translate-x-0"></span>
+            </button>
+            <div class="flex items-center gap-1.5">
+              <span id="label-annual" class="text-sm font-medium text-slate-500">Billed Annually</span>
+              <span class="bg-brand-soft text-brand-dark text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">Save 20%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Tier Cards -->
+        <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch mb-20">
+          
+          <!-- Free Plan -->
+          <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="space-y-6">
+              <div>
+                <span class="text-xs font-bold uppercase text-slate-500 tracking-wider">Free Starter</span>
+                <div class="mt-2 flex items-baseline">
+                  <span class="text-4xl font-display font-extrabold text-ink tabular-naira">₦0</span>
+                  <span class="text-xs text-slate-500 ml-1.5">/ forever</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-2">Zero commitment. Ideal for new vendors launching on WhatsApp.</p>
+              </div>
+
+              <div class="border-t border-slate-100 pt-6 space-y-3.5 text-xs text-slate-700">
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Up to 15 products</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> mypage.ng/yourshop link</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Direct WhatsApp cart generation</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Basic order list</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Standard Paystack checkout (1.5%)</div>
+                <div class="flex items-center gap-2.5 text-slate-400"><span>✕</span> Custom colors & themes</div>
+                <div class="flex items-center gap-2.5 text-slate-400"><span>✕</span> Kanban order pipeline</div>
+                <div class="flex items-center gap-2.5 text-slate-400"><span>✕</span> Customer Book & LTV</div>
+                <div class="flex items-center gap-2.5 text-slate-400"><span>✕</span> WhatsApp broadcast composer</div>
+              </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-100 mt-8">
+              <a href="register.html" class="w-full block text-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm py-3.5 rounded-xl transition-colors">
+                Get Started Free
+              </a>
+            </div>
+          </div>
+
+          <!-- Pro Plan (Popular) -->
+          <div class="bg-white rounded-2xl p-8 border-2 border-brand shadow-xl relative flex flex-col justify-between">
+            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm">
+              Most Popular
+            </div>
+
+            <div class="space-y-6">
+              <div>
+                <span class="text-xs font-bold uppercase text-brand tracking-wider">Pro Merchant</span>
+                <div class="mt-2 flex items-baseline">
+                  <span id="price-pro" class="text-4xl font-display font-extrabold text-ink tabular-naira">₦3,500</span>
+                  <span id="period-pro" class="text-xs text-slate-500 ml-1.5">/ month</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-2">Everything serious Nigerian vendors need to automate daily sales.</p>
+              </div>
+
+              <div class="border-t border-slate-100 pt-6 space-y-3.5 text-xs text-slate-700">
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> <strong>Unlimited</strong> products & variants</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> <strong>Order Kanban Pipeline</strong> (New → Shipped)</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Customer Book & Repeat buyer stats</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> WhatsApp Broadcast composer (Meta Cloud API)</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Automated stock alerts & low inventory badge</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Same-day bank withdrawals to any bank</div>
+                <div class="flex items-center gap-2.5"><span class="text-brand font-bold">✓</span> Verified green tick badge application</div>
+                <div class="flex items-center gap-2.5 text-slate-400"><span>✕</span> Escrow protection vault</div>
+              </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-100 mt-8">
+              <a href="register.html?plan=pro" class="w-full block text-center bg-brand hover:bg-brand-dark text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition-colors">
+                Start 14-Day Free Pro Trial
+              </a>
+              <p class="text-[11px] text-center text-slate-500 mt-2">No debit card required to begin trial</p>
+            </div>
+          </div>
+
+          <!-- Pro + Escrow Plan -->
+          <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="space-y-6">
+              <div>
+                <span class="text-xs font-bold uppercase text-accent tracking-wider">Pro + Escrow Vault</span>
+                <div class="mt-2 flex items-baseline">
+                  <span id="price-escrow" class="text-4xl font-display font-extrabold text-ink tabular-naira">₦7,000</span>
+                  <span id="period-escrow" class="text-xs text-slate-500 ml-1.5">/ month</span>
+                </div>
+                <p class="text-xs text-slate-600 mt-2">Designed for high-ticket items (phones, human hair, electronics, jewelry).</p>
+              </div>
+
+              <div class="border-t border-slate-100 pt-6 space-y-3.5 text-xs text-slate-700">
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> <strong>Everything in Pro</strong></div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> <strong>Protected Escrow Vault integration</strong></div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> Interstate buyer trust guarantee badge</div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> Dispute resolution priority mediation</div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> Custom domain setup (yourshop.com.ng)</div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> Multi-staff access (up to 5 team members)</div>
+                <div class="flex items-center gap-2.5"><span class="text-accent font-bold">✓</span> Dedicated WhatsApp account manager</div>
+              </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-100 mt-8">
+              <a href="register.html?plan=escrow" class="w-full block text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm py-3.5 rounded-xl transition-colors">
+                Choose Pro + Escrow
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FULL DETAILED COMPARISON TABLE -->
+        <div class="mt-20 max-w-5xl mx-auto">
+          <div class="text-center mb-10">
+            <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-ink">Detailed Feature Comparison</h2>
+            <p class="text-sm text-body mt-1">Everything included in each tier at a glance</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs sm:text-sm">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-200 text-ink font-semibold">
+                    <th class="p-4 sm:p-5 w-2/5">Capabilities</th>
+                    <th class="p-4 sm:p-5 text-center w-1/5">Free Starter</th>
+                    <th class="p-4 sm:p-5 text-center w-1/5 bg-brand-soft/40 text-brand-dark">Pro (₦3,500)</th>
+                    <th class="p-4 sm:p-5 text-center w-1/5">Pro + Escrow</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Max Products</td>
+                    <td class="p-4 sm:p-5 text-center">15</td>
+                    <td class="p-4 sm:p-5 text-center font-bold text-brand">Unlimited</td>
+                    <td class="p-4 sm:p-5 text-center font-bold">Unlimited</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Store link (mypage.ng/name)</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Custom domain (e.g., amaka.com.ng)</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓ Included</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Order Pipeline (Kanban Board)</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓ Full Kanban</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓ Full Kanban</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Customer Book (CRM & LTV)</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">WhatsApp Broadcast Composer</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓ (At Meta cost)</td>
+                    <td class="p-4 sm:p-5 text-center text-emerald-600 font-bold">✓ (At Meta cost)</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Escrow Protection Vault</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-slate-300">—</td>
+                    <td class="p-4 sm:p-5 text-center text-accent font-bold">✓ Full Escrow</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Bank Withdrawal Speed</td>
+                    <td class="p-4 sm:p-5 text-center">Next Day (T+1)</td>
+                    <td class="p-4 sm:p-5 text-center font-semibold text-brand">Same Day (6 PM)</td>
+                    <td class="p-4 sm:p-5 text-center font-semibold text-brand">Instant / Same Day</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-4 sm:p-5 font-medium text-ink">Payment Gateway Fee</td>
+                    <td class="p-4 sm:p-5 text-center">1.5%</td>
+                    <td class="p-4 sm:p-5 text-center">1.5% (capped ₦2,000)</td>
+                    <td class="p-4 sm:p-5 text-center">1.5% (capped ₦2,000)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAQ ACCORDION SPECIFIC TO PRICING -->
+        <div class="mt-20 max-w-3xl mx-auto">
+          <div class="text-center mb-8">
+            <h3 class="text-xl sm:text-2xl font-display font-extrabold text-ink">Pricing FAQ</h3>
+          </div>
+
+          <div class="space-y-3">
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <button class="w-full p-4 text-left font-bold text-sm text-ink flex items-center justify-between faq-toggle">
+                <span>Can I pay with bank transfer or USSD?</span>
+                <span class="text-brand font-bold text-base faq-icon">+</span>
+              </button>
+              <div class="px-4 pb-4 text-xs text-body leading-relaxed hidden faq-content">
+                Yes! We support Nigerian debit cards, bank transfer, USSD, Opay, and PalmPay. You can generate a dedicated virtual account to fund your subscription seamlessly.
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <button class="w-full p-4 text-left font-bold text-sm text-ink flex items-center justify-between faq-toggle">
+                <span>Can I switch plans or cancel at any time?</span>
+                <span class="text-brand font-bold text-base faq-icon">+</span>
+              </button>
+              <div class="px-4 pb-4 text-xs text-body leading-relaxed hidden faq-content">
+                Yes, there are no lock-in contracts. You can upgrade, downgrade to the Free plan, or cancel anytime directly from your dashboard billing settings.
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <button class="w-full p-4 text-left font-bold text-sm text-ink flex items-center justify-between faq-toggle">
+                <span>How are WhatsApp broadcast messages charged?</span>
+                <span class="text-brand font-bold text-base faq-icon">+</span>
+              </button>
+              <div class="px-4 pb-4 text-xs text-body leading-relaxed hidden faq-content">
+                On the Pro plan, you only pay the direct Meta WhatsApp Cloud API messaging cost in Naira (approximately ₦3.50 for utility updates and ₦8.20 for marketing broadcasts). We add zero markup!
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p>© 2026 mypage.ng Technologies Limited. All pricing quoted in Nigerian Naira (₦).</p>
+        <div class="flex items-center gap-4">
+          <a href="index.html" class="hover:text-brand">Home</a>
+          <a href="directory.html" class="hover:text-brand">Verified Sellers</a>
+          <a href="login.html" class="hover:text-brand">Seller Login</a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Interactive script -->
+    <script>
+      let isAnnual = false;
+      const toggleBtn = document.getElementById('billing-toggle');
+      const knob = document.getElementById('billing-knob');
+      const pricePro = document.getElementById('price-pro');
+      const periodPro = document.getElementById('period-pro');
+      const priceEscrow = document.getElementById('price-escrow');
+      const periodEscrow = document.getElementById('period-escrow');
+      const labelMonthly = document.getElementById('label-monthly');
+      const labelAnnual = document.getElementById('label-annual');
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          isAnnual = !isAnnual;
+          if (isAnnual) {
+            knob.classList.add('translate-x-6');
+            pricePro.textContent = '₦33,600';
+            periodPro.textContent = '/ year (₦2,800/mo)';
+            priceEscrow.textContent = '₦67,200';
+            periodEscrow.textContent = '/ year (₦5,600/mo)';
+            labelMonthly.classList.replace('text-ink', 'text-slate-500');
+            labelAnnual.classList.replace('text-slate-500', 'text-ink');
+          } else {
+            knob.classList.remove('translate-x-6');
+            pricePro.textContent = '₦3,500';
+            periodPro.textContent = '/ month';
+            priceEscrow.textContent = '₦7,000';
+            periodEscrow.textContent = '/ month';
+            labelMonthly.classList.replace('text-slate-500', 'text-ink');
+            labelAnnual.classList.replace('text-ink', 'text-slate-500');
+          }
+        });
+      }
+
+      // FAQ accordion toggle
+      document.querySelectorAll('.faq-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const content = btn.nextElementSibling;
+          const icon = btn.querySelector('.faq-icon');
+          const isHidden = content.classList.contains('hidden');
+          document.querySelectorAll('.faq-content').forEach(c => c.classList.add('hidden'));
+          document.querySelectorAll('.faq-icon').forEach(i => i.textContent = '+');
+          if (isHidden) {
+            content.classList.remove('hidden');
+            icon.textContent = '−';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

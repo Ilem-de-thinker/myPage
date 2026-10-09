@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escrow Dispute Mediation — mypage.ng Ops Console</title>
+    <meta name="description" content="Manage buyer and seller dispute mediation, evidence review, and fund settlements." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- OPS DARK SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-slate-950 text-slate-300 border-r border-slate-800 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-800">
+          <a href="admin-dashboard.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm font-bold">
+              ⚡
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-white">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-emerald-400 font-mono">Platform Admin</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="admin-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Overview Metrics</span>
+          </a>
+          <a href="admin-sellers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Sellers Directory</span>
+          </a>
+          <a href="admin-transactions.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>All Transactions</span>
+          </a>
+          <a href="admin-disputes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-semibold">
+            <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Escrow Disputes</span>
+          </a>
+          <a href="admin-badges.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+            <span>Verified Badge KYC</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-800">
+        <a href="dashboard.html" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-emerald-400 border border-slate-700">
+          <span>← Back to Seller Demo</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">Escrow Dispute Mediation Queue</h1>
+          <p class="text-xs text-slate-500">Neutral Nigerian mediation for interstate shipment disputes</p>
+        </div>
+
+        <span class="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-200" id="queue-badge">
+          1 Open Case
+        </span>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-5xl w-full mx-auto space-y-6">
+        
+        <!-- CASE CARD -->
+        <div id="dispute-case-card" class="bg-white rounded-3xl border-2 border-amber-300 shadow-md p-6 sm:p-8 space-y-6">
+          
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-base text-ink">Case #DISP-992</span>
+                <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">ACTION REQUIRED</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Order #MP-8920 · Disputed on 07 Oct 2026</p>
+            </div>
+
+            <div class="text-right">
+              <span class="text-xs text-slate-400">Escrow Held Amount:</span>
+              <p class="font-display font-extrabold text-2xl text-accent tabular-naira">₦48,000</p>
+            </div>
+          </div>
+
+          <!-- Parties Grid -->
+          <div class="grid sm:grid-cols-2 gap-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+              <span class="text-slate-400 font-bold uppercase text-[10px]">Buyer (Complainant)</span>
+              <p class="font-bold text-ink text-sm">Tunde Bakare</p>
+              <p class="text-slate-600">+234 807 444 3322 · Wuse 2, Abuja</p>
+              <p class="text-amber-900 pt-1 font-medium italic">"Delivery rider delayed package past our agreed 48-hour event date."</p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+              <span class="text-slate-400 font-bold uppercase text-[10px]">Merchant (Defendant)</span>
+              <p class="font-bold text-ink text-sm">Amaka Stitches</p>
+              <p class="text-slate-600">+234 803 456 7890 · Lekki, Lagos</p>
+              <p class="text-emerald-900 pt-1 font-medium italic">"Dispatched same day via GIG Logistics LAG-8920-EXP. Package arrived at Abuja depot."</p>
+            </div>
+          </div>
+
+          <!-- Evidence viewer -->
+          <div class="space-y-2 text-xs">
+            <span class="font-bold text-slate-700 block">Uploaded Evidence & Audit Trail</span>
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[11px] text-slate-700 space-y-1">
+              <div>• Waybill Receipt: GIG-LAG-8920-EXP (Verified pickup at 11:30 AM)</div>
+              <div>• Logistics GPS: Transit reached Abuja central depot at 08:15 AM today</div>
+              <div>• WhatsApp Chat Log: Verified buyer agreement to interstate courier terms</div>
+            </div>
+          </div>
+
+          <!-- Mediation Resolution Actions -->
+          <div class="pt-4 border-t border-slate-200 space-y-3">
+            <span class="font-display font-bold text-xs uppercase tracking-wider text-slate-600 block">
+              Mediator Decision (Instant Escrow Execution)
+            </span>
+
+            <div class="grid sm:grid-cols-3 gap-3">
+              <button onclick="resolveCase('seller', 48000)" class="p-3.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-xs shadow-xs transition-colors text-center space-y-1">
+                <span class="block">Release 100% to Seller</span>
+                <span class="text-[10px] opacity-80 block tabular-naira">₦48,000 to Amaka Stitches</span>
+              </button>
+
+              <button onclick="resolveCase('buyer', 48000)" class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-colors text-center space-y-1">
+                <span class="block">Full Refund to Buyer</span>
+                <span class="text-[10px] opacity-80 block tabular-naira">₦48,000 to Tunde Bakare</span>
+              </button>
+
+              <button onclick="resolveCase('split', 24000)" class="p-3.5 rounded-xl border-2 border-slate-300 hover:border-slate-400 font-bold text-xs text-slate-800 text-center space-y-1">
+                <span class="block">Split 50 / 50</span>
+                <span class="text-[10px] text-slate-500 block tabular-naira">₦24,000 each</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RESOLVED EMPTY STATE -->
+        <div id="no-disputes-card" class="hidden bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
+          <div class="w-16 h-16 rounded-full bg-emerald-100 text-brand flex items-center justify-center text-3xl mx-auto">
+            ✓
+          </div>
+          <h3 class="font-display font-extrabold text-lg text-ink">All Disputes Cleared!</h3>
+          <p class="text-xs text-slate-500">Zero active dispute tickets in the mediation queue.</p>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Case resolved</p>
+    </div>
+
+    <script>
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3200);
+      }
+
+      function resolveCase(decision, amount) {
+        document.getElementById('dispute-case-card').classList.add('hidden');
+        document.getElementById('no-disputes-card').classList.remove('hidden');
+        document.getElementById('queue-badge').textContent = '0 Open Cases';
+        document.getElementById('queue-badge').className = 'text-xs font-bold text-emerald-900 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200';
+
+        if (decision === 'seller') {
+          showToast(`Dispute #DISP-992 closed! ₦${amount.toLocaleString('en-NG')} released to Amaka Stitches wallet.`, '⚖️');
+        } else if (decision === 'buyer') {
+          showToast(`Dispute #DISP-992 closed! ₦${amount.toLocaleString('en-NG')} refunded to buyer Tunde Bakare.`, '⚖️');
+        } else {
+          showToast(`Dispute #DISP-992 closed! Split ₦${amount.toLocaleString('en-NG')} to each party.`, '⚖️');
+        }
+      }
+    </script>
+  </body>
+</html>

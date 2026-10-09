@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Manage your WhatsApp store, track incoming orders, monitor sales and payouts in Nigerian Naira." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: {
+                DEFAULT: '#F97316',
+                soft: '#FFEDD5',
+                dark: '#EA580C',
+              },
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased selection:bg-brand-soft selection:text-brand-900 pb-16 lg:pb-0">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-slate-200 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <!-- Store Brand Header -->
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-slate-400 leading-none">Seller Workspace</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- Store Switcher & Verification -->
+        <div class="p-4 mx-3 my-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 bg-white">
+              <img src="https://picsum.photos/seed/fashionamaka/80/80" alt="Amaka Stitches" class="w-full h-full object-cover"/>
+            </div>
+            <div class="truncate">
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-xs text-ink truncate">Amaka Stitches</span>
+                <span class="text-brand text-[10px]">●</span>
+              </div>
+              <span class="text-[10px] text-emerald-700 font-medium">amaka.mypage.ng</span>
+            </div>
+          </div>
+          <a href="store.html" target="_blank" title="Preview live store" class="p-1 text-slate-400 hover:text-ink">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="px-3 space-y-1 text-xs font-medium">
+          <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-soft text-brand-dark font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+
+          <a href="page-builder.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            <span>Page Builder</span>
+            <span class="ml-auto text-[9px] bg-brand text-white font-bold px-1.5 py-0.2 rounded">FLAGSHIP</span>
+          </a>
+
+          <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Products & Stock</span>
+          </a>
+
+          <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Orders Pipeline</span>
+            <span class="ml-auto bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">4 New</span>
+          </a>
+
+          <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Customer Book</span>
+          </a>
+
+          <a href="inventory.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+            <span>Inventory</span>
+          </a>
+
+          <a href="payments.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Payments & Wallet</span>
+          </a>
+
+          <a href="escrow.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Escrow Vault</span>
+          </a>
+
+          <a href="messaging.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span>WhatsApp Broadcasts</span>
+          </a>
+
+          <a href="analytics.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Sales Analytics</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Bottom User Menu / Plan Status -->
+      <div class="p-4 border-t border-slate-200 space-y-3">
+        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-slate-800">Pro Merchant</span>
+            <span class="text-[10px] text-brand font-semibold">Active</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Renews on 28 Oct 2026</p>
+          <a href="billing.html" class="text-[11px] font-semibold text-brand hover:underline mt-1 block">Manage Plan</a>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 text-xs text-slate-600">
+          <a href="settings.html" class="flex items-center gap-2 hover:text-ink">
+            <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Settings</span>
+          </a>
+          <a href="login.html" class="text-rose-600 hover:text-rose-700 font-medium">Log out</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MOBILE STICKY BOTTOM NAV BAR (375px responsive standard) -->
+    <div class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 px-3 py-2 flex items-center justify-around text-[10px] font-semibold text-slate-600">
+      <a href="dashboard.html" class="flex flex-col items-center gap-1 text-brand">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Home</span>
+      </a>
+      <a href="orders.html" class="flex flex-col items-center gap-1 relative">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <span class="absolute -top-1 right-2 w-2 h-2 rounded-full bg-amber-500"></span>
+        <span>Orders</span>
+      </a>
+      <a href="products.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <span>Catalog</span>
+      </a>
+      <a href="page-builder.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+        <span>Builder</span>
+      </a>
+      <a href="payments.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <span>Wallet</span>
+      </a>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top Bar -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <!-- Search bar -->
+        <div class="relative w-full max-w-xs sm:max-w-md hidden sm:block">
+          <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input 
+            type="text" 
+            placeholder="Search orders by customer name, phone or #Ref..." 
+            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-brand focus:bg-white"
+          />
+        </div>
+
+        <div class="flex items-center gap-1 sm:hidden">
+          <span class="font-display font-extrabold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+        </div>
+
+        <!-- Top Right Actions -->
+        <div class="flex items-center gap-3">
+          <!-- Live Store Quick Button -->
+          <a href="store.html" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+            <span class="w-2 h-2 rounded-full bg-brand"></span>
+            <span>Live Store</span>
+            <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+
+          <!-- Notification Bell -->
+          <div class="relative">
+            <button id="notif-btn" class="p-2 rounded-xl text-slate-600 hover:text-ink hover:bg-slate-100 relative">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand"></span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-50 text-xs">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100 font-semibold text-slate-900">
+                <span>Alerts</span>
+                <span class="text-[10px] text-brand">3 new</span>
+              </div>
+              <div class="space-y-2 pt-2">
+                <div class="p-2 rounded-lg bg-emerald-50 text-emerald-900">
+                  <span class="font-bold">₦24,500 Paid!</span> Order #MP-8921 received from Chioma Okeke via Paystack.
+                </div>
+                <div class="p-2 rounded-lg bg-slate-50 text-slate-700">
+                  <span class="font-bold">Stock Alert:</span> Emerald Silk Boubou (Size L) has only 2 units left.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Avatar -->
+          <a href="settings.html" class="flex items-center gap-2 pl-2">
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+              <img src="https://picsum.photos/seed/fashionamaka/80/80" alt="Amaka Okafor" class="w-full h-full object-cover"/>
+            </div>
+            <span class="hidden md:inline font-semibold text-xs text-slate-800">Amaka O.</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Body Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-8">
+        
+        <!-- Welcome banner with quick share store card -->
+        <div class="bg-gradient-to-r from-ink via-slate-900 to-emerald-950 rounded-2xl p-6 sm:p-7 text-white shadow-md relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div class="space-y-2 relative z-10 max-w-xl">
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 text-[11px] font-semibold border border-emerald-800">
+              <span class="w-2 h-2 rounded-full bg-brand animate-ping"></span>
+              <span>Shop is Active & Receiving Orders</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-display font-extrabold text-white">
+              Good morning, Amaka! 👋
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-300">
+              You have <strong class="text-white">4 orders</strong> ready for delivery packing today. ₦184,500 in sales recorded so far.
+            </p>
+          </div>
+
+          <div class="relative z-10 bg-white/10 backdrop-blur rounded-xl p-3 sm:p-4 border border-white/20 w-full md:w-auto shrink-0 space-y-2">
+            <div class="flex items-center justify-between text-xs text-slate-200 gap-4">
+              <span class="text-[11px] text-slate-300">Your Store Link:</span>
+              <span class="font-mono font-bold text-white text-xs">mypage.ng/amaka</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="copy-store-link" class="px-3.5 py-2 rounded-lg bg-brand hover:bg-brand-dark text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                <span>Copy Link</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </button>
+              <button id="share-wa-status" class="px-3.5 py-2 rounded-lg bg-emerald-900/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700 font-semibold text-xs transition-colors">
+                Share to Status
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 TOP STAT CARDS WITH CANVA SPARKLINE CHARTS -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          
+          <!-- Stat 1: Today's Sales -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                <span>Today's Sales</span>
+                <span class="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">+24%</span>
+              </div>
+              <p class="font-display text-2xl sm:text-3xl font-extrabold text-ink tabular-naira">₦184,500</p>
+              <p class="text-[11px] text-slate-400 mt-1">vs ₦148,000 yesterday</p>
+            </div>
+            <div class="mt-4 h-10 w-full">
+              <canvas id="sparkline-sales" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Stat 2: Total Orders -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                <span>Orders Today</span>
+                <span class="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded text-[10px]">14 total</span>
+              </div>
+              <p class="font-display text-2xl sm:text-3xl font-extrabold text-ink tabular-naira">14</p>
+              <p class="text-[11px] text-slate-400 mt-1">4 awaiting dispatch</p>
+            </div>
+            <div class="mt-4 h-10 w-full">
+              <canvas id="sparkline-orders" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Stat 3: New Customers -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                <span>New Buyers</span>
+                <span class="text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded text-[10px]">+62%</span>
+              </div>
+              <p class="font-display text-2xl sm:text-3xl font-extrabold text-ink tabular-naira">9</p>
+              <p class="text-[11px] text-slate-400 mt-1">First-time WhatsApp orders</p>
+            </div>
+            <div class="mt-4 h-10 w-full">
+              <canvas id="sparkline-customers" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Stat 4: Store Visits -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                <span>Page Views</span>
+                <span class="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded text-[10px]">Active</span>
+              </div>
+              <p class="font-display text-2xl sm:text-3xl font-extrabold text-ink tabular-naira">342</p>
+              <p class="text-[11px] text-slate-400 mt-1">From status & bios</p>
+            </div>
+            <div class="mt-4 h-10 w-full">
+              <canvas id="sparkline-views" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 2-COLUMN SECTION: ORDERS NEEDING ACTION + RIGHT BAR -->
+        <div class="grid lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- LEFT 8 COLS: Orders Needing Action -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+              <div class="flex items-center justify-between mb-5">
+                <div>
+                  <h2 class="text-base sm:text-lg font-display font-bold text-ink">
+                    Orders Needing Action (4)
+                  </h2>
+                  <p class="text-xs text-body">Paid orders waiting for dispatch confirmation or waybill assignment</p>
+                </div>
+                <a href="orders.html" class="text-xs font-semibold text-brand hover:underline flex items-center gap-1">
+                  View Kanban Board →
+                </a>
+              </div>
+
+              <!-- Orders List Table / Cards -->
+              <div class="divide-y divide-slate-100">
+                
+                <!-- Order Row 1 -->
+                <div class="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/70 p-2 rounded-xl transition-colors">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-brand flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      ₦
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-ink text-sm">#MP-8921</span>
+                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">PAID (Paystack)</span>
+                        <span class="text-xs text-slate-400">· 10 mins ago</span>
+                      </div>
+                      <p class="text-xs text-slate-700 font-medium mt-0.5">Chioma Okeke · Lekki Phase 1, Lagos</p>
+                      <p class="text-[11px] text-slate-500">1x Emerald Silk Boubou Dress (Size M)</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <span class="font-display font-bold text-sm text-ink tabular-naira">₦24,500</span>
+                    <div class="flex items-center gap-1.5">
+                      <a href="order-detail.html?id=8921" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                        Details
+                      </a>
+                      <button onclick="handleQuickDispatch('8921')" class="px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-dark text-white text-xs font-semibold shadow-xs">
+                        Mark Shipped
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Order Row 2 -->
+                <div class="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/70 p-2 rounded-xl transition-colors">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      🛡️
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-ink text-sm">#MP-8920</span>
+                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">ESCROW HELD</span>
+                        <span class="text-xs text-slate-400">· 42 mins ago</span>
+                      </div>
+                      <p class="text-xs text-slate-700 font-medium mt-0.5">Tunde Bakare · Wuse 2, Abuja (Interstate)</p>
+                      <p class="text-[11px] text-slate-500">2x Men's Kaftan Suit (Navy & Wine)</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <span class="font-display font-bold text-sm text-ink tabular-naira">₦48,000</span>
+                    <div class="flex items-center gap-1.5">
+                      <a href="order-detail.html?id=8920" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                        Details
+                      </a>
+                      <button onclick="handleWaPing('Tunde Bakare', '+2348074443322')" class="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 text-xs font-semibold">
+                        WhatsApp
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Order Row 3 -->
+                <div class="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/70 p-2 rounded-xl transition-colors">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-brand flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      ₦
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-ink text-sm">#MP-8919</span>
+                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">PAID (Transfer)</span>
+                        <span class="text-xs text-slate-400">· 2 hrs ago</span>
+                      </div>
+                      <p class="text-xs text-slate-700 font-medium mt-0.5">Funke Adebayo · Ikeja, Lagos</p>
+                      <p class="text-[11px] text-slate-500">1x Sunset Orange Two-Piece (Size S)</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <span class="font-display font-bold text-sm text-ink tabular-naira">₦19,500</span>
+                    <div class="flex items-center gap-1.5">
+                      <a href="order-detail.html?id=8919" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                        Details
+                      </a>
+                      <button onclick="handleQuickDispatch('8919')" class="px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-dark text-white text-xs font-semibold shadow-xs">
+                        Mark Shipped
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- LOW STOCK ALERT BANNER -->
+            <div class="bg-amber-50 rounded-2xl border border-amber-200 p-5 flex items-start gap-4">
+              <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg shrink-0">
+                ⚠️
+              </div>
+              <div class="flex-1 space-y-1">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold text-xs sm:text-sm text-amber-950">Low Stock Notice: 3 Items Below Reorder Point</h3>
+                  <a href="inventory.html" class="text-xs font-semibold text-amber-900 underline">Manage Inventory →</a>
+                </div>
+                <p class="text-xs text-amber-800">
+                  "Emerald Silk Boubou (Size L)" has 2 units remaining. "Navy Kaftan Suit" is sold out in XL.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT 4 COLS: ACTIVITY FEED & QUICK SHORTCUTS -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Quick Actions Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+              <h3 class="font-display font-bold text-sm text-ink">Quick Shortcuts</h3>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <a href="product-form.html" class="p-3 rounded-xl border border-slate-200 hover:border-brand/40 bg-slate-50/50 hover:bg-emerald-50/30 transition-all font-semibold text-slate-700 flex flex-col items-center justify-center text-center gap-1.5">
+                  <span class="text-brand text-lg">+</span>
+                  <span>Add Product</span>
+                </a>
+                <a href="messaging.html" class="p-3 rounded-xl border border-slate-200 hover:border-brand/40 bg-slate-50/50 hover:bg-emerald-50/30 transition-all font-semibold text-slate-700 flex flex-col items-center justify-center text-center gap-1.5">
+                  <span class="text-brand text-lg">📢</span>
+                  <span>New Broadcast</span>
+                </a>
+                <a href="payments.html" class="p-3 rounded-xl border border-slate-200 hover:border-brand/40 bg-slate-50/50 hover:bg-emerald-50/30 transition-all font-semibold text-slate-700 flex flex-col items-center justify-center text-center gap-1.5">
+                  <span class="text-emerald-700 text-lg">🏦</span>
+                  <span>Withdraw ₦</span>
+                </a>
+                <a href="page-builder.html" class="p-3 rounded-xl border border-slate-200 hover:border-brand/40 bg-slate-50/50 hover:bg-emerald-50/30 transition-all font-semibold text-slate-700 flex flex-col items-center justify-center text-center gap-1.5">
+                  <span class="text-brand text-lg">🎨</span>
+                  <span>Edit Theme</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Recent Activity Timeline -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+              <h3 class="font-display font-bold text-sm text-ink">Recent Store Activity</h3>
+              <div class="space-y-3.5 text-xs">
+                
+                <div class="flex items-start gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-brand mt-1.5 shrink-0"></span>
+                  <div>
+                    <p class="text-slate-800 font-medium">Bank settlement completed</p>
+                    <p class="text-slate-500 text-[11px]">₦94,200 sent to GTBank (0144***992) · Today 06:12 AM</p>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></span>
+                  <div>
+                    <p class="text-slate-800 font-medium">Order #MP-8918 delivered</p>
+                    <p class="text-slate-500 text-[11px]">Buyer confirmed receipt in Surulere · Yesterday</p>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                  <div>
+                    <p class="text-slate-800 font-medium">WhatsApp Broadcast Sent</p>
+                    <p class="text-slate-500 text-[11px]">Restock alert sent to 142 repeat buyers · Cost: ₦580</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Action completed</p>
+    </div>
+
+    <!-- Vanilla JS Logic & Canvas Sparklines -->
+    <script>
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      function handleQuickDispatch(orderId) {
+        showToast(`Order #${orderId} marked as Shipped! SMS & WhatsApp tracking triggered.`, '🚚');
+      }
+
+      function handleWaPing(name, phone) {
+        showToast(`Opening WhatsApp chat with ${name}...`, '📱');
+        setTimeout(() => {
+          window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(name)},%20this%20is%20Amaka%20Stitches%20regarding%20your%20order!`, '_blank');
+        }, 600);
+      }
+
+      // Draw lightweight sparkline on HTML5 canvas
+      function drawSparkline(canvasId, data, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        const width = rect.width;
+        const height = rect.height;
+        const min = Math.min(...data);
+        const max = Math.max(...data);
+        const step = width / (data.length - 1);
+
+        ctx.beginPath();
+        data.forEach((val, i) => {
+          const x = i * step;
+          const y = height - ((val - min) / (max - min || 1)) * (height - 6) - 3;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Fill subtle gradient below line
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fillStyle = color + '15'; // 10% opacity
+        ctx.fill();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // Draw sparklines
+        drawSparkline('sparkline-sales', [40, 65, 50, 80, 95, 120, 184], '#16A34A');
+        drawSparkline('sparkline-orders', [4, 7, 5, 9, 8, 11, 14], '#3B82F6');
+        drawSparkline('sparkline-customers', [2, 3, 5, 4, 6, 7, 9], '#6366F1');
+        drawSparkline('sparkline-views', [120, 180, 160, 240, 290, 310, 342], '#D97706');
+
+        // Copy store link
+        document.getElementById('copy-store-link').addEventListener('click', () => {
+          navigator.clipboard.writeText('https://mypage.ng/amaka');
+          showToast('Store link https://mypage.ng/amaka copied!');
+        });
+
+        // Share to status
+        document.getElementById('share-wa-status').addEventListener('click', () => {
+          showToast('Opening WhatsApp Status link sharing...', '📱');
+          window.open('https://api.whatsapp.com/send?text=Check%20out%20my%20new%20catalog%20at%20https://mypage.ng/amaka', '_blank');
+        });
+
+        // Notifications dropdown toggle
+        const notifBtn = document.getElementById('notif-btn');
+        const notifDropdown = document.getElementById('notif-dropdown');
+        notifBtn.addEventListener('click', () => {
+          notifDropdown.classList.toggle('hidden');
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+          if (!notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
+            notifDropdown.classList.add('hidden');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "mypage.ng - WhatsApp-First Commerce Platform",
+  "description": "WhatsApp-first commerce platform for Nigerian SMEs. Your WhatsApp is a shop. Start treating it like one.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

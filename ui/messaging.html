@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp Broadcast Composer — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Send targeted WhatsApp broadcasts to customers with live Naira cost calculation using Meta Cloud API." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-slate-200 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-slate-400">Seller Workspace</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="page-builder.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            <span>Page Builder</span>
+          </a>
+          <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Products & Stock</span>
+          </a>
+          <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Orders Pipeline</span>
+          </a>
+          <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Customer Book</span>
+          </a>
+          <a href="messaging.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-soft text-brand-dark font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span>WhatsApp Broadcasts</span>
+          </a>
+          <a href="analytics.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Analytics</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-200">
+        <div class="p-2.5 rounded-xl bg-emerald-50 text-[11px] text-emerald-950 font-medium">
+          <span class="font-bold">Official Meta API</span><br/>
+          Zero ban risk. 99.4% delivery rate.
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">WhatsApp Broadcast Composer</h1>
+          <p class="text-xs text-slate-500">Official Meta WhatsApp Business Cloud API (October 2026 Naira Pricing)</p>
+        </div>
+
+        <button id="preview-send-btn" class="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+          <span>Review & Send</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+        <div class="grid lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- LEFT 7 COLS: Composer Controls -->
+          <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Step 1: Audience Selection -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-display font-bold text-sm text-ink">1. Target Audience</h2>
+                <span class="text-xs text-brand font-semibold" id="audience-count-badge">142 buyers selected</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Select Customer Segment</label>
+                <select id="audience-segment" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:border-brand">
+                  <option value="142" selected>🔁 Repeat Buyers (142 contacts)</option>
+                  <option value="84">💎 VIP Spenders ₦50k+ (84 contacts)</option>
+                  <option value="420">👥 All Store Customers (420 contacts)</option>
+                  <option value="95">⏳ At-Risk / Inactive Customers (95 contacts)</option>
+                  <option value="custom">⚙️ Custom Number of Recipients</option>
+                </select>
+              </div>
+
+              <!-- Recipient Count Field -->
+              <div class="flex items-center gap-3">
+                <div class="flex-1">
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">Recipient Count</label>
+                  <input type="number" id="recipient-count" value="142" min="1" max="10000" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold tabular-naira focus:outline-none focus:border-brand"/>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">Send Schedule</label>
+                  <select id="schedule-opt" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                    <option>Send Immediately</option>
+                    <option>Schedule for 6:00 PM Today</option>
+                    <option>Stagger batches (50 / hour)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Message Category & Rate Class -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-display font-bold text-sm text-ink">2. Meta Message Category & Rate</h2>
+                <span class="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Meta Rates Oct 2026</span>
+              </div>
+
+              <!-- Category Radio Tiles -->
+              <div class="grid grid-cols-2 gap-3" id="rate-class-options">
+                
+                <label class="p-3.5 rounded-xl border-2 border-brand bg-brand-soft/20 cursor-pointer rate-card transition-all" data-rate="8.20">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-xs text-ink">Marketing Message</span>
+                    <input type="radio" name="rate_class" value="8.20" checked class="text-brand"/>
+                  </div>
+                  <p class="text-[11px] text-slate-500">Promos, restock alerts, flash sales.</p>
+                  <span class="text-xs font-bold text-brand tabular-naira mt-2 block">₦8.20 / message</span>
+                </label>
+
+                <label class="p-3.5 rounded-xl border-2 border-slate-200 cursor-pointer rate-card transition-all" data-rate="3.50">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-xs text-ink">Utility Update</span>
+                    <input type="radio" name="rate_class" value="3.50" class="text-brand"/>
+                  </div>
+                  <p class="text-[11px] text-slate-500">Order updates, waybills, receipts.</p>
+                  <span class="text-xs font-bold text-slate-700 tabular-naira mt-2 block">₦3.50 / message</span>
+                </label>
+
+              </div>
+            </div>
+
+            <!-- Step 3: Message Content Composer -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-display font-bold text-sm text-ink">3. Message Copy</h2>
+                <div class="flex items-center gap-1">
+                  <button type="button" class="template-pill text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-2 py-0.5 rounded" data-tpl="restock">Restock Alert</button>
+                  <button type="button" class="template-pill text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-2 py-0.5 rounded" data-tpl="flash">Weekend Discount</button>
+                </div>
+              </div>
+
+              <div>
+                <textarea id="broadcast-message-text" rows="5" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs leading-relaxed focus:outline-none focus:border-brand font-sans">Hello Queen {name}! 🎉
+
+Good news — our best-selling Emerald Silk Boubou is officially BACK IN STOCK in all sizes (S, M, L, XL)!
+
+As one of our valued customers, you get first access before we post on our main status. Tap below to reserve yours now:
+https://mypage.ng/amaka?ref=vip
+
+Delivery starts today across Lagos!</textarea>
+              </div>
+
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span>Variables:</span>
+                <button type="button" onclick="insertVariable('{name}')" class="px-2 py-0.5 rounded bg-slate-100 font-mono text-[10px] text-slate-700">{name}</button>
+                <button type="button" onclick="insertVariable('https://mypage.ng/amaka')" class="px-2 py-0.5 rounded bg-slate-100 font-mono text-[10px] text-slate-700">{link}</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT 5 COLS: Live Naira Cost Panel & WhatsApp Preview -->
+          <div class="lg:col-span-5 space-y-6">
+            
+            <!-- LIVE ₦ COST ESTIMATE PANEL -->
+            <div class="bg-gradient-to-br from-slate-900 to-ink text-white p-6 rounded-2xl shadow-xl space-y-4 border border-slate-800">
+              <div class="flex items-center justify-between">
+                <span class="text-xs uppercase font-bold text-emerald-400 tracking-wider">Live Broadcast Cost Estimate</span>
+                <span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
+              </div>
+
+              <div class="space-y-1">
+                <p class="font-display text-3xl sm:text-4xl font-extrabold text-white tabular-naira" id="total-cost-naira">₦1,164.40</p>
+                <p class="text-xs text-slate-300">
+                  <span id="cost-calc-breakdown">142 recipients × ₦8.20</span>
+                </p>
+              </div>
+
+              <div class="pt-3 border-t border-slate-800 space-y-2 text-xs text-slate-300">
+                <div class="flex justify-between">
+                  <span>Available Wallet Balance:</span>
+                  <span class="font-bold text-emerald-400 tabular-naira">₦142,500</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Estimated Delivery Time:</span>
+                  <span class="text-slate-200 font-medium">Under 3 minutes</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Platform Commission:</span>
+                  <span class="text-emerald-400 font-bold">₦0 (Direct Meta Cost)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- LIVE WHATSAPP PHONE PREVIEW -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                Buyer Chat Preview (What Chioma Sees)
+              </span>
+
+              <div class="bg-[#ECE5DD] p-3.5 rounded-2xl border border-slate-300 space-y-2">
+                <!-- WhatsApp Seller Card -->
+                <div class="flex items-center gap-2 border-b border-black/5 pb-2">
+                  <img src="https://picsum.photos/seed/fashionamaka/60/60" class="w-6 h-6 rounded-full object-cover"/>
+                  <span class="font-bold text-xs text-slate-900">Amaka Stitches (Official)</span>
+                  <span class="text-[10px] text-emerald-700 bg-emerald-100 px-1 rounded font-bold">VERIFIED</span>
+                </div>
+
+                <!-- Green Chat Bubble -->
+                <div class="bg-[#DCF8C6] p-3 rounded-xl rounded-tl-none shadow-xs text-xs text-slate-800 space-y-2">
+                  <p class="whitespace-pre-wrap leading-relaxed font-sans" id="preview-bubble-text">
+Hello Queen Chioma! 🎉
+
+Good news — our best-selling Emerald Silk Boubou is officially BACK IN STOCK in all sizes (S, M, L, XL)!
+
+As one of our valued customers, you get first access before we post on our main status. Tap below to reserve yours now:
+https://mypage.ng/amaka?ref=vip
+
+Delivery starts today across Lagos!
+                  </p>
+                  <div class="text-[9px] text-slate-500 text-right">Just now · Sent via Meta Cloud</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+
+    </div>
+
+    <!-- SEND CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="w-12 h-12 bg-emerald-100 text-brand rounded-full flex items-center justify-center text-xl font-bold">
+          📢
+        </div>
+        <h3 class="font-display font-bold text-base text-ink">Confirm WhatsApp Broadcast</h3>
+        <p class="text-xs text-body leading-relaxed">
+          You are about to send this message to <strong id="modal-recipients-count" class="text-slate-900">142 customers</strong>. A total of <strong id="modal-cost" class="text-brand">₦1,164.40</strong> will be deducted from your wallet balance.
+        </p>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="document.getElementById('confirm-modal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+          <button onclick="executeBroadcast()" class="px-5 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-xs shadow-sm">
+            Confirm & Broadcast Now
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Broadcast scheduled</p>
+    </div>
+
+    <script>
+      let currentRate = 8.20;
+      let currentRecipients = 142;
+
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3200);
+      }
+
+      function updateCalculation() {
+        const total = currentRecipients * currentRate;
+        document.getElementById('total-cost-naira').textContent = '₦' + total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('cost-calc-breakdown').textContent = `${currentRecipients} recipients × ₦${currentRate.toFixed(2)}`;
+        document.getElementById('audience-count-badge').textContent = `${currentRecipients} buyers selected`;
+      }
+
+      function updatePreviewText() {
+        const text = document.getElementById('broadcast-message-text').value;
+        const rendered = text.replace(/{name}/g, 'Chioma');
+        document.getElementById('preview-bubble-text').textContent = rendered;
+      }
+
+      function insertVariable(v) {
+        const ta = document.getElementById('broadcast-message-text');
+        ta.value += ' ' + v;
+        updatePreviewText();
+      }
+
+      function executeBroadcast() {
+        document.getElementById('confirm-modal').classList.add('hidden');
+        showToast(`Broadcast queued for ${currentRecipients} customers! Est. cost: ₦${(currentRecipients * currentRate).toFixed(2)}`, '📢');
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        updateCalculation();
+        updatePreviewText();
+
+        // Recipient count change
+        const countInput = document.getElementById('recipient-count');
+        countInput.addEventListener('input', (e) => {
+          currentRecipients = parseInt(e.target.value, 10) || 0;
+          updateCalculation();
+        });
+
+        // Audience segment selector
+        document.getElementById('audience-segment').addEventListener('change', (e) => {
+          if (e.target.value !== 'custom') {
+            currentRecipients = parseInt(e.target.value, 10);
+            countInput.value = currentRecipients;
+            updateCalculation();
+          }
+        });
+
+        // Rate class change
+        document.querySelectorAll('input[name="rate_class"]').forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            currentRate = parseFloat(e.target.value);
+            document.querySelectorAll('.rate-card').forEach(c => {
+              c.classList.remove('border-brand', 'bg-brand-soft/20');
+              c.classList.add('border-slate-200');
+            });
+            radio.closest('.rate-card').classList.add('border-brand', 'bg-brand-soft/20');
+            radio.closest('.rate-card').classList.remove('border-slate-200');
+            updateCalculation();
+          });
+        });
+
+        // Message text input
+        document.getElementById('broadcast-message-text').addEventListener('input', updatePreviewText);
+
+        // Review & Send Button
+        document.getElementById('preview-send-btn').addEventListener('click', () => {
+          document.getElementById('modal-recipients-count').textContent = `${currentRecipients} customers`;
+          document.getElementById('modal-cost').textContent = '₦' + (currentRecipients * currentRate).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+          document.getElementById('confirm-modal').classList.remove('hidden');
+        });
+
+        // Templates
+        document.querySelectorAll('.template-pill').forEach(pill => {
+          pill.addEventListener('click', () => {
+            const t = pill.dataset.tpl;
+            if (t === 'flash') {
+              document.getElementById('broadcast-message-text').value = 
+`Hello {name}! ⚡
+
+FLASH SALE ALERT: Get 20% off all silk boubous and matching sets this weekend only!
+Use code: PAYDAY20 at checkout.
+
+Tap link to order now:
+https://mypage.ng/amaka`;
+            } else {
+              document.getElementById('broadcast-message-text').value = 
+`Hello Queen {name}! 🎉
+
+Good news — our best-selling Emerald Silk Boubou is officially BACK IN STOCK in all sizes (S, M, L, XL)!
+
+As one of our valued customers, you get first access before we post on our main status. Tap below to reserve yours now:
+https://mypage.ng/amaka?ref=vip
+
+Delivery starts today across Lagos!`;
+            }
+            updatePreviewText();
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

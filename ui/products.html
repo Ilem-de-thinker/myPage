@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Products & Inventory — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Manage your products, prices in Naira, stock status, and WhatsApp catalog sync." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-slate-200 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-slate-400">Seller Workspace</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="page-builder.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+            <span>Page Builder</span>
+          </a>
+          <a href="products.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-soft text-brand-dark font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Products & Stock</span>
+          </a>
+          <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Orders Pipeline</span>
+          </a>
+          <a href="customers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Customer Book</span>
+          </a>
+          <a href="inventory.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+            <span>Inventory</span>
+          </a>
+          <a href="payments.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Payments & Wallet</span>
+          </a>
+          <a href="messaging.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span>Broadcasts</span>
+          </a>
+          <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-200">
+        <a href="store.html" target="_blank" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
+          <span>View Public Store</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MOBILE BOTTOM NAV -->
+    <div class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 px-3 py-2 flex items-center justify-around text-[10px] font-semibold text-slate-600">
+      <a href="dashboard.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Home</span>
+      </a>
+      <a href="orders.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <span>Orders</span>
+      </a>
+      <a href="products.html" class="flex flex-col items-center gap-1 text-brand">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <span>Catalog</span>
+      </a>
+      <a href="page-builder.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+        <span>Builder</span>
+      </a>
+      <a href="payments.html" class="flex flex-col items-center gap-1">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <span>Wallet</span>
+      </a>
+    </div>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">Products & Catalog</h1>
+          <p class="text-xs text-slate-500">Manage 18 active items in Nigerian Naira</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="import-catalog-btn" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span class="hidden sm:inline">Import from WhatsApp</span>
+          </button>
+
+          <a href="product-form.html" class="px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+            <span>+ Add Product</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        
+        <!-- Controls Bar: Search, Category Chips & View Toggle -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <!-- Search -->
+            <div class="relative w-full sm:max-w-md">
+              <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input 
+                type="text" 
+                id="search-product" 
+                placeholder="Search products by title, SKU, or tag..." 
+                class="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand focus:bg-white"
+              />
+            </div>
+
+            <!-- View Toggle: Grid vs Table -->
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+              <span class="text-xs text-slate-500 mr-1" id="product-count-label">6 items</span>
+              <div class="bg-slate-100 p-1 rounded-xl flex items-center">
+                <button id="view-grid-btn" class="p-1.5 rounded-lg bg-white text-brand shadow-xs" title="Grid View">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </button>
+                <button id="view-table-btn" class="p-1.5 rounded-lg text-slate-500 hover:text-ink" title="Table View">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M3 14h18M3 18h18M3 6h18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Chips -->
+          <div class="flex items-center gap-2 overflow-x-auto text-xs pb-1" id="cat-chips">
+            <button class="cat-chip active px-3 py-1 rounded-full bg-brand text-white font-medium" data-cat="all">All Products (6)</button>
+            <button class="cat-chip px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium" data-cat="Boubous">Silk Boubous</button>
+            <button class="cat-chip px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium" data-cat="Sets">Two-Piece Sets</button>
+            <button class="cat-chip px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium" data-cat="Kaftans">Kaftans</button>
+            <button class="cat-chip px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium" data-cat="Lace">Lace Materials</button>
+          </div>
+        </div>
+
+        <!-- BULK ACTIONS FLOATING BAR (Hidden until items selected) -->
+        <div id="bulk-bar" class="hidden bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center justify-between text-xs sticky top-20 z-20">
+          <div class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full bg-brand"></span>
+            <span id="selected-count" class="font-bold">2 items selected</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="handleBulkStock(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">Mark Out of Stock</button>
+            <button onclick="handleBulkDelete()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold">Delete Selected</button>
+          </div>
+        </div>
+
+        <!-- GRID VIEW CONTAINER -->
+        <div id="products-grid-view" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <!-- TABLE VIEW CONTAINER (Hidden by default) -->
+        <div id="products-table-view" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+              <tr>
+                <th class="p-4 w-10"><input type="checkbox" id="select-all-table" class="rounded text-brand"/></th>
+                <th class="p-4">Product Name</th>
+                <th class="p-4">Category</th>
+                <th class="p-4">Price</th>
+                <th class="p-4">Stock Status</th>
+                <th class="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-slate-100 text-slate-700">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- WhatsApp Catalog Import Modal -->
+    <div id="import-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white">💬</div>
+            <h3 class="font-display font-bold text-base text-ink">Sync WhatsApp Catalog</h3>
+          </div>
+          <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+
+        <p class="text-xs text-body leading-relaxed">
+          mypage.ng can automatically extract items, photos, and Naira prices from your WhatsApp Business Catalog (+234 803 456 7890).
+        </p>
+
+        <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-1.5">
+          <div class="font-bold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-brand"></span>
+            Connected Number: +234 803 456 7890
+          </div>
+          <p class="text-[11px] text-emerald-800">Found 18 products ready to import into your public mypage store.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="cancel-import-btn" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+          <button id="confirm-import-btn" class="px-5 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white text-xs font-bold shadow-sm">Start Instant Sync</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Catalog updated</p>
+    </div>
+
+    <!-- Products Engine Script -->
+    <script>
+      const DEMO_PRODUCTS = [
+        {
+          id: 1,
+          name: "Emerald Silk Boubou Dress",
+          category: "Boubous",
+          price: 24500,
+          comparePrice: 28000,
+          stock: 2,
+          status: "low",
+          image: "https://picsum.photos/seed/bouboufashion/400/400",
+          ordersCount: 42
+        },
+        {
+          id: 2,
+          name: "Sunset Orange Two-Piece Set",
+          category: "Sets",
+          price: 19500,
+          comparePrice: 22000,
+          stock: 14,
+          status: "in",
+          image: "https://picsum.photos/seed/ankaradress/400/400",
+          ordersCount: 28
+        },
+        {
+          id: 3,
+          name: "Royal Navy Agbada & Kaftan",
+          category: "Kaftans",
+          price: 48000,
+          comparePrice: 55000,
+          stock: 0,
+          status: "out",
+          image: "https://picsum.photos/seed/menkaftan/400/400",
+          ordersCount: 19
+        },
+        {
+          id: 4,
+          name: "Champagne Gold Chiffon Kaftan",
+          category: "Boubous",
+          price: 27000,
+          comparePrice: 30000,
+          stock: 8,
+          status: "in",
+          image: "https://picsum.photos/seed/goldchiffon/400/400",
+          ordersCount: 35
+        },
+        {
+          id: 5,
+          name: "Swiss Dry Voile Lace (5 Yards)",
+          category: "Lace",
+          price: 36000,
+          comparePrice: 40000,
+          stock: 5,
+          status: "in",
+          image: "https://picsum.photos/seed/swisslace/400/400",
+          ordersCount: 12
+        },
+        {
+          id: 6,
+          name: "Burgundy Velvet Evening Boubou",
+          category: "Boubous",
+          price: 32000,
+          comparePrice: 35000,
+          stock: 1,
+          status: "low",
+          image: "https://picsum.photos/seed/velvetboubou/400/400",
+          ordersCount: 51
+        }
+      ];
+
+      let selectedIds = new Set();
+      let activeCategory = 'all';
+      let searchQuery = '';
+      let isGridView = true;
+
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      function formatNaira(num) {
+        return '₦' + Number(num).toLocaleString('en-NG');
+      }
+
+      function getStockBadge(status, stock) {
+        if (status === 'out' || stock === 0) {
+          return '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Out of Stock</span>';
+        }
+        if (status === 'low' || stock <= 3) {
+          return `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Low: ${stock} Left</span>`;
+        }
+        return `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">In Stock (${stock})</span>`;
+      }
+
+      function render() {
+        const filtered = DEMO_PRODUCTS.filter(p => {
+          const matchCat = activeCategory === 'all' || p.category === activeCategory;
+          const matchQuery = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchCat && matchQuery;
+        });
+
+        document.getElementById('product-count-label').textContent = `${filtered.length} products`;
+
+        // Render Grid
+        const grid = document.getElementById('products-grid-view');
+        grid.innerHTML = filtered.map(p => `
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+            <div>
+              <div class="h-48 w-full bg-slate-100 relative overflow-hidden">
+                <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                <div class="absolute top-3 left-3">
+                  <input type="checkbox" onchange="toggleSelect(${p.id}, this.checked)" ${selectedIds.has(p.id) ? 'checked' : ''} class="w-4 h-4 rounded text-brand focus:ring-brand"/>
+                </div>
+                <div class="absolute top-3 right-3">
+                  ${getStockBadge(p.status, p.stock)}
+                </div>
+              </div>
+
+              <div class="p-4 space-y-1">
+                <span class="text-[10px] font-bold uppercase text-slate-400">${p.category}</span>
+                <h3 class="font-display font-bold text-sm text-ink truncate">${p.name}</h3>
+                <div class="flex items-baseline gap-2 pt-1">
+                  <span class="font-bold text-brand tabular-naira text-base">${formatNaira(p.price)}</span>
+                  ${p.comparePrice ? `<span class="text-xs text-slate-400 line-through tabular-naira">${formatNaira(p.comparePrice)}</span>` : ''}
+                </div>
+                <p class="text-[11px] text-slate-500 pt-1">${p.ordersCount} total orders</p>
+              </div>
+            </div>
+
+            <div class="p-4 pt-0 border-t border-slate-100 mt-2 flex items-center justify-between text-xs">
+              <a href="product-form.html?id=${p.id}" class="text-brand font-semibold hover:underline">Edit Product</a>
+              <button onclick="handleQuickCopyLink('${p.name}', ${p.price})" class="text-slate-500 hover:text-ink font-medium">
+                Copy Link
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        // Render Table
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = filtered.map(p => `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="p-4">
+              <input type="checkbox" onchange="toggleSelect(${p.id}, this.checked)" ${selectedIds.has(p.id) ? 'checked' : ''} class="w-4 h-4 rounded text-brand"/>
+            </td>
+            <td class="p-4 flex items-center gap-3">
+              <img src="${p.image}" class="w-10 h-10 rounded-lg object-cover"/>
+              <span class="font-semibold text-ink">${p.name}</span>
+            </td>
+            <td class="p-4 text-slate-600">${p.category}</td>
+            <td class="p-4 font-bold text-ink tabular-naira">${formatNaira(p.price)}</td>
+            <td class="p-4">${getStockBadge(p.status, p.stock)}</td>
+            <td class="p-4 text-right">
+              <a href="product-form.html?id=${p.id}" class="text-brand font-semibold hover:underline mr-3">Edit</a>
+              <button onclick="handleDelete(${p.id})" class="text-rose-600 font-semibold hover:underline">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+        // Bulk bar visibility
+        const bulkBar = document.getElementById('bulk-bar');
+        if (selectedIds.size > 0) {
+          bulkBar.classList.remove('hidden');
+          document.getElementById('selected-count').textContent = `${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'} selected`;
+        } else {
+          bulkBar.classList.add('hidden');
+        }
+      }
+
+      function toggleSelect(id, checked) {
+        if (checked) selectedIds.add(id);
+        else selectedIds.delete(id);
+        render();
+      }
+
+      function handleQuickCopyLink(name, price) {
+        navigator.clipboard.writeText(`https://mypage.ng/amaka?p=${encodeURIComponent(name)}`);
+        showToast(`Copied WhatsApp link for ${name}!`);
+      }
+
+      function handleDelete(id) {
+        showToast('Product deleted from inventory', '🗑️', 'bg-rose-600');
+      }
+
+      function handleBulkDelete() {
+        showToast(`Deleted ${selectedIds.size} products from catalog`, '🗑️', 'bg-rose-600');
+        selectedIds.clear();
+        render();
+      }
+
+      function handleBulkStock(inStock) {
+        showToast(`Updated stock state for selected items`);
+        selectedIds.clear();
+        render();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        render();
+
+        // Search
+        document.getElementById('search-product').addEventListener('input', (e) => {
+          searchQuery = e.target.value.trim();
+          render();
+        });
+
+        // Category chips
+        document.querySelectorAll('.cat-chip').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.cat-chip').forEach(b => {
+              b.classList.remove('bg-brand', 'text-white');
+              b.classList.add('bg-slate-100', 'text-slate-600');
+            });
+            btn.classList.add('bg-brand', 'text-white');
+            btn.classList.remove('bg-slate-100', 'text-slate-600');
+            activeCategory = btn.dataset.cat;
+            render();
+          });
+        });
+
+        // View toggle
+        const gridBtn = document.getElementById('view-grid-btn');
+        const tableBtn = document.getElementById('view-table-btn');
+        const gridView = document.getElementById('products-grid-view');
+        const tableView = document.getElementById('products-table-view');
+
+        gridBtn.addEventListener('click', () => {
+          gridView.classList.remove('hidden');
+          tableView.classList.add('hidden');
+          gridBtn.className = 'p-1.5 rounded-lg bg-white text-brand shadow-xs';
+          tableBtn.className = 'p-1.5 rounded-lg text-slate-500 hover:text-ink';
+        });
+
+        tableBtn.addEventListener('click', () => {
+          gridView.classList.add('hidden');
+          tableView.classList.remove('hidden');
+          tableBtn.className = 'p-1.5 rounded-lg bg-white text-brand shadow-xs';
+          gridBtn.className = 'p-1.5 rounded-lg text-slate-500 hover:text-ink';
+        });
+
+        // Modal for WhatsApp import
+        const modal = document.getElementById('import-modal');
+        document.getElementById('import-catalog-btn').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('cancel-import-btn').addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('confirm-import-btn').addEventListener('click', () => {
+          modal.classList.add('hidden');
+          showToast('Imported 18 items from WhatsApp Business Catalog! 🎉');
+        });
+      });
+    </script>
+  </body>
+</html>

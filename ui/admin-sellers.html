@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sellers Moderation Directory — mypage.ng Ops Console</title>
+    <meta name="description" content="Platform seller directory, GMV tracking, moderation, and suspension management." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- OPS DARK SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-slate-950 text-slate-300 border-r border-slate-800 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-800">
+          <a href="admin-dashboard.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm font-bold">
+              ⚡
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-white">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-emerald-400 font-mono">Platform Admin</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="admin-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Overview Metrics</span>
+          </a>
+          <a href="admin-sellers.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-semibold">
+            <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Sellers Directory</span>
+          </a>
+          <a href="admin-transactions.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>All Transactions</span>
+          </a>
+          <a href="admin-disputes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Escrow Disputes</span>
+          </a>
+          <a href="admin-badges.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+            <span>Verified Badge KYC</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-800">
+        <a href="dashboard.html" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-emerald-400 border border-slate-700">
+          <span>← Back to Seller Demo</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">Sellers & Merchant Moderation</h1>
+          <p class="text-xs text-slate-500">12,418 active Nigerian store links</p>
+        </div>
+
+        <button onclick="showToast('Exported platform sellers report (CSV)')" class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+          Export Sellers
+        </button>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        
+        <!-- Search bar & filters -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div class="relative w-full sm:max-w-md">
+            <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="seller-search" placeholder="Search by shop name, owner, or link..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand focus:bg-white"/>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500">Status:</span>
+            <select id="status-filter" class="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700">
+              <option value="all">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Review">Pending Review</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SELLERS TABLE -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <tr>
+                  <th class="p-4">Business & Owner</th>
+                  <th class="p-4">Storefront URL</th>
+                  <th class="p-4">Lifetime GMV (₦)</th>
+                  <th class="p-4">Category</th>
+                  <th class="p-4">Status</th>
+                  <th class="p-4 text-right">Moderation Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sellers-tbody" class="divide-y divide-slate-100 text-slate-700">
+                <!-- Injected via vanilla JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- SUSPEND MODAL -->
+    <div id="suspend-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <h3 class="font-display font-bold text-base text-rose-700">Suspend Merchant Storefront</h3>
+        <p class="text-xs text-body leading-relaxed">
+          You are taking action on <strong id="suspend-shop-name" class="text-slate-900">Store</strong>. Their store link will be immediately paused.
+        </p>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Select Policy Violation Reason:</label>
+          <select id="suspend-reason" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white">
+            <option>Customer Complaint: Delivery Not Dispatched</option>
+            <option>Fake Bank Alert / Payment Manipulation</option>
+            <option>Prohibited Goods / Trademark Violation</option>
+            <option>Fraudulent Identity Verification</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeSuspendModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+          <button onclick="confirmSuspend()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm">Confirm Suspension</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Action completed</p>
+    </div>
+
+    <script>
+      let SELLERS = [
+        { id: 1, name: "Amaka Stitches", owner: "Amaka Okafor", url: "mypage.ng/amaka", gmv: 14250000, cat: "Fashion", status: "Active" },
+        { id: 2, name: "Aba Leather Artisans", owner: "Chidi Kalu", url: "mypage.ng/abaleather", gmv: 9800000, cat: "Footwear", status: "Active" },
+        { id: 3, name: "Nneka Glow Essentials", owner: "Nneka Eze", url: "mypage.ng/nnekaglow", gmv: 4200000, cat: "Beauty", status: "Active" },
+        { id: 4, name: "Lagos Gadget Point", owner: "Babajide S.", url: "mypage.ng/lagosgadgets", gmv: 18900000, cat: "Gadgets", status: "Review" },
+        { id: 5, name: "Express Abuja Grills", owner: "Tunde B.", url: "mypage.ng/abujagrills", gmv: 1450000, cat: "Food", status: "Suspended" }
+      ];
+
+      let targetSuspendId = null;
+
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      function formatNaira(num) {
+        return '₦' + Number(num).toLocaleString('en-NG');
+      }
+
+      function getStatusBadge(st) {
+        if (st === 'Active') return '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Active</span>';
+        if (st === 'Review') return '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Pending Review</span>';
+        return '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Suspended</span>';
+      }
+
+      function renderSellers() {
+        const tbody = document.getElementById('sellers-tbody');
+        tbody.innerHTML = SELLERS.map(s => `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="p-4">
+              <span class="font-bold text-ink">${s.name}</span>
+              <span class="block text-[11px] text-slate-400">Owner: ${s.owner}</span>
+            </td>
+            <td class="p-4 font-mono font-semibold text-emerald-700">${s.url}</td>
+            <td class="p-4 font-bold text-ink tabular-naira text-sm">${formatNaira(s.gmv)}</td>
+            <td class="p-4 text-slate-600">${s.cat}</td>
+            <td class="p-4">${getStatusBadge(s.status)}</td>
+            <td class="p-4 text-right space-x-2">
+              <a href="store.html" target="_blank" class="text-slate-600 hover:text-ink font-semibold">Visit</a>
+              <button onclick="openSuspendModal(${s.id}, '${s.name}')" class="text-rose-600 hover:underline font-semibold">
+                ${s.status === 'Suspended' ? 'Unsuspend' : 'Suspend'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      function openSuspendModal(id, name) {
+        targetSuspendId = id;
+        document.getElementById('suspend-shop-name').textContent = name;
+        document.getElementById('suspend-modal').classList.remove('hidden');
+      }
+
+      function closeSuspendModal() {
+        document.getElementById('suspend-modal').classList.add('hidden');
+      }
+
+      function confirmSuspend() {
+        closeSuspendModal();
+        const s = SELLERS.find(i => i.id === targetSuspendId);
+        if (s) {
+          s.status = s.status === 'Suspended' ? 'Active' : 'Suspended';
+          renderSellers();
+          showToast(`Updated status for ${s.name} to ${s.status}!`, '⚡', s.status === 'Suspended' ? 'bg-rose-600' : 'bg-brand');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        renderSellers();
+      });
+    </script>
+  </body>
+</html>

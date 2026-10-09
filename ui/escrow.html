@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escrow Vault & Buyer Trust — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Protected escrow funds, delivery verification, and dispute resolution." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: {
+                DEFAULT: '#F97316',
+                soft: '#FFEDD5',
+                dark: '#EA580C',
+              },
+              danger: '#DC2626',
+              warning: '#D97706',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex antialiased pb-16 lg:pb-0">
+    
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-slate-200 fixed inset-y-0 z-30 justify-between">
+      <div>
+        <div class="h-18 px-5 flex items-center justify-between border-b border-slate-200">
+          <a href="index.html" class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            </div>
+            <div>
+              <span class="font-display font-bold text-base text-ink">mypage<span class="text-brand">.ng</span></span>
+              <p class="text-[10px] text-slate-400">Seller Workspace</p>
+            </div>
+          </a>
+        </div>
+
+        <nav class="p-3 space-y-1 text-xs font-medium">
+          <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="orders.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Orders Pipeline</span>
+          </a>
+          <a href="payments.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Payments & Wallet</span>
+          </a>
+          <a href="escrow.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-brand-soft text-brand-dark font-semibold">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Escrow Vault</span>
+          </a>
+          <a href="messaging.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span>Broadcasts</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-200">
+        <a href="store.html" target="_blank" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
+          <span>Live Store</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      
+      <!-- Top header -->
+      <header class="h-18 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-ink">Escrow Protection Center</h1>
+          <p class="text-xs text-slate-500">Eliminates "pay on delivery" fraud and gives buyers confidence to order</p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-soft text-accent-dark font-bold border border-amber-300">
+            <span>🛡️</span>
+            <span>Escrow Protected Active</span>
+          </span>
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+        
+        <!-- 3 METRIC TILES -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <span class="text-xs text-slate-500">Currently Held in Vault</span>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-accent tabular-naira">₦48,000</p>
+            <p class="text-[11px] text-slate-400">1 active order pending delivery</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <span class="text-xs text-slate-500">Total Escrow Volume Released</span>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-brand tabular-naira">₦3,850,000</p>
+            <p class="text-[11px] text-slate-400">114 successful interstate deliveries</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <span class="text-xs text-slate-500">Dispute Rate</span>
+            <p class="font-display text-3xl sm:text-4xl font-extrabold text-ink tabular-naira">0.0%</p>
+            <p class="text-[11px] text-emerald-700 font-semibold">100% peaceful delivery confirmations</p>
+          </div>
+        </div>
+
+        <!-- ACTIVE ESCROWS TABLE -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="font-display font-bold text-sm text-ink">Active Escrow Transactions</h2>
+            <span class="text-xs text-slate-400">Auto-release countdown: 72h from waybill scan</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <tr>
+                  <th class="p-4">Buyer & Order Ref</th>
+                  <th class="p-4">Destination</th>
+                  <th class="p-4">Amount Held</th>
+                  <th class="p-4">Vault Status</th>
+                  <th class="p-4">Release Countdown</th>
+                  <th class="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700" id="escrow-tbody">
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="p-4">
+                    <span class="font-bold text-ink">Tunde Bakare</span>
+                    <span class="block text-[11px] text-slate-400">#MP-8920 · 2x Men's Kaftan</span>
+                  </td>
+                  <td class="p-4 text-slate-700">Wuse 2, Abuja (Interstate)</td>
+                  <td class="p-4 font-bold text-brand tabular-naira text-sm">₦48,000</td>
+                  <td class="p-4">
+                    <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Funds Locked</span>
+                  </td>
+                  <td class="p-4 font-mono text-slate-600">42h 18m remaining</td>
+                  <td class="p-4 text-right space-x-2">
+                    <button onclick="handleConfirmDelivery('8920', 48000)" class="px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-dark text-white font-bold text-xs shadow-xs">
+                      Release Funds
+                    </button>
+                    <button onclick="openDisputeModal('8920')" class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 text-xs font-semibold">
+                      Raise Dispute
+                    </button>
+                  </td>
+                </tr>
+
+                <tr class="hover:bg-slate-50 transition-colors bg-slate-50/50">
+                  <td class="p-4">
+                    <span class="font-bold text-ink">Zainab Bello</span>
+                    <span class="block text-[11px] text-slate-400">#MP-8917 · Swiss Voile Lace</span>
+                  </td>
+                  <td class="p-4 text-slate-700">Victoria Island, Lagos</td>
+                  <td class="p-4 font-bold text-slate-900 tabular-naira text-sm">₦36,000</td>
+                  <td class="p-4">
+                    <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Released to Wallet</span>
+                  </td>
+                  <td class="p-4 text-slate-400">Confirmed on 05 Oct</td>
+                  <td class="p-4 text-right">
+                    <span class="text-emerald-700 font-semibold">Completed ✓</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- DISPUTE EVIDENCE MODAL -->
+    <div id="dispute-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-display font-bold text-base text-ink">Escrow Mediation Center</h3>
+          <button onclick="closeDisputeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+
+        <p class="text-xs text-body leading-relaxed">
+          mypage.ng human mediation team will review tracking proofs, WhatsApp chats, and delivery photos within 24 hours.
+        </p>
+
+        <!-- Evidence thread simulation -->
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs">
+          <div class="flex items-start gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-brand mt-1.5"></span>
+            <div>
+              <span class="font-bold text-slate-800">Seller Proof:</span>
+              <p class="text-slate-600 mt-0.5">Waybill photo GIG-8920-EXP attached with pickup receipt.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></span>
+            <div>
+              <span class="font-bold text-slate-800">Delivery Status:</span>
+              <p class="text-slate-600 mt-0.5">Rider reached Abuja transit depot at 08:30 AM.</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">State Your Claim / Reason:</label>
+          <textarea rows="3" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:outline-none focus:border-brand" placeholder="Explain the issue with order or delivery..."></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="closeDisputeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Cancel</button>
+          <button onclick="submitDispute()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm">Submit Dispute to Mediator</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Escrow action completed</p>
+    </div>
+
+    <script>
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      function handleConfirmDelivery(orderId, amount) {
+        showToast(`Escrow released! ₦${amount.toLocaleString('en-NG')} moved from Vault to Available Wallet balance.`, '🎉');
+      }
+
+      function openDisputeModal(orderId) {
+        document.getElementById('dispute-modal').classList.remove('hidden');
+      }
+
+      function closeDisputeModal() {
+        document.getElementById('dispute-modal').classList.add('hidden');
+      }
+
+      function submitDispute() {
+        closeDisputeModal();
+        showToast('Mediation dispute ticket #DISP-992 raised! A Nigerian mediator has been assigned.', '🛡️', 'bg-rose-600');
+      }
+    </script>
+  </body>
+</html>

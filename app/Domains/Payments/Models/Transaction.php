@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Domains\Payments\Models;
+
+use App\Domains\Payments\Enums\TransactionStatus;
+use App\Domains\Seller\Models\Seller;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+
+class Transaction extends Model
+{
+    protected $fillable = [
+        'seller_id',
+        'payable_type',
+        'payable_id',
+        'reference',
+        'gateway',
+        'amount_kobo',
+        'fee_kobo',
+        'commission_kobo',
+        'status',
+        'paid_at',
+        'gateway_payload',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => TransactionStatus::class,
+            'amount_kobo' => 'integer',
+            'fee_kobo' => 'integer',
+            'commission_kobo' => 'integer',
+            'gateway_payload' => 'array',
+            'paid_at' => 'datetime',
+        ];
+    }
+
+    public function payable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Seller::class);
+    }
+
+    public function ledgerEntries(): HasMany
+    {
+        return $this->hasMany(WalletLedger::class);
+    }
+
+    /**
+     * Amount the seller actually earns once commission is taken.
+     */
+    public function sellerAmountKobo(): int
+    {
+        return $this->amount_kobo - $this->commission_kobo;
+    }
+}

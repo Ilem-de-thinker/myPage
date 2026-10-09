@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track Your Order — Amaka Stitches | mypage.ng</title>
+    <meta name="description" content="Track your WhatsApp order delivery, logistics rider waybill, and confirm escrow release." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                50: '#F0FDF4',
+                100: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: {
+                DEFAULT: '#F97316',
+                soft: '#FFEDD5',
+                dark: '#EA580C',
+              },
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      .tabular-naira {
+        font-variant-numeric: tabular-nums;
+      }
+      #confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col antialiased">
+    
+    <canvas id="confetti-canvas" class="hidden"></canvas>
+
+    <!-- Header -->
+    <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+      <div class="flex items-center gap-3">
+        <a href="store.html" class="p-2 rounded-xl text-slate-500 hover:text-ink hover:bg-slate-100">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-extrabold text-base text-ink">Amaka Stitches</span>
+          <span class="text-xs text-slate-400">· Live Order Tracker</span>
+        </div>
+      </div>
+
+      <a href="store.html" class="text-xs font-semibold text-brand hover:underline">
+        Back to Storefront
+      </a>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 p-4 sm:p-8 max-w-2xl w-full mx-auto space-y-8">
+      
+      <!-- LOOKUP FORM -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="space-y-1">
+          <h1 class="font-display font-extrabold text-lg text-ink">Track Your Delivery</h1>
+          <p class="text-xs text-slate-500">Enter your order reference and WhatsApp number to see real-time rider status.</p>
+        </div>
+
+        <form id="lookup-form" class="grid sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Order Code</label>
+            <input type="text" id="lookup-code" value="MP-8921" placeholder="e.g. MP-8921" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-ink uppercase focus:outline-none focus:border-brand" required/>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">WhatsApp Number</label>
+            <input type="tel" id="lookup-phone" value="+234 803 456 7890" placeholder="+234 801..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:border-brand" required/>
+          </div>
+
+          <div class="sm:col-span-2 pt-1">
+            <button type="submit" class="w-full py-2.5 bg-brand hover:bg-brand-dark text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
+              Find Order
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ACTIVE ORDER DETAILS CARD -->
+      <div id="order-details-card" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-lg space-y-6">
+        
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base text-ink" id="tracked-order-ref">Order #MP-8921</span>
+              <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full" id="tracked-badge">OUT FOR DELIVERY</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Recipient: Chioma Okeke (Lekki Phase 1, Lagos)</p>
+          </div>
+          <span class="font-display font-extrabold text-base text-brand tabular-naira">₦27,000</span>
+        </div>
+
+        <!-- PROGRESSION TIMELINE -->
+        <div class="space-y-6 relative border-l-2 border-emerald-500 ml-3 pl-6 text-xs">
+          
+          <div class="relative">
+            <span class="absolute -left-[1.95rem] top-0 w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+            <p class="font-bold text-slate-900 text-sm">Payment Verified (Paystack)</p>
+            <p class="text-slate-500 text-[11px]">Today 10:15 AM · Funds placed into Escrow Protection</p>
+          </div>
+
+          <div class="relative">
+            <span class="absolute -left-[1.95rem] top-0 w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+            <p class="font-bold text-slate-900 text-sm">Packed & Steamed</p>
+            <p class="text-slate-500 text-[11px]">Today 11:00 AM · Boxed with luxury gold ribbon in Lekki workshop</p>
+          </div>
+
+          <div class="relative">
+            <span class="absolute -left-[1.95rem] top-0 w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold animate-ping">●</span>
+            <p class="font-bold text-slate-900 text-sm">Dispatched with Courier Rider</p>
+            <p class="text-slate-600 text-[11px]">GIG Logistics Waybill: <strong class="font-mono text-ink">LAG-8921-EXP</strong> · Rider Musa (+234 802 999 4433)</p>
+          </div>
+
+          <div class="relative" id="delivered-step">
+            <span class="absolute -left-[1.95rem] top-0 w-4 h-4 rounded-full bg-slate-300 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+            <p class="font-bold text-slate-400 text-sm" id="delivered-step-title">Delivered & Confirmed</p>
+            <p class="text-slate-400 text-[11px]" id="delivered-step-sub">Awaiting your physical package confirmation</p>
+          </div>
+
+        </div>
+
+        <!-- ESCROW ACTION CALLOUT -->
+        <div class="p-5 rounded-2xl bg-amber-50 border-2 border-amber-200 space-y-3" id="escrow-action-box">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl">🛡️</span>
+            <div>
+              <h3 class="font-bold text-xs sm:text-sm text-amber-950">Escrow Security Active</h3>
+              <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                Your <strong>₦27,000</strong> is held securely. Only release funds after you have opened and inspected your Emerald Silk Boubou.
+              </p>
+            </div>
+          </div>
+
+          <button id="release-escrow-btn" onclick="handleBuyerConfirmDelivery()" class="w-full py-3.5 bg-brand hover:bg-brand-dark text-white font-bold text-xs rounded-xl shadow transition-colors flex items-center justify-center gap-2">
+            <span>✓ I Have Received My Package — Release Funds to Amaka</span>
+          </button>
+        </div>
+
+        <!-- Help on WhatsApp -->
+        <div class="text-center pt-2">
+          <a href="https://wa.me/2348034567890?text=Hello%20Amaka%20Stitches,%20I%20have%20a%20question%20about%20Order%20%23MP-8921" target="_blank" class="text-xs font-semibold text-brand hover:underline inline-flex items-center gap-1">
+            <span>Need help? Chat with Amaka on WhatsApp</span>
+            <span>→</span>
+          </a>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Action completed</p>
+    </div>
+
+    <!-- Script -->
+    <script>
+      function showToast(msg, icon = "✓", bg = "bg-brand") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        const iconEl = document.getElementById('toast-icon');
+        iconEl.textContent = icon;
+        iconEl.className = `w-6 h-6 rounded-full ${bg} text-white flex items-center justify-center text-xs font-bold shrink-0`;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3200);
+      }
+
+      function handleBuyerConfirmDelivery() {
+        document.getElementById('tracked-badge').textContent = 'DELIVERED & CONFIRMED';
+        document.getElementById('tracked-badge').className = 'bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full';
+        
+        document.getElementById('delivered-step-title').className = 'font-bold text-slate-900 text-sm';
+        document.getElementById('delivered-step-title').textContent = 'Package Delivered & Verified! 🎉';
+        document.getElementById('delivered-step-sub').textContent = 'Delivery confirmed by customer. Funds released to Amaka Stitches wallet.';
+
+        document.getElementById('escrow-action-box').innerHTML = `
+          <div class="text-center p-3 text-xs text-emerald-900 font-medium">
+            <span class="text-xl block mb-1">🎉</span>
+            Thank you for confirming! Escrow funds have been successfully released to the vendor. We hope you love your dress!
+          </div>
+        `;
+
+        showToast('Delivery confirmed! Escrow funds released to vendor.', '🎉');
+        triggerConfetti();
+      }
+
+      function triggerConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.classList.remove('hidden');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const colors = ['#16A34A', '#22C55E', '#F97316', '#3B82F6', '#EAB308'];
+        for (let i = 0; i < 90; i++) {
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 8 + 4,
+            speedY: Math.random() * 3 + 2,
+            speedX: (Math.random() - 0.5) * 2,
+            color: colors[Math.floor(Math.random() * colors.length)]
+          });
+        }
+
+        let count = 0;
+        function render() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+          });
+          count++;
+          if (count < 140) requestAnimationFrame(render);
+          else canvas.classList.add('hidden');
+        }
+        render();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('lookup-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const code = document.getElementById('lookup-code').value;
+          showToast(`Found tracking record for ${code}!`);
+        });
+      });
+    </script>
+  </body>
+</html>

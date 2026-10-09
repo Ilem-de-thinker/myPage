@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Set Up Your Store — mypage.ng Onboarding</title>
+    <meta name="description" content="Set up your store in 3 simple steps: business basics, theme customization, and launch." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#16A34A',
+                dark: '#15803D',
+                soft: '#DCFCE7',
+                600: '#16A34A',
+                700: '#15803D',
+              },
+              ink: '#0F172A',
+              body: '#475569',
+              surface: '#F8FAFC',
+              accent: '#F97316',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      h1, h2, h3, .font-display {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      }
+      #confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-surface flex flex-col antialiased">
+    
+    <canvas id="confetti-canvas" class="hidden"></canvas>
+
+    <!-- Top header with progress -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+          </div>
+          <span class="font-display font-bold text-lg text-ink">mypage<span class="text-brand">.ng</span></span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-6 text-xs">
+          <!-- Step 1 indicator -->
+          <div class="flex items-center gap-1.5" id="step-ind-1">
+            <span class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs ind-num">1</span>
+            <span class="hidden sm:inline font-semibold text-slate-800">Business Basics</span>
+          </div>
+          <span class="text-slate-300">―</span>
+          <!-- Step 2 indicator -->
+          <div class="flex items-center gap-1.5" id="step-ind-2">
+            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs ind-num">2</span>
+            <span class="hidden sm:inline font-medium text-slate-500">Theme & Logo</span>
+          </div>
+          <span class="text-slate-300">―</span>
+          <!-- Step 3 indicator -->
+          <div class="flex items-center gap-1.5" id="step-ind-3">
+            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs ind-num">3</span>
+            <span class="hidden sm:inline font-medium text-slate-500">Go Live</span>
+          </div>
+        </div>
+
+        <a href="dashboard.html" class="text-xs font-semibold text-slate-500 hover:text-ink">Skip setup</a>
+      </div>
+    </header>
+
+    <!-- Main Stepper Container -->
+    <main class="flex-1 py-10 px-4">
+      <div class="max-w-2xl mx-auto">
+        
+        <!-- STEP 1: BUSINESS BASICS -->
+        <div id="step-1" class="space-y-6">
+          <div class="space-y-2">
+            <h1 class="text-2xl sm:text-3xl font-display font-extrabold text-ink">
+              Step 1: Your Business Basics
+            </h1>
+            <p class="text-xs sm:text-sm text-body">
+              This information will be displayed on your store header and pre-filled in customer WhatsApp orders.
+            </p>
+          </div>
+
+          <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Business Name</label>
+              <input type="text" id="store-name" value="Amaka Stitches" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand" required/>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Store Category</label>
+                <select id="store-category" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand bg-white">
+                  <option selected>Fashion & Female Wears</option>
+                  <option>Beauty, Skincare & Cosmetics</option>
+                  <option>Phones, Laptops & Accessories</option>
+                  <option>Food, Grills & Pastries</option>
+                  <option>Aba Leather & Footwear</option>
+                  <option>Hair, Wigs & Bundles</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Location / Market</label>
+                <input type="text" id="store-location" value="Lekki Phase 1, Lagos" placeholder="e.g. Balogun Market, Lagos" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand" required/>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Connected WhatsApp Business Phone</label>
+              <div class="relative">
+                <input type="tel" id="store-phone" value="+234 803 456 7890" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand font-medium" required/>
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-brand flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-brand"></span>
+                  Verified
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">This is where new orders will arrive from buyers.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Short Store Bio</label>
+              <textarea id="store-bio" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand">Bespoke luxury boubous and ready-to-wear female outfits. Delivery nationwide.</textarea>
+            </div>
+
+            <div class="pt-4 flex justify-end">
+              <button type="button" id="next-to-step-2" class="px-6 py-3 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold text-sm transition-colors flex items-center gap-2">
+                <span>Continue to Theme & Logo</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: THEME & BRANDING -->
+        <div id="step-2" class="hidden space-y-6">
+          <div class="space-y-2">
+            <h1 class="text-2xl sm:text-3xl font-display font-extrabold text-ink">
+              Step 2: Theme & Storefront Appearance
+            </h1>
+            <p class="text-xs sm:text-sm text-body">
+              Select a storefront aesthetic that matches your product vibe. You can customize anytime.
+            </p>
+          </div>
+
+          <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            
+            <!-- Logo Picker -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-2">Store Avatar / Logo</label>
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl border-2 border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0 shadow-xs">
+                  <img id="logo-preview" src="https://picsum.photos/seed/fashionamaka/120/120" alt="Logo preview" class="w-full h-full object-cover"/>
+                </div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center gap-2">
+                    <button type="button" id="change-avatar-btn" class="px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                      Change Avatar
+                    </button>
+                    <span class="text-xs text-slate-500">or pick from presets</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">JPG, PNG or WEBP up to 2MB</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Theme Picker -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-3">Select Storefront Theme</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="theme-options">
+                
+                <!-- Theme 1: Minimal -->
+                <div class="theme-card border-2 border-brand bg-brand-soft/20 rounded-xl p-3 cursor-pointer transition-all" data-theme="minimal">
+                  <div class="h-16 rounded-lg bg-slate-900 p-2 flex flex-col justify-between mb-2">
+                    <div class="flex items-center justify-between">
+                      <div class="w-6 h-2 rounded bg-white"></div>
+                      <div class="w-2 h-2 rounded-full bg-brand"></div>
+                    </div>
+                    <div class="w-12 h-3 rounded bg-emerald-500"></div>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h4 class="font-bold text-xs text-ink">Minimal Clean</h4>
+                      <p class="text-[10px] text-slate-500">Modern monochrome</p>
+                    </div>
+                    <span class="w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center text-[10px] font-bold theme-check">✓</span>
+                  </div>
+                </div>
+
+                <!-- Theme 2: Bold -->
+                <div class="theme-card border-2 border-slate-200 rounded-xl p-3 cursor-pointer hover:border-slate-300 transition-all" data-theme="bold">
+                  <div class="h-16 rounded-lg bg-gradient-to-r from-emerald-800 to-green-950 p-2 flex flex-col justify-between mb-2">
+                    <div class="flex items-center justify-between">
+                      <div class="w-8 h-2 rounded bg-emerald-300"></div>
+                      <div class="w-2 h-2 rounded-full bg-white"></div>
+                    </div>
+                    <div class="w-10 h-3 rounded bg-white"></div>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h4 class="font-bold text-xs text-ink">Bold Emerald</h4>
+                      <p class="text-[10px] text-slate-500">High contrast vibrant</p>
+                    </div>
+                    <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-[10px] font-bold theme-check"></span>
+                  </div>
+                </div>
+
+                <!-- Theme 3: Warm -->
+                <div class="theme-card border-2 border-slate-200 rounded-xl p-3 cursor-pointer hover:border-slate-300 transition-all" data-theme="warm">
+                  <div class="h-16 rounded-lg bg-stone-900 p-2 flex flex-col justify-between mb-2">
+                    <div class="flex items-center justify-between">
+                      <div class="w-6 h-2 rounded bg-amber-200"></div>
+                      <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                    </div>
+                    <div class="w-12 h-3 rounded bg-amber-600"></div>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h4 class="font-bold text-xs text-ink">Warm Earth</h4>
+                      <p class="text-[10px] text-slate-500">Terracotta luxury</p>
+                    </div>
+                    <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-[10px] font-bold theme-check"></span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Currency & Format Settings -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+              <div>
+                <span class="font-semibold text-slate-800">Store Currency:</span>
+                <span class="text-slate-600 ml-1">Nigerian Naira (₦)</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-brand font-semibold">
+                <span>●</span>
+                <span>Active</span>
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between">
+              <button type="button" id="back-to-step-1" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50">
+                ← Back
+              </button>
+              <button type="button" id="next-to-step-3" class="px-6 py-3 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold text-sm transition-colors flex items-center gap-2">
+                <span>Publish Store Live 🎉</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- STEP 3: CELEBRATION & LIVE STORE -->
+        <div id="step-3" class="hidden space-y-6 text-center">
+          
+          <div class="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-xl space-y-6 max-w-lg mx-auto">
+            <div class="w-20 h-20 bg-emerald-100 text-brand rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner animate-bounce">
+              🎉
+            </div>
+
+            <div class="space-y-2">
+              <h1 class="text-3xl font-display font-extrabold text-ink">
+                Your shop is officially LIVE!
+              </h1>
+              <p class="text-xs sm:text-sm text-body">
+                Congratulations! Your store is live on the Nigerian web and ready to take orders.
+              </p>
+            </div>
+
+            <!-- Live Link Card -->
+            <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-left space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-emerald-900">Your Official Store Link:</span>
+                <span class="text-[10px] font-bold uppercase bg-brand text-white px-2 py-0.5 rounded-full">LIVE</span>
+              </div>
+              <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-300 gap-2">
+                <span class="font-display font-bold text-sm text-emerald-950 truncate" id="final-store-url">
+                  mypage.ng/amaka
+                </span>
+                <button type="button" id="copy-link-btn" class="px-3 py-1.5 bg-brand hover:bg-brand-dark text-white text-xs font-bold rounded-lg shrink-0 transition-colors">
+                  Copy Link
+                </button>
+              </div>
+              <p class="text-[11px] text-emerald-800">
+                💡 Paste this link in your WhatsApp About, Status, or Instagram bio!
+              </p>
+            </div>
+
+            <!-- Next actions -->
+            <div class="space-y-3 pt-2">
+              <a href="store.html" class="w-full block py-3.5 px-4 rounded-xl bg-brand hover:bg-brand-dark text-white font-bold text-sm shadow-md transition-all">
+                View Your Live Storefront →
+              </a>
+              <a href="dashboard.html" class="w-full block py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-all">
+                Open Seller Dashboard
+              </a>
+              <a href="product-form.html" class="w-full block py-2.5 text-xs font-semibold text-slate-600 hover:text-ink">
+                + Add Your First Product Now
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Toast Component -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center text-xs font-bold shrink-0">✓</div>
+      <p id="toast-message" class="text-xs font-medium leading-tight">Link copied to clipboard!</p>
+    </div>
+
+    <!-- Script with Stepper Logic and Confetti -->
+    <script>
+      let currentStep = 1;
+      let selectedTheme = 'minimal';
+
+      function showToast(msg, icon = "✓") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-message').textContent = msg;
+        document.getElementById('toast-icon').textContent = icon;
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 2800);
+      }
+
+      function updateStep(step) {
+        currentStep = step;
+        document.getElementById('step-1').classList.toggle('hidden', step !== 1);
+        document.getElementById('step-2').classList.toggle('hidden', step !== 2);
+        document.getElementById('step-3').classList.toggle('hidden', step !== 3);
+
+        // Update Indicators
+        const ind1 = document.getElementById('step-ind-1');
+        const ind2 = document.getElementById('step-ind-2');
+        const ind3 = document.getElementById('step-ind-3');
+
+        // Reset
+        [ind1, ind2, ind3].forEach((ind, i) => {
+          const num = ind.querySelector('.ind-num');
+          if (i + 1 <= step) {
+            num.className = 'w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs ind-num';
+          } else {
+            num.className = 'w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs ind-num';
+          }
+        });
+
+        if (step === 3) {
+          triggerConfetti();
+        }
+      }
+
+      // Simple Canvas Confetti
+      function triggerConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.classList.remove('hidden');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const colors = ['#16A34A', '#22C55E', '#F97316', '#EAB308', '#3B82F6', '#EC4899'];
+
+        for (let i = 0; i < 90; i++) {
+          particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 8 + 4,
+            speedY: Math.random() * 3 + 2,
+            speedX: (Math.random() - 0.5) * 2,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+          });
+        }
+
+        let animationFrame;
+        let count = 0;
+        function render() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+          });
+          count++;
+          if (count < 140) {
+            animationFrame = requestAnimationFrame(render);
+          } else {
+            canvas.classList.add('hidden');
+          }
+        }
+        render();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // Load initial store if query exists
+        const params = new URLSearchParams(window.location.search);
+        const handle = params.get('handle') || 'amaka';
+        const business = params.get('business');
+        if (business) {
+          document.getElementById('store-name').value = decodeURIComponent(business);
+        }
+        document.getElementById('final-store-url').textContent = `mypage.ng/${handle}`;
+
+        // Stepper Navigation
+        document.getElementById('next-to-step-2').addEventListener('click', () => updateStep(2));
+        document.getElementById('back-to-step-1').addEventListener('click', () => updateStep(1));
+        document.getElementById('next-to-step-3').addEventListener('click', () => updateStep(3));
+
+        // Theme selection
+        document.querySelectorAll('.theme-card').forEach(card => {
+          card.addEventListener('click', () => {
+            selectedTheme = card.dataset.theme;
+            document.querySelectorAll('.theme-card').forEach(c => {
+              c.classList.remove('border-brand', 'bg-brand-soft/20');
+              c.classList.add('border-slate-200');
+              const chk = c.querySelector('.theme-check');
+              chk.className = 'w-4 h-4 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-[10px] font-bold theme-check';
+              chk.textContent = '';
+            });
+            card.classList.add('border-brand', 'bg-brand-soft/20');
+            card.classList.remove('border-slate-200');
+            const activeChk = card.querySelector('.theme-check');
+            activeChk.className = 'w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center text-[10px] font-bold theme-check';
+            activeChk.textContent = '✓';
+          });
+        });
+
+        // Copy link
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+          const url = document.getElementById('final-store-url').textContent.trim();
+          navigator.clipboard.writeText(`https://${url}`);
+          showToast(`Copied https://${url} to clipboard!`);
+        });
+
+        // Change avatar placeholder
+        const avatarPresets = [
+          'https://picsum.photos/seed/fashionamaka/120/120',
+          'https://picsum.photos/seed/chidiartisan/120/120',
+          'https://picsum.photos/seed/nnekaskincare/120/120'
+        ];
+        let avatarIdx = 0;
+        document.getElementById('change-avatar-btn').addEventListener('click', () => {
+          avatarIdx = (avatarIdx + 1) % avatarPresets.length;
+          document.getElementById('logo-preview').src = avatarPresets[avatarIdx];
+          showToast('Updated avatar logo');
+        });
+      });
+    </script>
+  </body>
+</html>
