@@ -389,6 +389,7 @@ it('totals every cart line server side', function () {
         'name' => 'First Line',
         'slug' => 'first-line',
         'price_kobo' => 100000,
+        'stock_qty' => 10,
         'status' => 'active',
     ]);
 
@@ -398,6 +399,7 @@ it('totals every cart line server side', function () {
         'name' => 'Second Line',
         'slug' => 'second-line',
         'price_kobo' => 200000,
+        'stock_qty' => 10,
         'status' => 'active',
     ]);
 

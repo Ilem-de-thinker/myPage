@@ -75,7 +75,9 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
-                        <th class="p-4 w-10"><input type="checkbox" @change="toggleAll()" :checked="selectAll && selected.length > 0"></th>
+                        @if ($bulkDestroyRoute)
+                            <th class="p-4 w-10"><input type="checkbox" @change="toggleAll()" :checked="selectAll && selected.length > 0"></th>
+                        @endif
                         @foreach ($columns as $col)
                             <th class="px-4 py-3 font-semibold" x-show="!hidden.includes('{{ $col['key'] }}')">{{ $col['label'] }}</th>
                         @endforeach
@@ -85,7 +87,9 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($rows as $row)
                         <tr class="hover:bg-slate-50/60">
-                            <td class="p-4"><input type="checkbox" :value="{{ $row->id }}" x-model="selected"></td>
+                            @if ($bulkDestroyRoute)
+                                <td class="p-4"><input type="checkbox" :value="{{ $row->id }}" x-model="selected"></td>
+                            @endif
                             @foreach ($columns as $col)
                                 @php $value = data_get($row, $col['key']); @endphp
                                 <td class="px-4 py-3" x-show="!hidden.includes('{{ $col['key'] }}')">
@@ -117,7 +121,9 @@
             @foreach ($rows as $row)
                 <div class="bg-white rounded-2xl border border-slate-200 p-4">
                     <div class="flex items-start gap-3">
-                        <input type="checkbox" :value="{{ $row->id }}" x-model="selected" class="mt-1">
+                        @if ($bulkDestroyRoute)
+                            <input type="checkbox" :value="{{ $row->id }}" x-model="selected" class="mt-1">
+                        @endif
                         @php $thumb = data_get($row, 'primaryImageUrl'); @endphp
                         @if ($thumb)
                             <img src="{{ $thumb }}" class="w-14 h-14 rounded-xl object-cover shrink-0">

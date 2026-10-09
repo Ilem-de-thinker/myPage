@@ -114,6 +114,29 @@ class CategoryController extends Controller
         return back()->with('status', "Category {$name} deleted. Its products were kept.");
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $page = $this->page($request);
+
+        $ids = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ])['ids'];
+
+        // Scoped to this store page, so ids from another seller are ignored
+        // rather than deleted.
+        $categories = Category::where('store_page_id', $page->id)->whereIn('id', $ids)->get();
+
+        $categories->each(function (Category $category) {
+            $category->products()->update(['category_id' => null]);
+            $category->delete();
+        });
+
+        return redirect()
+            ->route('categories.index')
+            ->with('status', $categories->count().' categor'.($categories->count() === 1 ? 'y' : 'ies').' deleted. Products were kept.');
+    }
+
     private function page(Request $request): StorePage
     {
         return $request->user()->storePages()->firstOrFail();

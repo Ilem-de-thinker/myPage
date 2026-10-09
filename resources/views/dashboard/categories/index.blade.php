@@ -16,6 +16,7 @@
             ['key' => 'products_count', 'label' => 'Products'],
         ]"
         search-placeholder="Search categories…"
+        :bulk-destroy-route="route('categories.bulk-destroy')"
         edit-route="categories.edit"
         destroy-route="categories.destroy"
         empty-text="No categories yet. Add one if your catalogue is large enough to need filtering."

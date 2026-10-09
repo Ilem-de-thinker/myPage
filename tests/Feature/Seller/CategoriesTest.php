@@ -148,6 +148,51 @@ it('never exposes another seller\'s categories', function () {
     expect($foreign->fresh()->name)->toBe('Secret Range');
 });
 
+it('bulk deletes categories but keeps their products', function () {
+    [$seller, $page] = sellerWithPage();
+
+    $first = $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Fabrics']);
+    $second = $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Ready Made']);
+
+    $product = Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $seller->id,
+        'category_id' => $first->id,
+    ]);
+
+    actingAs($seller)
+        ->post(route('categories.bulk-destroy'), ['ids' => [$first->id, $second->id]])
+        ->assertRedirect(route('categories.index'));
+
+    expect(Category::withoutGlobalScopes()->count())->toBe(0)
+        ->and($product->fresh())->not->toBeNull()
+        ->and($product->fresh()->category_id)->toBeNull();
+});
+
+it('ignores another seller\'s ids when bulk deleting', function () {
+    [$seller, $page] = sellerWithPage();
+
+    $mine = $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Mine']);
+
+    [$otherSeller, $otherPage] = sellerWithPage();
+
+    $theirs = $otherPage->categories()->create(['seller_id' => $otherSeller->id, 'name' => 'Theirs']);
+
+    actingAs($seller)
+        ->post(route('categories.bulk-destroy'), ['ids' => [$mine->id, $theirs->id]])
+        ->assertRedirect(route('categories.index'));
+
+    expect(Category::withoutGlobalScopes()->whereKey($mine->id)->exists())->toBeFalse()
+        ->and(Category::withoutGlobalScopes()->whereKey($theirs->id)->exists())->toBeTrue();
+});
+
+it('requires at least one id to bulk delete', function () {
+    [$seller] = sellerWithPage();
+
+    actingAs($seller)->post(route('categories.bulk-destroy'), ['ids' => []])
+        ->assertSessionHasErrors('ids');
+});
+
 it('opens the create form', function () {
     [$seller] = sellerWithPage();
 
