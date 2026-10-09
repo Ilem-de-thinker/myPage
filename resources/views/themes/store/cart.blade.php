@@ -13,19 +13,20 @@
       <template x-if="$store.cart.items.length > 0">
         <div>
           <div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
-            <template x-for="item in $store.cart.items" :key="item.id">
+            <template x-for="item in $store.cart.items" :key="item.id + ':' + (item.variant_id ?? '')">
               <div class="p-4 flex items-center gap-4">
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold text-sm text-ink truncate" x-text="item.name"></p>
+                  <p class="text-xs text-slate-500" x-show="item.variant_name" x-text="'Option: ' + item.variant_name"></p>
                   <p class="text-xs text-slate-500" x-text="'₦' + (item.price_kobo / 100).toLocaleString()"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <button type="button" @click="$store.cart.setQty(item.id, item.qty - 1)" class="w-8 h-8 rounded-lg border border-slate-300 text-slate-600">−</button>
+                  <button type="button" @click="$store.cart.setQty(item.id, item.variant_id, item.qty - 1)" class="w-8 h-8 rounded-lg border border-slate-300 text-slate-600">−</button>
                   <span class="w-6 text-center text-sm" x-text="item.qty"></span>
-                  <button type="button" @click="$store.cart.setQty(item.id, item.qty + 1)" class="w-8 h-8 rounded-lg border border-slate-300 text-slate-600">+</button>
+                  <button type="button" @click="$store.cart.setQty(item.id, item.variant_id, item.qty + 1)" class="w-8 h-8 rounded-lg border border-slate-300 text-slate-600">+</button>
                 </div>
                 <p class="w-24 text-right text-sm font-semibold" x-text="'₦' + ((item.price_kobo * item.qty) / 100).toLocaleString()"></p>
-                <button type="button" @click="$store.cart.remove(item.id)" class="text-xs font-semibold text-red-500">Remove</button>
+                <button type="button" @click="$store.cart.remove(item.id, item.variant_id)" class="text-xs font-semibold text-red-500">Remove</button>
               </div>
             </template>
           </div>

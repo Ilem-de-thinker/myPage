@@ -59,7 +59,7 @@ class StorefrontController extends Controller
         abort_unless($page->theme === Theme::Store, 404);
 
         $product = Product::query()
-            ->with(['images', 'category'])
+            ->with(['images', 'category', 'variants'])
             ->active()
             ->where('store_page_id', $page->id)
             ->where('slug', $productSlug)
@@ -120,6 +120,7 @@ class StorefrontController extends Controller
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1'],
             'items.*.id' => ['required', 'integer'],
+            'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.qty' => ['required', 'integer', 'min:1', 'max:99'],
             'name' => ['nullable', 'string', 'max:120'],
             'email' => ['nullable', 'email', 'max:190'],
@@ -128,6 +129,7 @@ class StorefrontController extends Controller
 
         $cart = array_map(fn (array $item) => [
             'product_id' => $item['id'],
+            'variant_id' => $item['variant_id'] ?? null,
             'quantity' => $item['qty'],
         ], $data['items']);
 

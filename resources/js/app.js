@@ -28,8 +28,20 @@ window.Alpine = Alpine;
 Alpine.store('cart', {
     items: JSON.parse(localStorage.getItem('cart:' + location.host) || '[]'),
 
+    // A line is identified by the product plus the chosen variant, so "Large"
+    // and "Small" stay separate rows.
+    keyOf(item) {
+        return `${item.id}:${item.variant_id ?? ''}`;
+    },
+
+    find(id, variantId) {
+        const key = `${id}:${variantId ?? ''}`;
+
+        return this.items.find((line) => this.keyOf(line) === key);
+    },
+
     add(product, qty = 1) {
-        const existing = this.items.find((item) => item.id === product.id);
+        const existing = this.find(product.id, product.variant_id);
 
         if (existing) {
             existing.qty += qty;
@@ -40,15 +52,15 @@ Alpine.store('cart', {
         this.save();
     },
 
-    setQty(id, qty) {
-        const item = this.items.find((line) => line.id === id);
+    setQty(id, variantId, qty) {
+        const item = this.find(id, variantId);
 
         if (!item) {
             return;
         }
 
         if (qty < 1) {
-            this.items = this.items.filter((line) => line.id !== id);
+            this.remove(id, variantId);
         } else {
             item.qty = qty;
         }
@@ -56,8 +68,11 @@ Alpine.store('cart', {
         this.save();
     },
 
-    remove(id) {
-        this.items = this.items.filter((line) => line.id !== id);
+    remove(id, variantId) {
+        const key = `${id}:${variantId ?? ''}`;
+
+        this.items = this.items.filter((line) => this.keyOf(line) !== key);
+
         this.save();
     },
 
@@ -74,8 +89,29 @@ Alpine.store('cart', {
         return this.items.reduce((total, line) => total + line.price_kobo * line.qty, 0);
     },
 
+    /** Payload for the WhatsApp order endpoint. */
     payload() {
-        return { items: this.items.map(({ id, qty }) => ({ id, qty })) };
+        return {
+            items: this.items.map(({ id, variant_id, qty }) => ({
+                id,
+                variant_id: variant_id ?? null,
+                qty,
+            })),
+        };
+    },
+
+    /**
+     * Payload for the checkout form. Prices are deliberately left out: the server
+     * re-prices every line from the database.
+     */
+    checkoutPayload() {
+        return {
+            items: this.items.map(({ id, variant_id, qty }) => ({
+                id,
+                variant_id: variant_id ?? null,
+                qty,
+            })),
+        };
     },
 
     save() {

@@ -64,7 +64,10 @@ class CheckoutController
         }
 
         return redirect()
-            ->route('checkout.thanks', $order)
+            ->route('checkout.thanks', [
+                'slug' => app(StorePage::class)->slug,
+                'order' => $order,
+            ])
             ->with('status', $transaction ? 'Payment received. Thank you!' : 'We are still confirming your payment.');
     }
 
