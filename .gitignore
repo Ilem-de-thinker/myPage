@@ -12,6 +12,8 @@
 /.phpunit.cache
 /.vscode
 /.zed
+# Design references only, not part of the application
+/ui
 /auth.json
 /node_modules
 /public/build
