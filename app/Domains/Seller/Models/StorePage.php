@@ -2,6 +2,7 @@
 
 namespace App\Domains\Seller\Models;
 
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Enums\Theme;
 use App\Shared\Traits\BelongsToSeller;
@@ -54,6 +55,11 @@ class StorePage extends Model
     public function sections(): HasMany
     {
         return $this->hasMany(StoreSection::class)->orderBy('position');
+    }
+
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class)->orderBy('position');
     }
 
     public function isPublished(): bool

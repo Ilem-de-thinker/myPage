@@ -58,6 +58,14 @@ it('filters products by category and search', function () {
         'status' => 'active',
     ]);
 
+    Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $page->seller_id,
+        'name' => 'Lace Gown',
+        'slug' => 'lace-gown',
+        'status' => 'active',
+    ]);
+
     get("/{$page->slug}/products?category={$fabrics->id}")
         ->assertOk()
         ->assertSee('Ankara Print')
@@ -159,11 +167,23 @@ it('exposes add-to-cart controls backed by browser storage', function () {
         'status' => 'active',
     ]);
 
+    // The cart itself is an Alpine store persisted to localStorage, which lives
+    // in the bundled app.js rather than the HTML. What the server owes the buyer
+    // is the add control and a way to reach the cart it fills.
     $html = get("/{$page->slug}/products")->assertOk()->getContent();
 
-    // The cart lives in localStorage; the server only re-prices at checkout.
-    expect($html)->toContain('Add to cart');
-    expect($html)->toContain('localStorage');
+    expect($html)->toContain('Add to cart')
+        ->toContain('$store.cart.add')
+        ->toContain(route('storefront.cart', ['slug' => $page->slug]));
+});
+
+it('shows a cart link with a live item count in the storefront nav', function () {
+    $page = catalogPage();
+
+    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+
+    expect($html)->toContain(route('storefront.cart', ['slug' => $page->slug]))
+        ->toContain('$store.cart.count');
 });
 
 it('shows the product sku, and still renders a product stored without one', function () {

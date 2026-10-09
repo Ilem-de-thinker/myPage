@@ -34,6 +34,15 @@
         @endif
         <a href="{{ url('/about') }}">About</a>
         <a href="{{ url('/contact') }}">Contact</a>
+        @if ($page->theme->value === 'store')
+          <a href="{{ route('storefront.cart', ['slug' => $page->slug]) }}" class="relative">
+            Cart
+            <span x-show="$store.cart.count > 0"
+                  x-text="$store.cart.count"
+                  class="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                  style="background: var(--brand)"></span>
+          </a>
+        @endif>
       </div>
     </div>
   </nav>

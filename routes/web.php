@@ -46,7 +46,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::patch('products/{product}/stock', [ProductController::class, 'adjustStock'])->name('products.stock')->middleware('verified');
         Route::resource('products.variants', ProductVariantController::class)->shallow()->middleware('verified');
         Route::resource('products', ProductController::class)->except(['show'])->middleware('verified');
-        Route::post('categories', [CategoryController::class, 'store'])->name('categories.store')->middleware('verified');
+        Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])->middleware('verified');
     });
 
     Route::prefix('onboarding')->name('onboarding.')->middleware('verified')->group(function () {

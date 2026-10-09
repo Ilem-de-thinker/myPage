@@ -46,7 +46,8 @@
                     <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Availability</span></a>
                 @else
                     <a href="{{ route('products.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Products & Stock</span></a>
-                    <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Orders</span></a>
+                    <a href="{{ route('categories.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Categories</span></a>
+                    <a href="{{ route('dashboard.orders.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Orders</span></a>
                 @endif
                 <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Customers</span></a>
                 <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:text-ink hover:bg-slate-100 transition-colors"><span>Payments</span></a>

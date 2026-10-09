@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /** @use HasFactory<CategoryFactory> */
 class Category extends Model
@@ -16,6 +17,24 @@ class Category extends Model
     use BelongsToSeller, HasFactory;
 
     protected $fillable = ['seller_id', 'store_page_id', 'name', 'slug', 'position'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Category $category) {
+            $category->slug = $category->slug ?: static::generateSlug($category->name);
+        });
+    }
+
+    public static function generateSlug(string $name): string
+    {
+        $base = Str::slug($name) ?: 'category';
+
+        do {
+            $slug = $base.'-'.Str::lower(Str::random(4));
+        } while (self::where('slug', $slug)->exists());
+
+        return $slug;
+    }
 
     public function storePage(): BelongsTo
     {
