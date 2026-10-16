@@ -2,7 +2,7 @@
 
 @section('content')
     <x-ui.page-header title="Products" :subtitle="$products->total().' product(s) in your store'">
-        <a href="{{ route('products.create') }}" class="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold text-xs">+ Add product</a>
+        <a href="{{ route('products.create') }}" class="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold text-xs">+ Add product</a>
     </x-ui.page-header>
 
     <x-ui.data-table

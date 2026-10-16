@@ -5,7 +5,7 @@
         title="Categories"
         :subtitle="$categories->total().' categor'.($categories->total() === 1 ? 'y' : 'ies').' in your store'"
     >
-        <a href="{{ route('categories.create') }}" class="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold text-xs">+ Add category</a>
+        <a href="{{ route('categories.create') }}" class="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold text-xs">+ Add category</a>
     </x-ui.page-header>
 
     <x-ui.data-table

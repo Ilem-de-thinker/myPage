@@ -20,7 +20,7 @@ it('lists only active products on the storefront', function () {
     $page = catalogPage();
 
     // Draft products must never be buyable.
-    Product::factory()->create(['store_page_id' => $page->id, 'seller_id' => $page->seller_id, 'name' => 'Ankara Print', 'status' => 'active']);
+    Product::factory()->create(['store_page_id' => $page->id, 'seller_id' => $page->seller_id, 'name' => 'Catalog Ankara Print', 'status' => 'active']);
     Product::factory()->create([
         'store_page_id' => $page->id,
         'seller_id' => $page->seller_id,
@@ -30,7 +30,7 @@ it('lists only active products on the storefront', function () {
 
     get("/{$page->slug}/products")
         ->assertOk()
-        ->assertSee('Ankara Print')
+        ->assertSee('Catalog Ankara Print')
         ->assertDontSee('Hidden Draft');
 });
 
@@ -46,7 +46,7 @@ it('filters products by category and search', function () {
     Product::factory()->create([
         'store_page_id' => $page->id,
         'seller_id' => $page->seller_id,
-        'name' => 'Ankara Print',
+        'name' => 'Catalog Ankara Print',
         'category_id' => $fabrics->id,
     ]);
 
@@ -61,20 +61,20 @@ it('filters products by category and search', function () {
     Product::factory()->create([
         'store_page_id' => $page->id,
         'seller_id' => $page->seller_id,
-        'name' => 'Lace Gown',
+        'name' => 'Catalog Lace Gown',
         'slug' => 'lace-gown',
         'status' => 'active',
     ]);
 
     get("/{$page->slug}/products?category={$fabrics->id}")
         ->assertOk()
-        ->assertSee('Ankara Print')
-        ->assertDontSee('Lace Gown');
+        ->assertSee('Catalog Ankara Print')
+        ->assertDontSee('Catalog Lace Gown');
 
     get("/{$page->slug}/products?q=Lace")
         ->assertOk()
-        ->assertSee('Lace Gown')
-        ->assertDontSee('Ankara Print');
+        ->assertSee('Catalog Lace Gown')
+        ->assertDontSee('Catalog Ankara Print');
 });
 
 it('paginates the product listing and links its categories', function () {
@@ -121,6 +121,39 @@ it('serves a product detail page by slug with its price', function () {
         ->assertSee('₦12,000');
 });
 
+it('shows related products with their category on the detail page', function () {
+    $page = catalogPage();
+
+    $fabrics = Category::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $page->seller_id,
+        'name' => 'Fabrics',
+    ]);
+
+    Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $page->seller_id,
+        'category_id' => $fabrics->id,
+        'name' => 'Shown Aso Ebi',
+        'slug' => 'shown-aso-ebi',
+    ]);
+
+    // The card behind the "you may also like" row prints the category name, so
+    // the row has to arrive with it eager loaded rather than reach for it.
+    Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $page->seller_id,
+        'category_id' => $fabrics->id,
+        'name' => 'Related Buba Set',
+        'slug' => 'related-buba-set',
+    ]);
+
+    get("/{$page->slug}/products/shown-aso-ebi")
+        ->assertOk()
+        ->assertSee('Related Buba Set')
+        ->assertSee('Fabrics');
+});
+
 it('keeps a draft store previewable on product pages after the signed url', function () {
     $seller = Seller::factory()->create();
 
@@ -130,7 +163,7 @@ it('keeps a draft store previewable on product pages after the signed url', func
         'status' => 'draft',
     ]);
 
-    Product::factory()->create([
+    $product = Product::factory()->create([
         'store_page_id' => $page->id,
         'seller_id' => $seller->id,
         'name' => 'Draft Product',
@@ -142,7 +175,8 @@ it('keeps a draft store previewable on product pages after the signed url', func
     get($url)->assertOk();
 
     // The preview grant is carried by a cookie, so deep links keep working.
-    $this->withUnencryptedCookie('preview_draftcatalog', '127.0.0.1');
+    // The middleware encrypts it, so replay it the way a browser would.
+    $this->withCookie('preview_draftcatalog', '127.0.0.1');
 
     get("/{$page->slug}/products")->assertOk()->assertSee('Draft Product');
     get("/{$page->slug}/products/{$product->slug}")->assertOk()->assertSee('Draft Product');

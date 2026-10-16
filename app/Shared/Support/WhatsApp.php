@@ -21,4 +21,19 @@ final class WhatsApp
 
         return self::link($page, $message);
     }
+
+    /**
+     * The other way round: a seller chasing a buyer. Separate from {@see self::link()}
+     * because that one always dials the store's own number.
+     */
+    public static function buyerLink(?string $phone, string $message): ?string
+    {
+        $phone = PhoneNumber::normalize($phone);
+
+        if ($phone === null || $phone === '') {
+            return null;
+        }
+
+        return 'https://wa.me/'.ltrim($phone, '+').'?text='.rawurlencode($message);
+    }
 }

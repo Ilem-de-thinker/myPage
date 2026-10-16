@@ -16,6 +16,9 @@ enum WalletKind: string
     /** Holds funds earmarked for a payout while it is in flight. */
     case Payouts = 'payouts';
 
+    /** Holds buyer money until they are satisfied, when escrow is switched on. */
+    case Escrow = 'escrow';
+
     public function label(): string
     {
         return match ($this) {
@@ -23,6 +26,7 @@ enum WalletKind: string
             self::GatewayClearing => 'Gateway clearing',
             self::Commission => 'Platform commission',
             self::Payouts => 'Payouts pool',
+            self::Escrow => 'Escrow pool',
         };
     }
 }

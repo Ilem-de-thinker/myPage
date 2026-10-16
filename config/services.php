@@ -46,4 +46,18 @@ return [
         'secret_hash' => env('FLUTTERWAVE_SECRET_HASH'),
     ],
 
+    /*
+    | Google, for sellers who would rather sign in with the account they already
+    | have than remember another password on a phone.
+    |
+    | The redirect is the one thing here that must be declared rather than
+    | derived: Google only redirects to origins you list in the console, and
+    | app_url is wrong on every environment except production.
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
 ];

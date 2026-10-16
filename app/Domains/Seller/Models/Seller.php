@@ -22,9 +22,11 @@ class Seller extends Authenticatable implements MustVerifyEmail
         'phone',
         'password',
         'status',
+        'is_admin',
         'last_login_at',
         'email_otp_hash',
         'email_otp_expires_at',
+        'google_id',
     ];
 
     protected $hidden = [
@@ -35,11 +37,25 @@ class Seller extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
+            'is_admin' => 'boolean',
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Whether this seller can sign in without a password.
+     *
+     * True when they registered with Google. The `password` column is NOT NULL,
+     * so a Google-only seller is issued a random unguessable one at signup: the
+     * column has to be satisfied, and a password nobody knows is safer than a
+     * guessable one somebody might try.
+     */
+    public function usesGoogle(): bool
+    {
+        return filled($this->google_id);
     }
 
     public function storePages(): HasMany

@@ -26,6 +26,12 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- Pinned so a developer's local .env cannot change what the suite
+             asserts. Escrow routes money away from the seller wallet, so a test
+             run with it enabled would fail for a reason that has nothing to do
+             with the code under test. -->
+        <env name="FEATURE_ESCROW" value="false"/>
+        <env name="ESCROW_AUTO_RELEASE_DAYS" value="7"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

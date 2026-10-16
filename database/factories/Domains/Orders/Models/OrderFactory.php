@@ -18,7 +18,7 @@ class OrderFactory extends Factory
         return [
             'store_page_id' => StorePage::factory(),
             'seller_id' => fn (array $attributes) => StorePage::find($attributes['store_page_id'])?->seller_id,
-            'reference' => 'MP'.fake()->unique()->numerify('######'),
+            'reference' => 'MP'.fake()->numerify('######'),
             'source' => OrderSource::Platform,
             'status' => OrderStatus::PendingPayment,
             'total_kobo' => fake()->numberBetween(100000, 5000000),

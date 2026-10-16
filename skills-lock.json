@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "paystack": {
+      "source": "membranedev/application-skills",
+      "sourceType": "github",
+      "skillPath": "skills/paystack/SKILL.md",
+      "computedHash": "0cf2fea016a696d6eed61301cfc1ce9669ee6366f1a4afa8b611090ac2977fb4"
+    },
+    "paystack-transfers": {
+      "source": "rexedge/paystack",
+      "sourceType": "github",
+      "skillPath": "skills/paystack-transfers/SKILL.md",
+      "computedHash": "90b6075dafe5bb70c580f28fb22be8691390d725b6d0d85d79808ba703cf3674"
+    }
+  }
+}

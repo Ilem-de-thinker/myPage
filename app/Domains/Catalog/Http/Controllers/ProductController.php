@@ -17,7 +17,7 @@ class ProductController extends Controller
 {
     public function index(Request $request): View
     {
-        $page = $request->user()->storePages()->with('sections')->firstOrFail();
+        $page = $request->user()->storePages()->with('blocks')->firstOrFail();
         $products = Product::query()
             ->with(['images'])
             ->where('store_page_id', $page->id)

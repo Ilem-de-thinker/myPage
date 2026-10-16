@@ -1,0 +1,762 @@
+<!-- SELLER THEME: change these only -->
+<html lang="en-NG" style="--brand: #15803d; --radius: 0.625rem; --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Catalogue — Adeola Luxury Bridal & Aso-Oke</title>
+  <meta name="description" content="Shop handcrafted Aso-Oke, bespoke groom agbadas, and pre-tied luxury auto-gele headpieces in Lagos.">
+  <meta property="og:title" content="Product Catalogue — Adeola Luxury Bridal & Aso-Oke">
+  <meta property="og:description" content="Shop handcrafted Aso-Oke, bespoke groom agbadas, and pre-tied luxury auto-gele headpieces in Lagos.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System Tokens -->
+  <link rel="stylesheet" href="/assets/tokens.css">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Alpine.js CDN (Inline behaviour only) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+  <style>
+    @theme {
+      --color-brand: var(--brand);
+      --color-brand-ink: var(--brand-ink);
+      --color-brand-text: var(--brand-text);
+      --color-brand-wash: var(--brand-wash);
+      --color-brand-wash-2: var(--brand-wash-2);
+      --color-brand-edge: var(--brand-edge);
+      --color-brand-veil: var(--brand-veil);
+      --color-paper: var(--paper);
+      --color-surface: var(--surface);
+      --color-card: var(--card);
+      --color-card-glass: var(--card-glass);
+      --color-ink: var(--ink);
+      --color-ink-2: var(--ink-2);
+      --color-ink-3: var(--ink-3);
+      --color-rule: var(--rule);
+    }
+  </style>
+</head>
+<body class="bg-[var(--paper)] text-[var(--ink)] min-h-screen selection:bg-[var(--brand-wash-2)] selection:text-[var(--brand-text)]"
+      x-data="{ 
+        cart: JSON.parse(localStorage.getItem('mypage_cart') || '2'),
+        mobileNavOpen: false, 
+        filterDrawerOpen: false,
+        scrolled: false, 
+        init() {
+          this.$watch('cart', val => localStorage.setItem('mypage_cart', val));
+        }
+      }"
+      @scroll.window="scrolled = (window.pageYOffset > 24)"
+      @cart-add.window="cart++">
+
+  <!-- Accessible Skip Link -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-[var(--brand)] text-[var(--brand-ink)] font-semibold rounded-[var(--radius-sm)] shadow-[var(--shadow-lift)]">
+    Skip to main content
+  </a>
+
+  <!-- PARTIAL: store-header -->
+  <header class="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
+          :class="scrolled ? 'h-14 bg-[var(--brand-veil)] backdrop-blur-md shadow-sm border-b border-[var(--rule)]' : 'h-16 bg-transparent border-b border-transparent'">
+    <div class="shell h-full flex items-center justify-between gap-8">
+      <a href="/store/index.html" class="flex items-center gap-1.5 text-base font-extrabold tracking-tight text-[var(--ink)] whitespace-nowrap shrink-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" aria-hidden="true"></span>
+        <span style="font-family: var(--font-heading)">Adeola Couture</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--ink-2)]" aria-label="Store navigation">
+        <a href="/store/products.html" class="text-[var(--brand-text)] font-semibold whitespace-nowrap">Products</a>
+        <a href="/store/about.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">About</a>
+        <a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">Contact</a>
+        <a href="/store/track-order.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">Track Order</a>
+      </nav>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="/store/cart.html" 
+           class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] text-xs font-semibold transition-colors"
+           aria-label="View shopping bag">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="hidden sm:inline">Bag</span>
+          <span class="px-1.5 py-0.2 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-[11px] tabular-nums" x-text="cart" aria-live="polite">2</span>
+        </a>
+
+        <button type="button" 
+                @click="mobileNavOpen = !mobileNavOpen" 
+                class="md:hidden p-2 rounded-[var(--radius-sm)] border border-[var(--rule)] text-[var(--ink)] bg-[var(--paper)]"
+                aria-label="Toggle navigation menu"
+                :aria-expanded="mobileNavOpen">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 6h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Sheet -->
+    <div x-show="mobileNavOpen" 
+         x-transition.opacity.duration.200ms
+         @click.away="mobileNavOpen = false" 
+         class="md:hidden border-b border-[var(--rule)] bg-[var(--paper)] px-6 py-5 shadow-lg space-y-3 text-sm font-medium"
+         style="display: none;">
+      <a href="/store/products.html" class="block py-1 text-[var(--brand-text)] font-bold">All Products</a>
+      <a href="/store/about.html" class="block py-1 text-[var(--ink)]">Our Story & Weaving Guild</a>
+      <a href="/store/contact.html" class="block py-1 text-[var(--ink)]">Contact Studio</a>
+      <a href="/store/track-order.html" class="block py-1 text-[var(--ink)]">Track Waybill Reference</a>
+      <div class="pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+        <a href="/store/cart.html" class="flex items-center gap-2 text-xs font-bold text-[var(--brand-text)]">
+          <span>Shopping Bag</span>
+          <span class="px-2 py-0.5 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] tabular-nums" x-text="cart">2</span>
+        </a>
+        <a href="https://wa.me/2348030000001" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[#25D366]">
+          WhatsApp Us
+        </a>
+      </div>
+    </div>
+  </header>
+  <!-- /PARTIAL: store-header -->
+
+  <main id="main-content" class="pt-24 pb-24 md:pb-12">
+    <div class="shell">
+      
+      <!-- Catalogue Header -->
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 mb-6 border-b border-[var(--rule)]">
+        <div>
+          <nav aria-label="Breadcrumb" class="mb-2">
+            <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
+              <li><a href="/store/index.html" class="hover:text-[var(--ink)]">Home</a></li>
+              <li aria-hidden="true">/</li>
+              <li class="text-[var(--ink)] font-semibold" aria-current="page">Catalogue</li>
+            </ol>
+          </nav>
+          <h1 class="t-display-2 text-[var(--ink)]">Handcrafted Garments</h1>
+          <p class="t-meta mt-1">Showing 18 pieces tailored in Victoria Island, Lagos</p>
+        </div>
+
+        <!-- Mobile Filter Button with Count Badge -->
+        <button type="button" 
+                @click="filterDrawerOpen = true"
+                class="lg:hidden self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)] text-xs font-bold">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="21" y2="21"/><line x1="4" x2="20" y1="14" y2="14"/><line x1="4" x2="20" y1="7" y2="7"/><circle cx="14" cy="21" r="2"/><circle cx="8" cy="14" r="2"/><circle cx="16" cy="7" r="2"/></svg>
+          <span>Filters</span>
+          <span class="px-1.5 py-0.2 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] text-[10px]">3</span>
+        </button>
+      </div>
+
+      <!-- Removable Filter Chips with Screen-Reader Accessible Tags -->
+      <div class="flex flex-wrap items-center gap-2 mb-8 text-xs">
+        <span class="text-[var(--ink-3)] font-semibold">Active filters:</span>
+        
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
+          <span>Category: All Ceremonial</span>
+          <button type="button" class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Remove All Ceremonial category filter">×</button>
+        </span>
+
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
+          <span>In Stock Only</span>
+          <button type="button" class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Remove In Stock Only filter">×</button>
+        </span>
+
+        <a href="/store/products.html" class="text-xs font-semibold text-[var(--brand-text)] hover:underline ml-2">
+          Clear all filters
+        </a>
+      </div>
+
+      <!-- Main Layout: 4 Columns (1 Col Rail + 3 Col Grid) -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+        
+        <!-- Desktop Sticky Filter Rail (top-20, scrollable) -->
+        <aside class="hidden lg:block sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto p-5 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--rule)]" aria-label="Product filters">
+          <!-- PARTIAL: filter-rail -->
+          <form action="/store/products.html" method="GET" class="space-y-6">
+            
+            <!-- Search Keyword -->
+            <div>
+              <label for="catalog-search" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
+                Search Catalogue
+              </label>
+              <input type="text" 
+                     id="catalog-search" 
+                     name="q"
+                     placeholder="e.g. Silk, Agbada, Kimono"
+                     class="w-full h-10 px-3 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
+            </div>
+
+            <!-- Sort By -->
+            <div>
+              <label for="catalog-sort" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
+                Sort By
+              </label>
+              <select id="catalog-sort" 
+                      name="sort"
+                      class="w-full h-10 px-3 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
+                <option value="featured">Featured Pieces</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="newest">Latest 2026 Weave</option>
+              </select>
+            </div>
+
+            <!-- Categories Accordion (<details>) -->
+            <details class="group border-y border-[var(--rule)] py-3" open>
+              <summary class="flex items-center justify-between cursor-pointer list-none text-xs font-bold text-[var(--ink)]">
+                <span>Garment Category</span>
+                <span class="text-[10px] text-[var(--ink-3)] group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div class="mt-3 space-y-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="cat" value="agbada" checked class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Ceremonial Agbada (8)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="cat" value="autogele" checked class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Pre-tied AutoGele (6)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="cat" value="kimono" class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Akwete Kimonos (4)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="cat" value="leather" class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Leatherwork & Beads (6)</span>
+                </label>
+              </div>
+            </details>
+
+            <!-- Price Range (Two number inputs, strictly NO dual slider) -->
+            <fieldset>
+              <legend class="text-xs font-bold text-[var(--ink)] mb-2">Price Range (₦)</legend>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="rail-price-min" class="t-meta block mb-1">Min (₦)</label>
+                  <input type="number" 
+                         id="rail-price-min" 
+                         name="min"
+                         value="20000"
+                         step="5000"
+                         class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums">
+                </div>
+                <div>
+                  <label for="rail-price-max" class="t-meta block mb-1">Max (₦)</label>
+                  <input type="number" 
+                         id="rail-price-max" 
+                         name="max"
+                         value="150000"
+                         step="5000"
+                         class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums">
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Stock Availability -->
+            <fieldset>
+              <legend class="text-xs font-bold text-[var(--ink)] mb-2">Availability</legend>
+              <div class="space-y-1.5 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="inStock" value="1" checked class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Ready to Dispatch Only</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-[var(--ink-3)]">
+                  <input type="checkbox" name="preOrder" value="1" class="rounded text-[var(--brand)] focus:ring-[var(--focus-ring)]">
+                  <span>Include Pre-Orders</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <!-- Actions -->
+            <div class="pt-3 border-t border-[var(--rule)] flex gap-2">
+              <button type="submit" class="flex-1 h-9 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs hover:opacity-90 transition-opacity">
+                Apply Filters
+              </button>
+              <a href="/store/products.html" class="px-3 h-9 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)] font-semibold text-xs flex items-center justify-center hover:bg-[var(--surface)] transition-colors">
+                Clear
+              </a>
+            </div>
+
+          </form>
+          <!-- /PARTIAL: filter-rail -->
+        </aside>
+
+        <!-- Product Grid: 3 Columns on desktop, 2 on tablet/mobile -->
+        <div class="lg:col-span-3">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+            
+            <!-- Product 1 -->
+            <!-- PARTIAL: product-card -->
+            <article class="card p-3 group">
+              <div class="plate aspect-square mb-3">
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80&auto=format" 
+                       alt="Tailored Nigerian wedding agbada embroidery in emerald silk" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Agbada · Victoria Island</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Embroidered Royal Silk Agbada 3-Piece
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span class="flex items-center text-amber-500 font-bold" aria-label="4.9 stars out of 5">
+                    ★ 4.9
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>Verified craft</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <div>
+                    <span class="sr-only">Price:</span>
+                    <p class="t-price-sm">₦110,000</p>
+                  </div>
+                  <button type="button" 
+                          @click="$dispatch('cart-add')"
+                          class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity"
+                          aria-label="Add Embroidered Royal Silk Agbada to bag">
+                    Add to Bag
+                  </button>
+                </div>
+              </div>
+            </article>
+            <!-- /PARTIAL: product-card -->
+
+            <!-- Product 2 -->
+            <article class="card p-3 group">
+              <div class="plate aspect-square mb-3">
+                <div class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--ink)] text-[var(--paper)] text-[11px] font-bold tracking-tight">
+                  -24%
+                </div>
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&q=80&auto=format" 
+                       alt="Hand-loomed indigenous Akwete open-front structured kimono" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Textiles · Hand-Loomed</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Hand-loomed Akwete Kimono Robe
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span class="flex items-center text-amber-500 font-bold">★ 5.0</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Limited batch</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <div class="flex items-baseline gap-2">
+                    <p class="t-price-sm">₦65,000</p>
+                    <del class="text-xs text-[var(--ink-3)] tabular-nums">₦85,000</del>
+                  </div>
+                  <button type="button" 
+                          @click="$dispatch('cart-add')"
+                          class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity"
+                          aria-label="Add Hand-loomed Akwete Kimono to bag">
+                    Add to Bag
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Product 3 -->
+            <article class="card p-3 group opacity-85">
+              <div class="plate aspect-square mb-3">
+                <div class="absolute inset-0 bg-[var(--paper)]/50 z-10 flex items-center justify-center">
+                  <span class="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] text-[var(--ink)] text-xs font-bold border border-[var(--rule)] shadow-sm">
+                    Out of stock
+                  </span>
+                </div>
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80&auto=format" 
+                       alt="Pre-tied luxury pleated gele in champagne gold" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover grayscale">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Gele · Hand-Pleated</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Champagne Pleated AutoGele Headpiece
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span>Restocking in 10 days</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <p class="t-price-sm text-[var(--ink-3)]">₦28,000</p>
+                  <button type="button" 
+                          disabled 
+                          class="relative z-20 px-3 py-1.5 text-xs font-medium rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink-3)] border border-[var(--rule)] cursor-not-allowed"
+                          aria-label="Champagne Pleated AutoGele is out of stock">
+                    Out of stock
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Product 4 -->
+            <article class="card p-3 group">
+              <div class="plate aspect-square mb-3">
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&q=80&auto=format" 
+                       alt="Top-grain Nigerian calfskin leather daily tote in dark chestnut" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Leather · Kano Tannery</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Minimalist Calfskin Daily Tote
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span class="flex items-center text-amber-500 font-bold">★ 4.95</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Solid brass rivets</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <p class="t-price-sm">₦52,000</p>
+                  <button type="button" 
+                          @click="$dispatch('cart-add')"
+                          class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity"
+                          aria-label="Add Minimalist Calfskin Daily Tote to bag">
+                    Add to Bag
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Product 5 -->
+            <article class="card p-3 group">
+              <div class="plate aspect-square mb-3">
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&q=80&auto=format" 
+                       alt="Heavyweight cotton graphic streetwear tee in washed obsidian black" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Streetwear · Lekki</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Alte Heavyweight Graphic Tee
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span class="flex items-center text-amber-500 font-bold">★ 4.9</span>
+                  <span aria-hidden="true">·</span>
+                  <span>48 orders</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <p class="t-price-sm">₦18,500</p>
+                  <button type="button" 
+                          @click="$dispatch('cart-add')"
+                          class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity"
+                          aria-label="Add Alte Graphic Tee to bag">
+                    Add to Bag
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Product 6 -->
+            <article class="card p-3 group">
+              <div class="plate aspect-square mb-3">
+                <div class="plate-media h-full">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80&auto=format" 
+                       alt="Hand-beaded coral royal bridal necklace set" 
+                       width="400" 
+                       height="400" 
+                       loading="lazy" 
+                       class="h-full w-full object-cover">
+                </div>
+                <div class="grain" aria-hidden="true"></div>
+              </div>
+
+              <div class="flex flex-col flex-1">
+                <p class="t-meta mb-1">Beads · Edo Coral</p>
+                <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+                  <a href="/store/product.html" class="card-stretched-link hover:underline">
+                    Benin Royal Authentic Coral Bead Set
+                  </a>
+                </h3>
+
+                <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
+                  <span class="flex items-center text-amber-500 font-bold">★ 5.0</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Heirloom grade</span>
+                </div>
+
+                <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <p class="t-price-sm">₦95,000</p>
+                  <button type="button" 
+                          @click="$dispatch('cart-add')"
+                          class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity"
+                          aria-label="Add Benin Royal Coral Bead Set to bag">
+                    Add to Bag
+                  </button>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+          <!-- PARTIAL: paginator -->
+          <nav class="flex items-center justify-between border-t border-[var(--rule)] pt-6 mt-10" aria-label="Pagination">
+            <div class="hidden sm:block">
+              <p class="text-xs text-[var(--ink-3)]">
+                Showing <span class="font-bold text-[var(--ink)] tabular-nums">1</span> to <span class="font-bold text-[var(--ink)] tabular-nums">6</span> of <span class="font-bold text-[var(--ink)] tabular-nums">18</span> pieces
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
+              <a href="?page=1" class="min-w-11 h-11 px-3 rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink-3)] flex items-center justify-center text-xs font-semibold hover:border-[var(--brand-edge)] hover:text-[var(--ink)] transition-colors" aria-label="Previous page">
+                ← Prev
+              </a>
+              <div class="flex items-center gap-1">
+                <a href="?page=1" class="min-w-11 h-11 px-3.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] flex items-center justify-center text-xs font-bold tabular-nums" aria-current="page" aria-label="Page 1">
+                  1
+                </a>
+                <a href="?page=2" class="min-w-11 h-11 px-3.5 rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] flex items-center justify-center text-xs font-semibold tabular-nums hover:border-[var(--brand-edge)] transition-colors" aria-label="Page 2">
+                  2
+                </a>
+                <a href="?page=3" class="min-w-11 h-11 px-3.5 rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] flex items-center justify-center text-xs font-semibold tabular-nums hover:border-[var(--brand-edge)] transition-colors" aria-label="Page 3">
+                  3
+                </a>
+              </div>
+              <a href="?page=2" class="min-w-11 h-11 px-3 rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] flex items-center justify-center text-xs font-semibold hover:border-[var(--brand-edge)] transition-colors" aria-label="Next page">
+                Next →
+              </a>
+            </div>
+          </nav>
+          <!-- /PARTIAL: paginator -->
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Mobile Off-Canvas Filter Drawer (Re-uses ONE filter partial) -->
+  <div x-show="filterDrawerOpen" 
+       x-transition.opacity.duration.200ms
+       @keydown.escape.window="filterDrawerOpen = false"
+       class="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm lg:hidden"
+       style="display: none;"
+       role="dialog" 
+       aria-modal="true" 
+       aria-labelledby="mobile-filter-title">
+    
+    <div @click.away="filterDrawerOpen = false" 
+         class="w-full max-w-sm h-full bg-[var(--paper)] p-6 overflow-y-auto shadow-2xl flex flex-col justify-between">
+      
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-[var(--rule)] mb-6">
+          <h2 id="mobile-filter-title" class="text-base font-bold text-[var(--ink)]">Filter Garments</h2>
+          <button type="button" @click="filterDrawerOpen = false" class="text-[var(--ink-3)] hover:text-[var(--ink)] text-sm font-bold p-1" aria-label="Close filter drawer">✕</button>
+        </div>
+
+        <!-- RE-USE PARTIAL: filter-rail in mobile drawer -->
+        <form action="/store/products.html" method="GET" class="space-y-6">
+          <div>
+            <label for="drawer-search" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
+              Search Catalogue
+            </label>
+            <input type="text" 
+                   id="drawer-search" 
+                   name="q"
+                   placeholder="e.g. Silk, Agbada, Kimono"
+                   class="w-full h-10 px-3 text-xs rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)]">
+          </div>
+
+          <div>
+            <label for="drawer-sort" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
+              Sort By
+            </label>
+            <select id="drawer-sort" name="sort" class="w-full h-10 px-3 text-xs rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)]">
+              <option value="featured">Featured Pieces</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="newest">Latest 2026 Weave</option>
+            </select>
+          </div>
+
+          <fieldset>
+            <legend class="text-xs font-bold text-[var(--ink)] mb-2">Garment Category</legend>
+            <div class="space-y-2 text-xs">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="cat" value="agbada" checked class="rounded text-[var(--brand)]">
+                <span>Ceremonial Agbada (8)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="cat" value="autogele" checked class="rounded text-[var(--brand)]">
+                <span>Pre-tied AutoGele (6)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="cat" value="kimono" class="rounded text-[var(--brand)]">
+                <span>Akwete Kimonos (4)</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="text-xs font-bold text-[var(--ink)] mb-2">Price Range (₦)</legend>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="drawer-price-min" class="t-meta block mb-1">Min (₦)</label>
+                <input type="number" id="drawer-price-min" name="min" value="20000" class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)]">
+              </div>
+              <div>
+                <label for="drawer-price-max" class="t-meta block mb-1">Max (₦)</label>
+                <input type="number" id="drawer-price-max" name="max" value="150000" class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)]">
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="pt-4 border-t border-[var(--rule)] flex gap-2">
+            <button type="submit" class="flex-1 h-11 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs">
+              Apply Filters
+            </button>
+            <button type="button" @click="filterDrawerOpen = false" class="px-4 h-11 rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] font-semibold text-xs border border-[var(--rule)]">
+              Close
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PARTIAL: store-whatsapp-bar -->
+  <aside aria-label="WhatsApp quick order" class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card)] border-t border-[var(--rule)] p-3 md:hidden shadow-lg" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <span class="text-[10px] text-[var(--ink-3)] block uppercase tracking-wider">Merchant Online</span>
+        <span class="text-xs font-bold text-[var(--ink)]">Adeola Couture Lagos</span>
+      </div>
+      <a href="https://wa.me/2348030000001?text=Hello%20Adeola%20Couture,%20I%20am%20browsing%20your%20storefront." 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="h-10 px-4 rounded-[var(--radius)] bg-[#25D366] text-white text-xs font-bold flex items-center gap-2 shadow-sm hover:opacity-95 transition-opacity">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
+        <span>Chat on WhatsApp</span>
+      </a>
+    </div>
+  </aside>
+
+  <aside aria-label="WhatsApp quick concierge" class="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-40">
+    <a href="https://wa.me/2348030000001?text=Hello%20Adeola%20Couture,%20I%20am%20browsing%20your%20storefront." 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       class="inline-flex items-center gap-2 py-3.5 px-2 rounded-l-[var(--radius)] bg-[#25D366] text-white text-xs font-bold shadow-md hover:translate-x-[-2px] transition-transform"
+       style="writing-mode: vertical-rl;">
+      <svg class="w-4 h-4 fill-current rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
+      <span>WhatsApp Concierge</span>
+    </a>
+  </aside>
+  <!-- /PARTIAL: store-whatsapp-bar -->
+
+  <!-- PARTIAL: store-footer -->
+  <footer class="border-t border-[var(--rule)] bg-[var(--surface)] text-xs text-[var(--ink-2)] py-14">
+    <div class="shell">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div class="space-y-3">
+          <a href="/store/index.html" class="flex items-center gap-1.5 text-base font-extrabold tracking-tight text-[var(--ink)]">
+            <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" aria-hidden="true"></span>
+            <span style="font-family: var(--font-heading)">Adeola Couture</span>
+          </a>
+          <p class="t-body text-xs text-[var(--ink-3)] leading-relaxed t-measure-narrow">
+            Bespoke Yoruba ceremonial wear, hand-loomed Aso-Oke, and contemporary Nigerian evening silhouettes tailored in Victoria Island, Lagos.
+          </p>
+          <p class="t-meta">14A Adeola Hopewell Street, Victoria Island, Lagos</p>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Store Catalogue</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="/store/products.html" class="hover:text-[var(--ink)] transition-colors">Bridal & Engagement Aso-Oke</a></li>
+            <li><a href="/store/products.html?cat=agbada" class="hover:text-[var(--ink)] transition-colors">Ceremonial Agbada 3-Piece</a></li>
+            <li><a href="/store/products.html?cat=autogele" class="hover:text-[var(--ink)] transition-colors">Pre-tied Luxury AutoGele</a></li>
+            <li><a href="/store/products.html?cat=streetwear" class="hover:text-[var(--ink)] transition-colors">Alte Graphic Silhouettes</a></li>
+            <li><a href="/store/products.html?cat=leather" class="hover:text-[var(--ink)] transition-colors">Tannery Leather Accessories</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Customer Service & Escrow</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="/store/track-order.html" class="hover:text-[var(--ink)] transition-colors">Track Waybill Reference</a></li>
+            <li><a href="/store/escrow.html" class="hover:text-[var(--ink)] transition-colors">Escrow Guarantee Protocol</a></li>
+            <li><a href="/store/about.html" class="hover:text-[var(--ink)] transition-colors">Craftsmanship & Weaving</a></li>
+            <li><a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors">Studio Appointments & Sizing</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Buyer Account Portal</h4>
+          <p class="text-xs text-[var(--ink-3)] leading-relaxed mb-3">
+            Buyers never need a password. Access your order history and dispatch escrow with your WhatsApp phone number.
+          </p>
+          <a href="/store/track-order.html" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] text-xs font-bold text-[var(--ink)] hover:border-[var(--brand-edge)] transition-colors">
+            <svg class="w-3.5 h-3.5 text-[var(--brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Buyer Order Sign-In</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-[var(--rule)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[var(--ink-3)]">
+        <p>© 2026 Adeola Couture Lagos. Powered by <a href="/index.html" class="underline hover:text-[var(--ink)]">mypage.ng</a> sovereign infrastructure.</p>
+        <div class="flex items-center gap-6">
+          <a href="/store/about.html" class="hover:text-[var(--ink)] transition-colors">About Us</a>
+          <a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors">Contact</a>
+          <a href="/index.html" class="hover:text-[var(--ink)] transition-colors">Create Your Own Store</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <!-- /PARTIAL: store-footer -->
+
+</body>
+</html>

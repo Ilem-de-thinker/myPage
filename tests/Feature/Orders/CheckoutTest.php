@@ -195,3 +195,40 @@ it('settles the order when the gateway callback is verified', function () {
     expect($transaction->fresh()->status->value)->toBe('paid')
         ->and($transaction->payable->fresh()->status)->toBe(OrderStatus::Paid);
 });
+
+it('closes the transaction out as failed when the gateway cannot be reached', function () {
+    [$page, $product] = checkoutStore();
+
+    Http::fake([
+        'api.paystack.co/transaction/initialize' => Http::failedConnection(),
+    ]);
+
+    post("/{$page->slug}/checkout", [
+        'email' => 'ada@example.com',
+        'cart' => [['product_id' => $product->id, 'quantity' => 1]],
+    ])->assertSessionHasErrors('email');
+
+    // The order survives so the buyer can retry, but a transaction left Pending
+    // advertises a payment that nothing is going to settle.
+    expect(Transaction::sole()->status->value)->toBe('failed')
+        ->and(Order::sole()->status)->toBe(OrderStatus::PendingPayment);
+});
+
+it('tells the cart which store it belongs to', function () {
+    [$page, $product] = checkoutStore();
+
+    // Every seller on the apex domain shares one host, so a cart keyed by host
+    // alone belongs to whichever shop the buyer saw first — and its product ids
+    // are then rejected by the next shop's checkout.
+    get("/{$page->slug}/checkout")
+        ->assertOk()
+        ->assertSee('data-store="'.$page->slug.'"', escape: false);
+});
+
+it('names the store on the storefront too, since the cart is filled there', function () {
+    [$page, $product] = checkoutStore();
+
+    get("/{$page->slug}")
+        ->assertOk()
+        ->assertSee('data-store="'.$page->slug.'"', escape: false);
+});

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Domains\Seller\Models\Seller;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -12,9 +11,10 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        Seller::factory()->create([
-            'name' => 'Test Seller',
-            'email' => 'test@example.com',
-        ]);
+        // Plans first: a seller subscription is meaningless without one.
+        $this->call(PlanSeeder::class);
+
+        // Two demo sellers, one per theme, with history on every screen.
+        $this->call(DemoSellerSeeder::class);
     }
 }

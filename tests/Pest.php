@@ -86,7 +86,7 @@ function sellerWithProduct(array $productAttributes = [], array $pageAttributes 
  * Register this once per test: repeated Http::fake() calls append stubs and the
  * first matching pattern wins.
  *
- * @param  array{status?: string, amount_kobo?: int|null, transfer_success?: bool}  $options
+ * @param  array{status?: string, amount_kobo?: int|null, transfer_success?: bool, bank_resolve_success?: bool}  $options
  */
 function fakePaystack(array $options = []): void
 {
@@ -94,6 +94,7 @@ function fakePaystack(array $options = []): void
         'status' => 'success',
         'amount_kobo' => null,
         'transfer_success' => true,
+        'bank_resolve_success' => true,
     ];
 
     $transferStatus = $options['transfer_success'] ? 'success' : 'failed';
@@ -120,11 +121,30 @@ function fakePaystack(array $options = []): void
         'api.paystack.co/transfer/transferrecipient' => Http::response([
             'data' => ['recipient_code' => 'RCP_test'],
         ]),
-        'api.paystack.co/bank/resolve*' => Http::response([
-            'data' => ['account_name' => 'Test Seller'],
-        ]),
+        // A failing lookup is how the bank endpoint behaves when credentials are
+        // wrong or the gateway is down. Both are third-party faults a seller
+        // must never see as a crash.
+        'api.paystack.co/bank/resolve*' => $options['bank_resolve_success']
+            ? Http::response(['data' => ['account_name' => 'Test Seller']])
+            : Http::response(['message' => 'Invalid key'], 401),
         'api.paystack.co/transfer' => Http::response([
             'data' => ['status' => $transferStatus, 'reference' => 'TRF_test'],
         ]),
     ]);
+}
+
+/**
+ * A published service page with at least one bookable service on it.
+ *
+ * @return array{0: Seller, 1: StorePage}
+ */
+function bookableServicePage(): array
+{
+    $seller = Seller::factory()->create();
+    $page = StorePage::factory()->for($seller)->create([
+        'theme' => 'service',
+        'status' => 'published',
+    ]);
+
+    return [$seller, $page];
 }

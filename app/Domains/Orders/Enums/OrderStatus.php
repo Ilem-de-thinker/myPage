@@ -51,6 +51,26 @@ enum OrderStatus: string
         return $this->allowedTransitions() === [];
     }
 
+    /**
+     * Whether an order in this state counts towards what a customer is worth to
+     * the seller. Only money the seller actually holds is counted, so cancelled
+     * and refunded orders fall back out of a customer's lifetime value.
+     */
+    public function countsTowardsLifetimeValue(): bool
+    {
+        return in_array($this, [self::Paid, self::Processing, self::Shipped, self::Delivered], true);
+    }
+
+    /**
+     * Whether a buyer cares enough to hear about this move. The quiet states are
+     * the ones that only concern the seller; mailing every transition would just
+     * train buyers to ignore the store.
+     */
+    public function notifiesBuyer(): bool
+    {
+        return in_array($this, [self::Paid, self::Shipped, self::Delivered, self::Cancelled, self::Refunded], true);
+    }
+
     public function label(): string
     {
         return match ($this) {

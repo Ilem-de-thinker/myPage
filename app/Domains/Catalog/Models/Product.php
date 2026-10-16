@@ -2,10 +2,14 @@
 
 namespace App\Domains\Catalog\Models;
 
+use App\Domains\Catalog\Enums\ProductSort;
+use App\Domains\Orders\Models\OrderItem;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Money;
 use App\Shared\Traits\BelongsToSeller;
+use App\Shared\Traits\HasRating;
 use Database\Factories\Domains\Catalog\Models\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,12 +19,12 @@ use Illuminate\Support\Facades\Storage;
 /** @use HasFactory<ProductFactory> */
 class Product extends Model
 {
-    use BelongsToSeller, HasFactory;
+    use BelongsToSeller, HasFactory, HasRating;
 
     protected $fillable = [
         'seller_id', 'store_page_id', 'category_id', 'name', 'slug', 'description',
         'price_kobo', 'compare_at_kobo', 'sku', 'track_stock', 'stock_qty',
-        'status', 'is_featured',
+        'status', 'is_featured', 'view_count', 'rating', 'review_count',
     ];
 
     protected function casts(): array
@@ -30,6 +34,9 @@ class Product extends Model
             'compare_at_kobo' => 'integer',
             'track_stock' => 'boolean',
             'is_featured' => 'boolean',
+            'view_count' => 'integer',
+            'rating' => 'float',
+            'review_count' => 'integer',
         ];
     }
 
@@ -58,6 +65,19 @@ class Product extends Model
         return $this->hasMany(InventoryLog::class);
     }
 
+    /**
+     * The lines this product appears on.
+     *
+     * Read only — nothing writes through it. It exists so ProductSort::Popular can
+     * count units sold in a single subquery. OrderItem carries no seller scope of
+     * its own, and the join is on product_id, so a seller's sort cannot see
+     * another seller's lines.
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function getPriceLabelAttribute(): string
     {
         return Money::format($this->price_kobo);
@@ -70,8 +90,119 @@ class Product extends Model
         return $image ? Storage::url($image->path) : null;
     }
 
+    /**
+     * Whether the price shown is actually a reduction.
+     *
+     * Guards the case where a seller types a compare-at below the real price: the
+     * card then shows the price plainly instead of a "save 40%" that is negative.
+     */
+    public function isDiscounted(): bool
+    {
+        return $this->compare_at_kobo !== null
+            && $this->compare_at_kobo > $this->price_kobo;
+    }
+
+    public function discountPercent(): ?int
+    {
+        if (! $this->isDiscounted() || $this->compare_at_kobo === 0) {
+            return null;
+        }
+
+        return (int) round((($this->compare_at_kobo - $this->price_kobo) / $this->compare_at_kobo) * 100);
+    }
+
+    public function isSoldOut(): bool
+    {
+        return $this->track_stock && $this->stock_qty < 1;
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Catalog filtering
+    |--------------------------------------------------------------------------
+    |
+    | Every clause a buyer-facing catalogue can be narrowed by, as a local scope.
+    | They are chainable and side-effect free so a caller composes exactly the
+    | filters it has rather than passing a whole request into the model.
+    |
+    */
+
+    /**
+     * Free-text match over name, description and SKU.
+     *
+     * The wildcards inside the term are escaped. An unescaped `%` makes the
+     * predicate match every row, which turns the search box into a no-op and
+     * looks to a buyer like "my search is broken" rather than "you found
+     * everything".
+     *
+     * @param  Builder<Product>  $query
+     */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
+
+        return $query->where(function (Builder $inner) use ($like): void {
+            $inner->where('name', 'like', $like)
+                ->orWhere('description', 'like', $like)
+                ->orWhere('sku', 'like', $like);
+        });
+    }
+
+    /**
+     * Restrict to one category, or to any of several.
+     *
+     * A single id and an array of ids arrive from the same control — the
+     * single-select is the array of one — so both are accepted rather than making
+     * the caller normalise first.
+     *
+     * @param  Builder<Product>  $query
+     * @param  array<int>|int|string|null  $categories
+     */
+    public function scopeInCategories(Builder $query, array|int|string|null $categories): Builder
+    {
+        $ids = collect(is_array($categories) ? $categories : [$categories])
+            ->filter(fn ($id): bool => $id !== null && $id !== '')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return $query;
+        }
+
+        return $query->whereIn('category_id', $ids);
+    }
+
+    /**
+     * Price band, in kobo, inclusive at both ends.
+     *
+     * @param  Builder<Product>  $query
+     */
+    public function scopePricedBetween(Builder $query, ?int $minKobo, ?int $maxKobo): Builder
+    {
+        return $query
+            ->when($minKobo !== null, fn (Builder $q) => $q->where('price_kobo', '>=', $minKobo))
+            ->when($maxKobo !== null, fn (Builder $q) => $q->where('price_kobo', '<=', $maxKobo));
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeSorted(Builder $query, ProductSort $sort): Builder
+    {
+        return $sort->apply($query);
     }
 }

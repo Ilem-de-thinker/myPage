@@ -25,8 +25,29 @@ function initRichText() {
 }
 
 window.Alpine = Alpine;
+
+/**
+ * Where this buyer's cart lives in storage.
+ *
+ * Keyed by the store, not just the host. Every seller on mypage.ng shares one
+ * host and is told apart by the path, so a cart kept per host belongs to
+ * whichever shop the buyer happened to visit first. Visiting a second shop then
+ * carried the first shop's product ids into its checkout, and pricing rejected
+ * them with "That item is no longer available" — a cart of another store's
+ * goods, silently carried across.
+ *
+ * On a seller's own domain the host already identifies the store; the slug is
+ * appended anyway so both kinds of shop agree, and so a buyer who moves between
+ * the apex and a custom domain keeps one cart rather than two.
+ */
+const cartKey = () => {
+    const store = document.body?.dataset.store || '';
+
+    return 'cart:' + location.host + (store ? '/' + store : '');
+};
+
 Alpine.store('cart', {
-    items: JSON.parse(localStorage.getItem('cart:' + location.host) || '[]'),
+    items: JSON.parse(localStorage.getItem(cartKey()) || '[]'),
 
     // A line is identified by the product plus the chosen variant, so "Large"
     // and "Small" stay separate rows.
@@ -115,7 +136,7 @@ Alpine.store('cart', {
     },
 
     save() {
-        localStorage.setItem('cart:' + location.host, JSON.stringify(this.items));
+        localStorage.setItem(cartKey(), JSON.stringify(this.items));
     },
 });
 

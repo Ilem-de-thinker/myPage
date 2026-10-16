@@ -6,7 +6,7 @@
         :subtitle="$activeSource?->label() ?? 'Every order from WhatsApp and paid checkout.'"
     />
 
-    <div class="mb-4 flex gap-2 border-b border-slate-200">
+    <div class="mb-4 flex gap-2 border-b border-rule">
         @foreach (\App\Domains\Orders\Enums\OrderSource::cases() as $tab)
             @php $isActive = $activeSource === $tab; @endphp
             <a
@@ -14,11 +14,11 @@
                 @class([
                     '-mb-px border-b-2 px-4 py-2.5 text-xs font-semibold transition',
                     'border-brand text-brand' => $isActive,
-                    'border-transparent text-slate-500 hover:text-ink' => ! $isActive,
+                    'border-transparent text-ink-3 hover:text-ink' => ! $isActive,
                 ])
             >
                 {{ $tab->shortLabel() }}
-                <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                <span class="ml-1 rounded-full bg-tint px-1.5 py-0.5 text-[10px] text-ink-2">
                     {{ \App\Domains\Orders\Models\Order::where('store_page_id', $page->id)->where('source', $tab->value)->count() }}
                 </span>
             </a>
@@ -28,7 +28,7 @@
             href="{{ route('dashboard.orders.index') }}"
             @class([
                 '-mb-px ml-auto border-b-2 px-4 py-2.5 text-xs font-semibold transition',
-                'border-transparent text-slate-400 hover:text-ink' => $activeSource !== null,
+                'border-transparent text-ink-3 hover:text-ink' => $activeSource !== null,
                 'hidden' => $activeSource === null,
             ])
         >
@@ -36,9 +36,9 @@
         </a>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-card rounded-2xl border border-rule overflow-hidden">
         @forelse ($orders as $order)
-            <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-0 hover:bg-slate-50/60">
+            <div class="flex flex-wrap items-center gap-3 border-b border-rule px-4 py-3 last:border-0 hover:bg-surface/60">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <a href="{{ route('dashboard.orders.show', $order) }}" class="text-sm font-semibold text-ink hover:text-brand">
@@ -47,11 +47,11 @@
                         <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $order->status->badgeClasses() }}">
                             {{ $order->status->label() }}
                         </span>
-                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                        <span class="rounded-full bg-tint px-2 py-0.5 text-[10px] font-semibold text-ink-2">
                             {{ $order->source->shortLabel() }}
                         </span>
                     </div>
-                    <p class="mt-0.5 truncate text-xs text-slate-500">
+                    <p class="mt-0.5 truncate text-xs text-ink-3">
                         {{ $order->customer_name ?: 'Guest' }}
                         @if ($order->items->isNotEmpty())
                             &middot; {{ $order->items->pluck('name')->join(', ') }}
@@ -65,8 +65,8 @@
             </div>
         @empty
             <div class="px-6 py-16 text-center">
-                <p class="text-sm text-slate-500 mb-1">No {{ $activeSource?->shortLabel() ?? '' }} orders yet.</p>
-                <p class="text-xs text-slate-400">
+                <p class="text-sm text-ink-3 mb-1">No {{ $activeSource?->shortLabel() ?? '' }} orders yet.</p>
+                <p class="text-xs text-ink-3">
                     @if ($activeSource === \App\Domains\Orders\Enums\OrderSource::Whatsapp)
                         Orders your buyers send over WhatsApp land here automatically.
                     @elseif ($activeSource === \App\Domains\Orders\Enums\OrderSource::Platform)

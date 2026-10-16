@@ -14,7 +14,7 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->unique()->words(3, true);
+        $name = fake()->words(3, true);
 
         return [
             'store_page_id' => StorePage::factory(),
@@ -25,7 +25,12 @@ class ProductFactory extends Factory
             'price_kobo' => fake()->numberBetween(100000, 5000000),
             'sku' => 'SKU-'.strtoupper(Str::random(8)),
             'track_stock' => true,
-            'stock_qty' => fake()->numberBetween(0, 50),
+            // Never zero by default. Faker is seeded per test, so a 0..50 range
+            // handed the same zero to every test that happened to create its
+            // first product, and checkout tests failed on stock they never
+            // asked about. Tests about stock set it themselves, or use
+            // outOfStock().
+            'stock_qty' => fake()->numberBetween(5, 50),
             'status' => 'active',
             'is_featured' => false,
         ];
@@ -39,5 +44,10 @@ class ProductFactory extends Factory
     public function draft(): static
     {
         return $this->state(fn () => ['status' => 'draft']);
+    }
+
+    public function outOfStock(): static
+    {
+        return $this->state(fn () => ['track_stock' => true, 'stock_qty' => 0]);
     }
 }

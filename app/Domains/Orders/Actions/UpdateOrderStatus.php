@@ -17,7 +17,7 @@ class UpdateOrderStatus
             throw new InvalidTransition($order->status, $to);
         }
 
-        DB::transaction(function () use ($order, $to, $by, $note) {
+        $from = DB::transaction(function () use ($order, $to, $by, $note) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             $from = $locked->status;
@@ -30,10 +30,14 @@ class UpdateOrderStatus
                 'by_seller_id' => $by?->getKey(),
                 'note' => $note,
             ]);
+
+            return $from;
         });
 
-        event(new OrderStatusChanged($order->fresh(), $to));
+        $order->refresh();
 
-        return $order->fresh();
+        event(new OrderStatusChanged($order, $from, $to));
+
+        return $order;
     }
 }

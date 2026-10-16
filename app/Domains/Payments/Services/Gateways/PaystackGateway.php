@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class PaystackGateway implements PaymentGatewayInterface
 {
-    public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = []): array
+    public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = [], array $options = []): array
     {
         $data = $this->http()->post('/transaction/initialize', [
             'reference' => $reference,
@@ -16,9 +16,155 @@ class PaystackGateway implements PaymentGatewayInterface
             'email' => $email,
             'callback_url' => $callbackUrl,
             'metadata' => $meta,
+            // A plan makes this a subscription signup: the gateway charges the
+            // plan's own amount instead of $amountKobo, then bills the card on
+            // its own from the next cycle onwards.
+            ...$this->subscriptionOptions($options),
         ])->throw()->json('data');
 
         return ['authorization_url' => $data['authorization_url']];
+    }
+
+    public function createPlan(string $name, string $interval, int $amountKobo, array $options = []): array
+    {
+        $data = $this->http()->post('/plan', [
+            'name' => $name,
+            'interval' => $this->gatewayInterval($interval),
+            'amount' => $amountKobo,
+            ...$options,
+        ])->throw()->json('data');
+
+        return [
+            'plan_code' => (string) $data['plan_code'],
+            'raw' => $data,
+        ];
+    }
+
+    public function fetchPlan(string $planCode): array
+    {
+        $data = $this->http()->get("/plan/{$planCode}")->throw()->json('data');
+
+        return [
+            'name' => (string) $data['name'],
+            'amount_kobo' => (int) $data['amount'],
+            'interval' => (string) $data['interval'],
+            'raw' => $data,
+        ];
+    }
+
+    public function updatePlan(string $planCode, string $name, string $interval, int $amountKobo, bool $updateExistingSubscriptions = false): array
+    {
+        $response = $this->http()->put("/plan/{$planCode}", [
+            'name' => $name,
+            'interval' => $this->gatewayInterval($interval),
+            'amount' => $amountKobo,
+            // Always sent, never omitted: omitting it means "re-price everyone
+            // currently subscribed", which is the gateway's default and never
+            // what a price edit should do implicitly.
+            'update_existing_subscriptions' => $updateExistingSubscriptions,
+        ])->throw();
+
+        // "Plan updated. 3 subscription(s) affected" — the count the operator
+        // needs to know whether a change hit people who never agreed to it.
+        return [
+            'affected_subscriptions' => $this->affectedCount((string) $response->json('message')),
+            'raw' => (array) $response->json('data'),
+        ];
+    }
+
+    private function affectedCount(string $message): ?int
+    {
+        return preg_match('/(\d+)\s+subscription/', $message, $matches) === 1
+            ? (int) $matches[1]
+            : null;
+    }
+
+    public function createSubscription(string $customerCode, string $planCode, array $options = []): array
+    {
+        $data = $this->http()->post('/subscription', [
+            'customer' => $customerCode,
+            'plan' => $planCode,
+            ...$options,
+        ])->throw()->json('data');
+
+        return $this->normalizeSubscription($data);
+    }
+
+    public function fetchSubscription(string $subscriptionCode): array
+    {
+        $data = $this->http()->get("/subscription/{$subscriptionCode}")
+            ->throw()
+            ->json('data');
+
+        return $this->normalizeSubscription($data);
+    }
+
+    public function disableSubscription(string $subscriptionCode): array
+    {
+        $response = $this->http()->get("/subscription/{$subscriptionCode}/disable")->throw();
+
+        return ['success' => (bool) $response->json('status'), 'raw' => (array) $response->json('data')];
+    }
+
+    public function enableSubscription(string $subscriptionCode): array
+    {
+        $response = $this->http()->get("/subscription/{$subscriptionCode}/enable")->throw();
+
+        return ['success' => (bool) $response->json('status'), 'raw' => (array) $response->json('data')];
+    }
+
+    public function manageLink(string $subscriptionCode): string
+    {
+        $data = $this->http()
+            ->get("/subscription/{$subscriptionCode}/manage/link")
+            ->throw()
+            ->json('data');
+
+        return (string) $data['link'];
+    }
+
+    /**
+     * Paystack counts the year as `annually` and the six months as
+     * `biannually`; this application says `yearly`. Translated in one place so
+     * a plan can be written the way the product talks about it.
+     */
+    private function gatewayInterval(string $interval): string
+    {
+        return match ($interval) {
+            'yearly', 'annually' => 'annually',
+            'biannually' => 'biannually',
+            default => $interval,
+        };
+    }
+
+    /**
+     * Only forward the options a plan signup actually understands, so a caller
+     * cannot accidentally smuggle something else into the initialize payload.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function subscriptionOptions(array $options): array
+    {
+        return array_intersect_key($options, array_flip(['plan']));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{subscription_code: string, customer_code: ?string, email_token: ?string, status: string, next_payment_date: ?string, raw: array<string, mixed>}
+     */
+    private function normalizeSubscription(array $data): array
+    {
+        return [
+            'subscription_code' => (string) $data['subscription_code'],
+            'customer_code' => isset($data['customer']['customer_code'])
+                ? (string) $data['customer']['customer_code']
+                : null,
+            'email_token' => isset($data['email_token']) ? (string) $data['email_token'] : null,
+            'status' => (string) ($data['status'] ?? ''),
+            'next_payment_date' => $data['next_payment_date'] ?? null,
+            'raw' => $data,
+        ];
     }
 
     public function verify(string $reference): array
@@ -99,12 +245,26 @@ class PaystackGateway implements PaymentGatewayInterface
         return hash_hmac('sha512', $payload, (string) config('services.paystack.secret'));
     }
 
+    /**
+     * Three attempts, backing off 250ms then 500ms.
+     *
+     * A flat 300ms retry is no retry at all: a name that fails to resolve or a
+     * socket that refuses is still in the same state 300ms later, so the
+     * attempts burn the buyer's time to arrive at the same answer.
+     *
+     * connectTimeout is separate from timeout on purpose. A blackholed host used
+     * to hang for the full 20s on every attempt — about a minute of the buyer
+     * staring at a spinner — and now gives up in 5. Three attempts plus the two
+     * backoffs is the ceiling of about 16s, and the common case (DNS refusing)
+     * fails in well under a second.
+     */
     private function http(): PendingRequest
     {
         return Http::withToken((string) config('services.paystack.secret'))
             ->baseUrl('https://api.paystack.co')
             ->acceptJson()
+            ->connectTimeout(5)
             ->timeout(20)
-            ->retry(2, 300);
+            ->retry(3, fn (int $attempt) => 250 * (2 ** ($attempt - 1)));
     }
 }

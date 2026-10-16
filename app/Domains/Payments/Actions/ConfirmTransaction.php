@@ -6,6 +6,7 @@ use App\Domains\Payments\Enums\TransactionStatus;
 use App\Domains\Payments\Events\PaymentConfirmed;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Payments\Services\CommissionCalculator;
+use App\Domains\Payments\Services\Contracts\EscrowRouter;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use App\Domains\Payments\Services\LedgerService;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ class ConfirmTransaction
         private readonly PaymentGatewayInterface $gateway,
         private readonly CommissionCalculator $commission,
         private readonly LedgerService $ledger,
+        private readonly EscrowRouter $escrow,
     ) {}
 
     /**
@@ -56,7 +58,7 @@ class ConfirmTransaction
                 'gateway_payload' => $verification['raw'],
             ]);
 
-            $this->ledger->settleSale($transaction);
+            $this->ledger->settleSale($transaction, $this->escrow->destinationFor($transaction));
 
             event(new PaymentConfirmed($transaction));
 

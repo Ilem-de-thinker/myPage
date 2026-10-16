@@ -1,9 +1,9 @@
 <?php
 
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Seller\Models\PageBlock;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
-use App\Domains\Seller\Models\StoreSection;
 use App\Domains\Seller\Services\SlugResolver;
 use App\Shared\Traits\BelongsToSeller;
 use Illuminate\Support\Facades\Cache;
@@ -17,8 +17,8 @@ function publishedPage(string $slug, string $theme = 'store'): StorePage
         ->published()
         ->create(['slug' => $slug, 'theme' => $theme, 'name' => ucfirst($slug).' Shop']);
 
-    StoreSection::factory()->create(['store_page_id' => $page->id, 'page' => 'home', 'key' => 'hero', 'position' => 0]);
-    StoreSection::factory()->create(['store_page_id' => $page->id, 'page' => 'home', 'key' => 'products', 'position' => 1]);
+    PageBlock::factory()->create(['store_page_id' => $page->id, 'page' => 'home', 'key' => 'hero']);
+    PageBlock::factory()->create(['store_page_id' => $page->id, 'page' => 'home', 'key' => 'products']);
 
     return $page;
 }
@@ -56,6 +56,29 @@ it('404s store routes that do not belong to the page theme', function () {
     get('/service-shop/products')->assertNotFound();
 });
 
+it('points the service storefront nav at the service pages it owns', function () {
+    publishedPage('nav-service', 'service');
+
+    get('/nav-service')
+        ->assertOk()
+        ->assertSee(route('storefront.services', 'nav-service'))
+        ->assertSee(route('storefront.book', 'nav-service'))
+        ->assertSee(route('storefront.contact', 'nav-service'))
+        // A service page has no cart, and a cart link would 404 anyway.
+        ->assertDontSee(route('storefront.cart', 'nav-service'));
+});
+
+it('points the store storefront nav at the store pages it owns', function () {
+    publishedPage('nav-store');
+
+    get('/nav-store')
+        ->assertOk()
+        ->assertSee(route('storefront.products', 'nav-store'))
+        ->assertSee(route('storefront.cart', 'nav-store'))
+        // The service nav would offer a booking form a store cannot take.
+        ->assertDontSee(route('storefront.services', 'nav-store'));
+});
+
 it('hides draft and archived products from the storefront', function () {
     $page = publishedPage('catalogshop');
     Product::factory()->create(['store_page_id' => $page->id, 'seller_id' => $page->seller_id, 'slug' => 'draft-item', 'name' => 'Draft Item', 'status' => 'draft']);
@@ -82,10 +105,16 @@ it('carries the preview grant to deep links via a cookie', function () {
 
     $response = get(URL::temporarySignedRoute('storefront.show', now()->addHour(), ['slug' => 'previewdeep']))->assertOk();
 
-    // The preview cookie is what authorises the following unsigned requests.
+    // The resolved page is cached, so repeat storefront hits skip the query.
     expect($response->getCookie('preview_previewdeep'))->not->toBeNull();
 
-    $this->withUnencryptedCookie('preview_previewdeep', '127.0.0.1');
+    // Replay the cookie the app actually sent, verbatim, the way a browser
+    // does. TestResponse hands back cookies already decrypted, so ask for the
+    // encrypted value: rebuilding one here would hide a broken cookie behind a
+    // test client that knows how to mint the right shape.
+    $sent = $response->getCookie('preview_previewdeep', decrypt: false);
+
+    $this->withUnencryptedCookie('preview_previewdeep', $sent->getValue());
 
     get('/previewdeep/about')->assertOk();
     get('/previewdeep/contact')->assertOk();
@@ -112,7 +141,7 @@ it('does not grant preview access without a signed url', function () {
 it('does not honour a preview cookie minted for another visitor', function () {
     StorePage::factory()->create(['slug' => 'previewip', 'status' => 'draft', 'theme' => 'store']);
 
-    $this->withUnencryptedCookie('preview_previewip', '203.0.113.9');
+    $this->withCookie('preview_previewip', '203.0.113.9');
 
     get('/previewip')->assertNotFound();
 });
@@ -146,7 +175,7 @@ it('resolves the store page and shares it with the view', function () {
 
     expect($response->viewData('page'))->toBeInstanceOf(StorePage::class);
     expect($response->viewData('page')->slug)->toBe('sharedpage');
-    expect($response->viewData('page')->sections)->not->toBeEmpty();
+    expect($response->viewData('page')->blocks)->not->toBeEmpty();
 });
 
 it('never leaks one sellers pages into another sellers queries', function () {
@@ -194,17 +223,19 @@ it('caches a resolved page and flushes it on demand', function () {
     get('/cachedpage')->assertOk();
 });
 
-it('serves the cached page until the cache is flushed', function () {
+it('invalidates the cached page when the seller edits it', function () {
     $page = publishedPage('refreshpage');
 
     get('/refreshpage')->assertOk()->assertSee('Refreshpage Shop');
 
+    // The resolved page is cached, so repeat storefront hits skip the query.
+    expect(Cache::has('store:slug:refreshpage'))->toBeTrue();
+
     $page->update(['name' => 'Renamed Shop']);
 
-    // Still cached: the previous name is served until it is invalidated.
-    get('/refreshpage')->assertOk()->assertSee('Refreshpage Shop');
-
-    app(SlugResolver::class)->flush('refreshpage');
+    // StorePageObserver invalidates it, so a seller never has to wait out the
+    // cache TTL to see their own edit.
+    expect(Cache::has('store:slug:refreshpage'))->toBeFalse();
 
     get('/refreshpage')->assertOk()->assertSee('Renamed Shop');
 });

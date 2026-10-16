@@ -5,10 +5,20 @@ namespace App\Domains\Payments\Services\Gateways;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
+/**
+ * The other gateway this application can be pointed at.
+ *
+ * Recurring billing is not implemented here: Flutterwave's card mandates are a
+ * different product from Paystack's plans, and guessing at them would be worse
+ * than saying so. A plan with no gateway code behind it therefore falls back to
+ * charging one period at a time by hand, which is what BillingController does
+ * whenever no plan code is configured.
+ */
 class FlutterwaveGateway implements PaymentGatewayInterface
 {
-    public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = []): array
+    public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = [], array $options = []): array
     {
         $data = $this->http()->post('/payments', [
             'tx_ref' => $reference,
@@ -100,6 +110,57 @@ class FlutterwaveGateway implements PaymentGatewayInterface
         $hash = hash_hmac('sha256', $payload, (string) config('services.flutterwave.secret_hash'));
 
         return is_string($hash) ? $hash : '';
+    }
+
+    /**
+     * Unimplemented recurring billing. Failing loudly matters more than a quiet
+     * no-op: BillingController only reaches these when a plan code is actually
+     * configured, and a seller who was told a card would renew on its own must
+     * never be told that quietly.
+     */
+    public function createPlan(string $name, string $interval, int $amountKobo, array $options = []): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function fetchPlan(string $planCode): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function updatePlan(string $planCode, string $name, string $interval, int $amountKobo, bool $updateExistingSubscriptions = false): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function createSubscription(string $customerCode, string $planCode, array $options = []): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function fetchSubscription(string $subscriptionCode): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function disableSubscription(string $subscriptionCode): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function enableSubscription(string $subscriptionCode): array
+    {
+        throw $this->unsupported();
+    }
+
+    public function manageLink(string $subscriptionCode): string
+    {
+        throw $this->unsupported();
+    }
+
+    private function unsupported(): RuntimeException
+    {
+        return new RuntimeException('Recurring subscriptions are not implemented for the Flutterwave gateway.');
     }
 
     private function http(): PendingRequest

@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Domains\Admin\Actions;
+
+use App\Domains\Admin\Models\BadgeApplication;
+use App\Domains\Admin\Models\BadgeStatus;
+use App\Domains\Seller\Models\Seller;
+use App\Domains\Seller\Models\StorePage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * The verified badge. A seller proves the business is real with a CAC
+ * certificate or a national ID; an admin looks at it and decides.
+ *
+ * The badge is per page, not per seller, so it disappears if the page it was
+ * earned for is suspended.
+ */
+class ReviewBadgeApplication
+{
+    public function __construct(private readonly RecordAdminAction $audit) {}
+
+    public function approve(BadgeApplication $application, Seller $admin, ?string $note = null): BadgeApplication
+    {
+        return $this->decide($application, $admin, BadgeStatus::Approved, $note, null);
+    }
+
+    /**
+     * A rejection always carries a reason: the seller has to be able to fix it or
+     * appeal it, and "no" on its own is indefensible.
+     */
+    public function reject(BadgeApplication $application, Seller $admin, string $reason): BadgeApplication
+    {
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages([
+                'rejection_reason' => 'Tell the applicant why, so they can try again.',
+            ]);
+        }
+
+        return $this->decide($application, $admin, BadgeStatus::Rejected, null, $reason);
+    }
+
+    public function submit(
+        StorePage $page,
+        array $data,
+        UploadedFile $document,
+    ): BadgeApplication {
+        return DB::transaction(function () use ($page, $data, $document) {
+            // One live application at a time: a second pending one would leave an
+            // admin choosing between two of the same thing.
+            $open = BadgeApplication::where('store_page_id', $page->getKey())
+                ->where('status', BadgeStatus::Pending->value)
+                ->exists();
+
+            if ($open) {
+                throw ValidationException::withMessages([
+                    'document' => 'You already have an application waiting to be reviewed.',
+                ]);
+            }
+
+            $stored = $document->store("badges/{$page->getKey()}", 'local');
+
+            return BadgeApplication::create([
+                'seller_id' => $page->seller_id,
+                'store_page_id' => $page->getKey(),
+                'status' => BadgeStatus::Pending,
+                'business_name' => $data['business_name'],
+                'document_type' => $data['document_type'] ?? 'cac',
+                'document_path' => $stored,
+                'note' => $data['note'] ?? null,
+                'submitted_at' => now(),
+            ]);
+        });
+    }
+
+    private function decide(
+        BadgeApplication $application,
+        Seller $admin,
+        BadgeStatus $status,
+        ?string $note,
+        ?string $reason,
+    ): BadgeApplication {
+        return DB::transaction(function () use ($application, $admin, $status, $note, $reason) {
+            $locked = BadgeApplication::whereKey($application->getKey())->lockForUpdate()->firstOrFail();
+
+            // An application is decided once. A replayed click must not rewrite
+            // the decision or clear the reviewer's name.
+            if (! $locked->isPending()) {
+                return $locked;
+            }
+
+            $locked->update([
+                'status' => $status,
+                'reviewed_by_seller_id' => $admin->getKey(),
+                'rejection_reason' => $reason,
+                'reviewed_at' => now(),
+            ]);
+
+            /*
+             * Stamp the page itself, not just the application.
+             *
+             * The application row answers "what happened to this request". The
+             * verified_at column answers "is this page trusted right now", and
+             * the directory sort, the sitemap priority and the structured data
+             * all read that one. Without this the tick appears in the header
+             * from the badge query and nowhere else, and the two answers quietly
+             * disagree.
+             */
+            if ($status === BadgeStatus::Approved && $locked->store_page_id !== null) {
+                $locked->storePage?->forceFill(['verified_at' => now()])->save();
+            }
+
+            $this->audit->handle(
+                $admin,
+                'badge.'.Str::lower($status->value),
+                $locked,
+                $reason ?: $note,
+            );
+
+            return $locked;
+        });
+    }
+}

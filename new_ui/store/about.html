@@ -1,0 +1,395 @@
+<!-- SELLER THEME: change these only -->
+<html lang="en-NG" style="--brand: #15803d; --radius: 0.625rem; --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Our Atelier & Heritage Guild — Adeola Luxury Bridal</title>
+  <meta name="description" content="Discover the story of Adeola Couture: fourteen years of bespoke Yoruba ceremonial bridal wear, hand-loomed Iseyin Aso-Oke, and sovereign craftsmanship in Victoria Island, Lagos.">
+  <meta property="og:title" content="About Our Atelier & Heritage Guild — Adeola Luxury Bridal">
+  <meta property="og:description" content="Fourteen years of bespoke Yoruba ceremonial bridal wear and hand-loomed Aso-Oke in Victoria Island, Lagos.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System Tokens -->
+  <link rel="stylesheet" href="/assets/tokens.css">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Alpine.js CDN (Inline behaviour only) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+  <style>
+    @theme {
+      --color-brand: var(--brand);
+      --color-brand-ink: var(--brand-ink);
+      --color-brand-text: var(--brand-text);
+      --color-brand-wash: var(--brand-wash);
+      --color-brand-wash-2: var(--brand-wash-2);
+      --color-brand-edge: var(--brand-edge);
+      --color-brand-veil: var(--brand-veil);
+      --color-paper: var(--paper);
+      --color-surface: var(--surface);
+      --color-card: var(--card);
+      --color-card-glass: var(--card-glass);
+      --color-ink: var(--ink);
+      --color-ink-2: var(--ink-2);
+      --color-ink-3: var(--ink-3);
+      --color-rule: var(--rule);
+    }
+  </style>
+</head>
+<body class="bg-[var(--paper)] text-[var(--ink)] min-h-screen selection:bg-[var(--brand-wash-2)] selection:text-[var(--brand-text)]"
+      x-data="{ 
+        cart: JSON.parse(localStorage.getItem('mypage_cart') || '2'),
+        mobileNavOpen: false, 
+        scrolled: false, 
+        init() {
+          this.$watch('cart', val => localStorage.setItem('mypage_cart', val));
+        }
+      }"
+      @scroll.window="scrolled = (window.pageYOffset > 24)"
+      @cart-add.window="cart++">
+
+  <!-- Accessible Skip Link -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-[var(--brand)] text-[var(--brand-ink)] font-semibold rounded-[var(--radius-sm)] shadow-[var(--shadow-lift)]">
+    Skip to main content
+  </a>
+
+  <!-- PARTIAL: store-header -->
+  <header class="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
+          :class="scrolled ? 'h-14 bg-[var(--brand-veil)] backdrop-blur-md shadow-sm border-b border-[var(--rule)]' : 'h-16 bg-transparent border-b border-transparent'">
+    <div class="shell h-full flex items-center justify-between gap-8">
+      <a href="/store/index.html" class="flex items-center gap-1.5 text-base font-extrabold tracking-tight text-[var(--ink)] whitespace-nowrap shrink-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" aria-hidden="true"></span>
+        <span style="font-family: var(--font-heading)">Adeola Couture</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--ink-2)]" aria-label="Store navigation">
+        <a href="/store/products.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">Products</a>
+        <a href="/store/about.html" class="text-[var(--brand-text)] font-semibold whitespace-nowrap" aria-current="page">About</a>
+        <a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">Contact</a>
+        <a href="/store/track-order.html" class="hover:text-[var(--ink)] transition-colors whitespace-nowrap">Track Order</a>
+      </nav>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="/store/cart.html" 
+           class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] text-xs font-semibold transition-colors"
+           aria-label="View shopping bag">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="hidden sm:inline">Bag</span>
+          <span class="px-1.5 py-0.2 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-[11px] tabular-nums" x-text="cart" aria-live="polite">2</span>
+        </a>
+
+        <button type="button" 
+                @click="mobileNavOpen = !mobileNavOpen" 
+                class="md:hidden p-2 rounded-[var(--radius-sm)] border border-[var(--rule)] text-[var(--ink)] bg-[var(--paper)]"
+                aria-label="Toggle navigation menu"
+                :aria-expanded="mobileNavOpen">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 6h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Sheet -->
+    <div x-show="mobileNavOpen" 
+         x-transition.opacity.duration.200ms
+         @click.away="mobileNavOpen = false" 
+         class="md:hidden border-b border-[var(--rule)] bg-[var(--paper)] px-6 py-5 shadow-lg space-y-3 text-sm font-medium"
+         style="display: none;">
+      <a href="/store/products.html" class="block py-1 text-[var(--ink)]">All Products</a>
+      <a href="/store/about.html" class="block py-1 text-[var(--brand-text)] font-semibold">Our Story & Weaving Guild</a>
+      <a href="/store/contact.html" class="block py-1 text-[var(--ink)]">Contact Studio</a>
+      <a href="/store/track-order.html" class="block py-1 text-[var(--ink)]">Track Waybill Reference</a>
+      <div class="pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+        <a href="/store/cart.html" class="flex items-center gap-2 text-xs font-bold text-[var(--brand-text)]">
+          <span>Shopping Bag</span>
+          <span class="px-2 py-0.5 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] tabular-nums" x-text="cart">2</span>
+        </a>
+        <a href="https://wa.me/2348030000001" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[#25D366]">
+          WhatsApp Us
+        </a>
+      </div>
+    </div>
+  </header>
+  <!-- /PARTIAL: store-header -->
+
+  <!-- Matching bottom padding for mobile WhatsApp layer -->
+  <main id="main-content" class="pb-24 md:pb-12 pt-20">
+
+    <!-- Hero Section -->
+    <section class="section-y relative overflow-hidden border-b border-[var(--rule)]">
+      <div class="shell">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-[var(--radius-pill)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] text-xs font-bold">
+              <span class="w-2 h-2 rounded-full bg-[var(--brand)]" aria-hidden="true"></span>
+              Sovereign Yoruba Heritage · Founded 2012
+            </span>
+            <h1 class="t-display-1 text-[var(--ink)]">
+              Fourteen Years of Loomed Majesty & Modern Precision.
+            </h1>
+            <p class="t-body-lg text-[var(--ink-2)] t-measure">
+              Adeola Couture was founded on a singular premise: Nigerian ceremonial attire should command the same architectural reverence, tactile dignity, and immaculate finish as Savile Row tailoring and Parisian haute couture.
+            </p>
+            <div class="flex flex-wrap items-center gap-4 pt-2">
+              <a href="/store/products.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-sm font-bold shadow-[var(--shadow-lift)] hover:opacity-95 transition-opacity">
+                <span>Explore the Collection</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+              <a href="/store/contact.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] text-sm font-bold hover:bg-[var(--surface)] transition-colors">
+                <span>Book Victoria Island Fitting</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5">
+            <div class="plate aspect-[4/5] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-lift)] border border-[var(--rule)] relative">
+              <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=1000&q=80&auto=format" 
+                   alt="Master tailoring artisan hand-inspecting gold metallic threaded Yoruba Aso-Oke cloth" 
+                   class="w-full h-full object-cover">
+              <div class="grain" aria-hidden="true"></div>
+              <div class="absolute bottom-4 left-4 right-4 p-4 rounded-[var(--radius)] bg-[var(--card)]/90 backdrop-blur-md border border-[var(--rule)] shadow-sm">
+                <p class="text-xs font-bold text-[var(--ink)]">Atelier Victoria Island, Lagos</p>
+                <p class="text-[11px] text-[var(--ink-3)]">Private fitting salon and ceremonial archive</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Metrics Strip -->
+    <section class="border-b border-[var(--rule)] bg-[var(--surface)] py-10">
+      <div class="shell">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div class="space-y-1">
+            <p class="t-price-lg text-[var(--brand-text)]">3,800+</p>
+            <p class="t-meta">Brides & Grooms Styled</p>
+          </div>
+          <div class="space-y-1">
+            <p class="t-price-lg text-[var(--brand-text)]">48 Guild</p>
+            <p class="t-meta">Master Weavers in Iseyin</p>
+          </div>
+          <div class="space-y-1">
+            <p class="t-price-lg text-[var(--brand-text)]">100%</p>
+            <p class="t-meta">Raw Nigerian Silk & Cotton</p>
+          </div>
+          <div class="space-y-1">
+            <p class="t-price-lg text-[var(--brand-text)]">₦0 Risk</p>
+            <p class="t-meta">Escrow Protection on Every Piece</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Weaving Guild Story -->
+    <section class="section-y border-b border-[var(--rule)]">
+      <div class="shell">
+        <div class="max-w-2xl mb-12">
+          <span class="text-xs font-bold text-[var(--brand-text)] uppercase tracking-wider block mb-2">Our Foundation</span>
+          <h2 class="t-display-2 text-[var(--ink)]">The Iseyin Guild & The Loom</h2>
+          <p class="t-body text-[var(--ink-2)] mt-3">
+            Every strip of genuine Aso-Oke that enters our Lagos atelier is loomed by generational master weavers in Iseyin and Oyo. Nothing is machine-printed, mass-milled, or imported imitation yarn.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="card p-6 rounded-[var(--radius-lg)] space-y-4">
+            <div class="plate aspect-[16/10] rounded-[var(--radius)] overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=800&q=80&auto=format" 
+                   loading="lazy"
+                   alt="Authentic traditional double-heddle treadle loom in Nigerian textile workshop" 
+                   class="w-full h-full object-cover">
+            </div>
+            <h3 class="t-title text-[var(--ink)]">Double-Heddle Treadle Weaving</h3>
+            <p class="text-xs text-[var(--ink-2)] leading-relaxed">
+              Our master weavers operate traditional foot treadles that create tension variations unattainable by modern commercial power looms. The cloth breathes in equatorial warmth and holds sharp geometric folds.
+            </p>
+          </div>
+
+          <div class="card p-6 rounded-[var(--radius-lg)] space-y-4">
+            <div class="plate aspect-[16/10] rounded-[var(--radius)] overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&q=80&auto=format" 
+                   loading="lazy"
+                   alt="Detailed metallic lurex yarn wound on wooden bobbins for luxury Nigerian ceremonial attire" 
+                   class="w-full h-full object-cover">
+            </div>
+            <h3 class="t-title text-[var(--ink)]">Lurex, Glass & Metallic Weft</h3>
+            <p class="text-xs text-[var(--ink-2)] leading-relaxed">
+              We commission bespoke weft spools spun with gold and champagne metallic filament, giving the royal emerald and ivory cloths an incandescent shimmer under Nigerian wedding pavilion spotlights.
+            </p>
+          </div>
+
+          <div class="card p-6 rounded-[var(--radius-lg)] space-y-4">
+            <div class="plate aspect-[16/10] rounded-[var(--radius)] overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&q=80&auto=format" 
+                   loading="lazy"
+                   alt="Tailoring atelier bench with brass shears, pattern paper, and pure silk lining fabrics" 
+                   class="w-full h-full object-cover">
+            </div>
+            <h3 class="t-title text-[var(--ink)]">French Seams & Silk Lining</h3>
+            <p class="text-xs text-[var(--ink-2)] leading-relaxed">
+              Aso-Oke can be abrasive against bare skin. Every Adeola Couture ensemble is fully lined in breathable stretch silk twill, finished with blind-stitched French seams so the bride experiences absolute comfort all day.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Creative Director Note -->
+    <section class="section-y bg-[var(--surface)] border-b border-[var(--rule)]">
+      <div class="shell">
+        <div class="max-w-4xl mx-auto rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper)] p-8 md:p-12 shadow-sm">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            <div class="md:col-span-4 text-center md:text-left">
+              <div class="plate aspect-square w-36 h-36 md:w-48 md:h-48 mx-auto md:mx-0 rounded-[var(--radius-pill)] overflow-hidden border-2 border-[var(--brand-edge)] shadow-md">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80&auto=format" 
+                     loading="lazy"
+                     alt="Adeola Balogun-Eze, Founder and Creative Director of Adeola Couture" 
+                     class="w-full h-full object-cover">
+              </div>
+              <h3 class="t-title text-[var(--ink)] mt-4">Adeola Balogun-Eze</h3>
+              <p class="t-meta">Founder & Head of Atelier</p>
+            </div>
+
+            <div class="md:col-span-8 space-y-4">
+              <svg class="w-8 h-8 text-[var(--brand-text)] opacity-40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+              <p class="t-body text-[var(--ink-2)] italic leading-relaxed">
+                “When a bride steps into her bespoke Aso-Oke, she isn't just wearing an outfit — she is donning the sovereign dignity of her ancestors, framed by modern architectural tailoring. We built this house to ensure that every Nigerian woman and man can acquire ceremonial excellence without fear of substandard fabric or missed wedding dates.”
+              </p>
+              <div class="pt-2 flex items-center gap-4 text-xs text-[var(--ink-3)]">
+                <span>Member, Fashion Designers Association of Nigeria (FADAN)</span>
+                <span>·</span>
+                <span>mypage.ng Sovereign Tier Merchant</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sovereign Escrow Assurance Box -->
+    <section class="py-16">
+      <div class="shell">
+        <div class="rounded-[var(--radius-lg)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div class="space-y-2">
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand-text)]">
+              <svg class="w-4 h-4 text-[var(--brand-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>100% Buyer Escrow Protection</span>
+            </span>
+            <h3 class="t-title text-[var(--ink)]">Every Naira Held In Vault Until Waybill Confirmation</h3>
+            <p class="text-xs text-[var(--ink-2)] max-w-xl">
+              Adeola Couture operates strictly on mypage.ng sovereign escrow. When you place an order, your payment is held securely until you receive and inspect your parcel.
+            </p>
+          </div>
+          <div class="flex items-center gap-4 shrink-0">
+            <a href="/store/escrow.html" class="px-5 py-2.5 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] text-xs font-bold hover:bg-[var(--surface)] transition-colors">
+              How Escrow Protects You
+            </a>
+            <a href="/store/products.html" class="px-5 py-2.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold shadow-sm hover:opacity-95 transition-opacity">
+              Shop Catalogue
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PARTIAL: store-whatsapp-bar -->
+  <aside aria-label="WhatsApp quick order" class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card)] border-t border-[var(--rule)] p-3 md:hidden shadow-lg" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <span class="text-[10px] text-[var(--ink-3)] block uppercase tracking-wider">Merchant Online</span>
+        <span class="text-xs font-bold text-[var(--ink)]">Adeola Couture Lagos</span>
+      </div>
+      <a href="https://wa.me/2348030000001?text=Hello%20Adeola%20Couture,%20I%20am%20browsing%20your%20storefront." 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="h-10 px-4 rounded-[var(--radius)] bg-[#25D366] text-white text-xs font-bold flex items-center gap-2 shadow-sm hover:opacity-95 transition-opacity">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
+        <span>Chat on WhatsApp</span>
+      </a>
+    </div>
+  </aside>
+
+  <aside aria-label="WhatsApp quick concierge" class="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-40">
+    <a href="https://wa.me/2348030000001?text=Hello%20Adeola%20Couture,%20I%20am%20browsing%20your%20storefront." 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       class="inline-flex items-center gap-2 py-3.5 px-2 rounded-l-[var(--radius)] bg-[#25D366] text-white text-xs font-bold shadow-md hover:translate-x-[-2px] transition-transform"
+       style="writing-mode: vertical-rl;">
+      <svg class="w-4 h-4 fill-current rotate-90" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
+      <span>WhatsApp Concierge</span>
+    </a>
+  </aside>
+  <!-- /PARTIAL: store-whatsapp-bar -->
+
+  <!-- PARTIAL: store-footer -->
+  <footer class="border-t border-[var(--rule)] bg-[var(--surface)] text-xs text-[var(--ink-2)] py-14">
+    <div class="shell">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div class="space-y-3">
+          <a href="/store/index.html" class="flex items-center gap-1.5 text-base font-extrabold tracking-tight text-[var(--ink)]">
+            <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand)]" aria-hidden="true"></span>
+            <span style="font-family: var(--font-heading)">Adeola Couture</span>
+          </a>
+          <p class="t-body text-xs text-[var(--ink-3)] leading-relaxed t-measure-narrow">
+            Bespoke Yoruba ceremonial wear, hand-loomed Aso-Oke, and contemporary Nigerian evening silhouettes tailored in Victoria Island, Lagos.
+          </p>
+          <p class="t-meta">14A Adeola Hopewell Street, Victoria Island, Lagos</p>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Store Catalogue</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="/store/products.html" class="hover:text-[var(--ink)] transition-colors">Bridal & Engagement Aso-Oke</a></li>
+            <li><a href="/store/products.html?cat=agbada" class="hover:text-[var(--ink)] transition-colors">Ceremonial Agbada 3-Piece</a></li>
+            <li><a href="/store/products.html?cat=autogele" class="hover:text-[var(--ink)] transition-colors">Pre-tied Luxury AutoGele</a></li>
+            <li><a href="/store/products.html?cat=streetwear" class="hover:text-[var(--ink)] transition-colors">Alte Graphic Silhouettes</a></li>
+            <li><a href="/store/products.html?cat=leather" class="hover:text-[var(--ink)] transition-colors">Tannery Leather Accessories</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Customer Service & Escrow</h4>
+          <ul class="space-y-2 text-xs">
+            <li><a href="/store/track-order.html" class="hover:text-[var(--ink)] transition-colors">Track Waybill Reference</a></li>
+            <li><a href="/store/escrow.html" class="hover:text-[var(--ink)] transition-colors">Escrow Guarantee Protocol</a></li>
+            <li><a href="/store/about.html" class="hover:text-[var(--ink)] transition-colors">Craftsmanship & Weaving</a></li>
+            <li><a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors">Studio Appointments & Sizing</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-[var(--ink)] mb-3">Buyer Account Portal</h4>
+          <p class="text-xs text-[var(--ink-3)] leading-relaxed mb-3">
+            Buyers never need a password. Access your order history and dispatch escrow with your WhatsApp phone number.
+          </p>
+          <a href="/store/track-order.html" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] text-xs font-bold text-[var(--ink)] hover:border-[var(--brand-edge)] transition-colors">
+            <svg class="w-3.5 h-3.5 text-[var(--brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Buyer Order Sign-In</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="pt-8 border-t border-[var(--rule)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[var(--ink-3)]">
+        <p>© 2026 Adeola Couture Lagos. Powered by <a href="/index.html" class="underline hover:text-[var(--ink)]">mypage.ng</a> sovereign infrastructure.</p>
+        <div class="flex items-center gap-6">
+          <a href="/store/about.html" class="hover:text-[var(--ink)] transition-colors">About Us</a>
+          <a href="/store/contact.html" class="hover:text-[var(--ink)] transition-colors">Contact</a>
+          <a href="/index.html" class="hover:text-[var(--ink)] transition-colors">Create Your Own Store</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <!-- /PARTIAL: store-footer -->
+
+</body>
+</html>

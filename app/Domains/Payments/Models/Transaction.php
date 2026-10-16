@@ -4,13 +4,18 @@ namespace App\Domains\Payments\Models;
 
 use App\Domains\Payments\Enums\TransactionStatus;
 use App\Domains\Seller\Models\Seller;
+use Database\Factories\Domains\Payments\Models\TransactionFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/** @use HasFactory<TransactionFactory> */
 class Transaction extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'seller_id',
         'payable_type',

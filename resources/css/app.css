@@ -1,128 +1,62 @@
 @import "tailwindcss";
+@import "./storefront-theme.css";
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
-@theme {
-  /* Brand Colors */
-  --color-brand: #16A34A;
-  --color-brand-dark: #15803D;
-  --color-brand-soft: #DCFCE7;
-  --color-brand-50: #F0FDF4;
-  --color-brand-100: #DCFCE7;
-  --color-brand-500: #22C55E;
-  --color-brand-600: #16A34A;
-  --color-brand-700: #15803D;
-  --color-brand-800: #166534;
-  --color-brand-900: #14532D;
-
-  /* Neutral & Utility Colors */
-  --color-ink: #0F172A;
-  --color-body: #475569;
-  --color-surface: #F8FAFC;
-  --color-danger: #DC2626;
-  --color-warning: #D97706;
-
-  /* Accent Colors */
-  --color-accent: #F97316;
-  --color-accent-soft: #FFEDD5;
-  --color-accent-dark: #EA580C;
-
-  /* Typography */
-  --font-sans: Inter, system-ui, -apple-system, sans-serif;
-  --font-display: "Plus Jakarta Sans", Inter, sans-serif;
-
-  /* Box Shadows */
-  --shadow-subtle: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
-  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-elevated: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-  --shadow-wa: 0 8px 24px -4px rgba(22, 163, 74, 0.25);
-}
-
-
-@layer base {
-  /* Targets all standard text inputs automatically */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="color"]):not([type="range"]) {
-    width: 100%;
-    border-radius: 0.5rem;
-    border: 1px solid #E2E8F0; /* slate-200 */
-    background-color: var(--color-surface);
-    padding: 0.625rem 0.875rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--color-ink);
-    box-shadow: var(--shadow-subtle);
-    transition: all 150ms ease-in-out;
-  }
-
-  /* Placeholder Styling */
-  input::placeholder {
-    color: var(--color-body);
-    opacity: 0.6;
-  }
-
-  /* Hover State */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="color"]):not([type="range"]):hover {
-    border-color: #CBD5E1; /* slate-300 */
-  }
-
-  /* Focus State */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="color"]):not([type="range"]):focus {
-    outline: none;
-    border-color: var(--color-brand);
-    box-shadow: 0 0 0 3px var(--color-brand-soft);
-  }
-
-  /* Disabled State */
-  input:disabled {
-    background-color: #F1F5F9; /* slate-100 */
-    color: #94A3B8; /* slate-400 */
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-
-  /* Invalid / Error State */
-  input:invalid:not(:placeholder-shown) {
-    border-color: var(--color-danger);
-  }
-
-  input:invalid:not(:placeholder-shown):focus {
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
-  }
-}
-
-body {
-    font-family: "Inter", system-ui, sans-serif;
-    background-color: #f8fafc;
-    color: #0f172a;
-    -webkit-font-smoothing: antialiased;
-}
-h1,
-h2,
-h3,
-h4,
-.font-display {
-    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-}
-.tabular-naira {
-    font-variant-numeric: tabular-nums;
-}
-/* Custom scrollbar for demo */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
+/*
+  Alpine hides these until it has initialised. Without the rule the second state
+  of anything rendered by x-show — the dark-mode moon, a closed mobile sheet —
+  is visible for the few frames before Alpine boots.
+*/
 [x-cloak] {
-    display: none !important;
+  display: none !important;
+}
+
+/*
+  Tailwind's stock `dark:` variant compiles to prefers-color-scheme alone, which
+  is a second, independent switch from the data-theme attribute the token layer
+  above reads. A visitor who picks dark on a light OS would get inverted tokens
+  and untouched dark: utilities. This variant mirrors the token layer exactly:
+  dark when the attribute says so, or when the OS says so and nothing overrode it.
+*/
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+}
+
+@theme {
+      --color-brand: var(--brand);
+      --color-brand-ink: var(--brand-ink);
+      --color-brand-text: var(--brand-text);
+      --color-brand-wash: var(--brand-wash);
+      --color-brand-wash-2: var(--brand-wash-2);
+      --color-brand-edge: var(--brand-edge);
+      --color-brand-veil: var(--brand-veil);
+      --color-brand-hover: var(--brand-hover);
+      --color-paper: var(--paper);
+      --color-surface: var(--surface);
+      --color-card: var(--card);
+      --color-card-glass: var(--card-glass);
+      --color-ink: var(--ink);
+      --color-ink-2: var(--ink-2);
+      --color-ink-3: var(--ink-3);
+      --color-rule: var(--rule);
+      --color-rule-strong: var(--rule-strong);
+      --color-tint: var(--tint);
+      --color-ok-wash: var(--ok-wash);
+      --color-ok-edge: var(--ok-edge);
+      --color-ok-text: var(--ok-text);
+      --color-warn-wash: var(--warn-wash);
+      --color-warn-edge: var(--warn-edge);
+      --color-warn-text: var(--warn-text);
+      --color-danger-wash: var(--danger-wash);
+      --color-danger-edge: var(--danger-edge);
+      --color-danger-text: var(--danger-text);
 }

@@ -26,12 +26,13 @@ class CreateStorePage
                 'bio' => $data['bio'] ?? null,
             ]);
 
-            foreach ($theme->pages() as $pageKey => $pageDef) {
-                foreach ($pageDef['sections'] as $i => $key) {
-                    $page->sections()->create(['page' => $pageKey, 'key' => $key, 'position' => $i, 'is_enabled' => true]);
-                }
-            }
-
+            /*
+             * No block rows are created here on purpose. A new page starts with
+             * nothing written, so nothing renders; the first block appears when
+             * the seller writes something in the storefront settings. Creating
+             * empty rows would mean every new shop has a page full of default
+             * headings they never asked for.
+             */
             return $page;
         });
     }

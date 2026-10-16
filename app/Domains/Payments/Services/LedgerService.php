@@ -78,16 +78,22 @@ class LedgerService
     /**
      * Settle a completed sale: the gateway clearing account pays out the seller's
      * share and the platform commission in a single balanced movement.
+     *
+     * When escrow is on, the seller's share goes to the escrow pool instead. The
+     * routing happens here, during settlement, rather than afterwards — by then
+     * the seller has been paid and reversing it would credit them twice.
      */
-    public function settleSale(Transaction $transaction): void
+    public function settleSale(Transaction $transaction, ?WalletKind $destination = null): void
     {
-        $sellerWallet = Wallet::forSeller($transaction->seller_id);
+        $sellerWallet = $destination
+            ? Wallet::platform($destination)
+            : Wallet::forSeller($transaction->seller_id);
 
         $this->transfer(
             Wallet::platform(WalletKind::GatewayClearing),
             $sellerWallet,
             $transaction->sellerAmountKobo(),
-            'sale',
+            $destination ? 'sale_to_'.$destination->value : 'sale',
             $transaction,
         );
 

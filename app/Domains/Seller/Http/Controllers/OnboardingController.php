@@ -21,7 +21,14 @@ class OnboardingController extends Controller
     {
         abort_unless(in_array($step, self::STEPS, true), 404);
 
-        return view("onboarding.{$step}", ['data' => $request->session()->get('onboarding', [])]);
+        $data = $request->session()->get('onboarding', []);
+
+        return view("onboarding.{$step}", [
+            'data' => $data,
+            // The template is chosen on step two, so until then the copy falls
+            // back to the store wording rather than guessing at a service page.
+            'theme' => Theme::tryFrom($data['theme'] ?? '') ?? Theme::Store,
+        ]);
     }
 
     public function store(Request $request, string $step, CreateStorePage $createStorePage): RedirectResponse

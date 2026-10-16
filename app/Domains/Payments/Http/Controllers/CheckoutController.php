@@ -3,6 +3,7 @@
 namespace App\Domains\Payments\Http\Controllers;
 
 use App\Domains\Orders\Actions\CreateOrderFromCheckout;
+use App\Domains\Orders\Actions\RecordAbandonedCart;
 use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Exceptions\InvalidCart;
 use App\Domains\Orders\Models\Order;
@@ -11,6 +12,7 @@ use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class CheckoutController
 {
@@ -42,7 +44,26 @@ class CheckoutController
             return back()->withInput()->withErrors(['cart' => $exception->getMessage()]);
         }
 
-        $checkoutUrl = $initializePayment->handle($order, $data['email']);
+        // The buyer converted: stop the seller chasing them for a cart they paid for.
+        app(RecordAbandonedCart::class)->markRecoveredBy($order);
+
+        /*
+         * The order exists and the buyer has converted. A gateway that cannot be
+         * reached is our failure to explain, not a 500 to hand them: the order
+         * stays unpaid and visible to the seller, and the buyer is sent back with
+         * their cart still filled in.
+         */
+        try {
+            $checkoutUrl = $initializePayment->handle($order, $data['email']);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'email' => 'We could not reach the payment provider. Your order is saved — try paying again in a moment.',
+                ]);
+        }
 
         return redirect()->away($checkoutUrl);
     }

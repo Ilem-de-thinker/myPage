@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Domains\Billing\Models;
+
+use App\Shared\Support\Money;
+use Database\Factories\Domains\Billing\Models\PlanFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+/** @use HasFactory<PlanFactory> */
+class Plan extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'slug',
+        'name',
+        'description',
+        'price_kobo',
+        'interval',
+        'trial_days',
+        'max_products',
+        'is_default',
+        'is_featured',
+        'is_active',
+        'gateway_plan_code',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'price_kobo' => 'integer',
+            'trial_days' => 'integer',
+            'max_products' => 'integer',
+            'is_default' => 'boolean',
+            'is_featured' => 'boolean',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function priceLabel(): string
+    {
+        return Money::format($this->price_kobo).' / '.rtrim($this->interval, 'ly');
+    }
+
+    /**
+     * null means unlimited, which is why the column is nullable rather than zero.
+     */
+    public function allowsProducts(int $count): bool
+    {
+        return $this->max_products === null || $count <= $this->max_products;
+    }
+}

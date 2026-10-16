@@ -24,7 +24,7 @@ class PaymentWebhookController
 
         $this->storeAndDispatch('paystack', $request->json()->all(), $request->json('data.id'));
 
-        return response()->noContent();
+        return $this->acknowledge();
     }
 
     public function flutterwave(Request $request, FlutterwaveGateway $gateway): Response
@@ -33,7 +33,23 @@ class PaymentWebhookController
 
         $this->storeAndDispatch('flutterwave', $request->json()->all(), $request->json('data.id') ?? $request->json('event_id'));
 
-        return response()->noContent();
+        return $this->acknowledge();
+    }
+
+    /**
+     * Tell the gateway the delivery landed.
+     *
+     * Exactly 200, and that is not a stylistic choice. Both gateways treat
+     * anything else as a failed attempt: they retry the event for up to 72 hours
+     * and then stop, so an order whose only settling path is this webhook is
+     * silently never confirmed. 204 reads as "received" to a human and to a
+     * browser, which is precisely why it is easy to reach for here by mistake.
+     *
+     * Everything slow already happens off this request, in a queued job.
+     */
+    private function acknowledge(): Response
+    {
+        return response()->json(['received' => true]);
     }
 
     private function assertValidSignature(Request $request, string $expected, string $provided): void

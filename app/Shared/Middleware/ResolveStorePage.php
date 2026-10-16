@@ -22,9 +22,14 @@ class ResolveStorePage
         $slug = $request->route('slug');
         $request->route()->forgetParameter('slug');
 
-        $page = $this->resolver->resolveBySlug($slug);
+        $page = $this->resolve($request, $slug);
 
         abort_if(! $page, 404);
+
+        // A custom-domain request has no slug in the path, so the page's own slug
+        // stands in for it. Preview cookies are named after the page either way,
+        // which is what keeps a deep link working after the first redirect.
+        $slug ??= $page->slug;
 
         $hasPreviewGrant = $request->hasValidSignature() || $this->hasPreviewCookie($request, $slug);
 
@@ -46,6 +51,28 @@ class ResolveStorePage
     }
 
     /**
+     * Which shop is this request for?
+     *
+     * A host that is one of ours always wins, because on a seller's own domain
+     * the hostname is the address and there is nothing in the path to trust. A
+     * mypage.ng request falls through to the slug in the path.
+     *
+     * The host lookup only ever returns a page whose domain has been verified by
+     * DNS, so an unclaimed hostname resolves to nothing rather than to whichever
+     * shop registered first.
+     */
+    private function resolve(Request $request, ?string $slug): ?StorePage
+    {
+        $byHost = $this->resolver->resolveByHost($request->getHost());
+
+        if ($byHost !== null) {
+            return $byHost;
+        }
+
+        return $slug === null ? null : $this->resolver->resolveBySlug($slug);
+    }
+
+    /**
      * A signed preview URL only authorises the request it is on, so the grant is
      * carried in a cookie to keep deep links (products, cart, contact) working.
      */
@@ -56,11 +83,11 @@ class ResolveStorePage
 
     private function previewCookie(Request $request, string $slug): Cookie
     {
-        return CookieJar::make(
-            $this->previewCookieName($slug),
-            $request->ip(),
-            self::PREVIEW_COOKIE_TTL_MINUTES * 60,
-        )->withPath('/');
+        // The value stays the plain address. EncryptCookies encrypts the response
+        // once on its way out, and EncryptCookies would null a value that arrived
+        // unencrypted: so this is encrypted by the framework, never by us.
+        return CookieJar::make($this->previewCookieName($slug), $request->ip())
+            ->withPath('/');
     }
 
     private function previewCookieName(string $slug): string

@@ -2,7 +2,7 @@
 
 @section('content')
     <h1 class="text-2xl font-bold tracking-tight mb-1">Check your email</h1>
-    <p class="text-slate-500 text-sm mb-6">Enter the 6-digit code we sent to <strong>{{ auth()->user()->email }}</strong>.</p>
+    <p class="text-ink-3 text-sm mb-6">Enter the 6-digit code we sent to <strong>{{ auth()->user()->email }}</strong>.</p>
 
     <form method="POST" action="{{ route('verification.verify') }}" id="otp-form">
         @csrf
@@ -11,19 +11,19 @@
         <div class="flex gap-2 justify-center mb-2" id="otp-boxes">
             @for ($i = 1; $i <= 6; $i++)
                 <input type="text" inputmode="numeric" maxlength="1" data-idx="{{ $i }}"
-                       class="otp-digit w-12 h-14 text-center text-xl font-bold rounded-lg border border-slate-300 focus:border-brand focus:ring-brand"
+                       class="otp-digit w-12 h-14 text-center text-xl font-bold rounded-lg border border-rule-strong focus:border-brand focus:ring-brand"
                        aria-label="Digit {{ $i }}" autocomplete="{{ $i === 1 ? 'one-time-code' : 'off' }}">
             @endfor
         </div>
 
-        @error('code') <p class="text-red-600 text-xs text-center mb-2">{{ $message }}</p> @enderror
+        @error('code') <p class="text-danger-text text-xs text-center mb-2">{{ $message }}</p> @enderror
 
-        <button class="w-full rounded-lg bg-brand text-white font-semibold py-2.5 hover:bg-brand-dark mt-4">Verify email</button>
+        <button class="w-full rounded-lg bg-brand text-white font-semibold py-2.5 hover:bg-brand-hover mt-4">Verify email</button>
     </form>
 
     <form method="POST" action="{{ route('verification.send') }}" class="mt-4">
         @csrf
-        <button class="w-full rounded-lg border border-slate-300 text-slate-600 font-medium py-2.5 hover:bg-slate-100">Resend code</button>
+        <button class="w-full rounded-lg border border-rule-strong text-ink-2 font-medium py-2.5 hover:bg-tint">Resend code</button>
     </form>
 
     <script>

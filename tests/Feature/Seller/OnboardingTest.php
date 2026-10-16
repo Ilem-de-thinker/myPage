@@ -30,11 +30,14 @@ it('completes the wizard and creates a draft store page with sections', function
     expect($page)->not->toBeNull()
         ->and($page->theme->value)->toBe('service')
         ->and($page->status->value)->toBe('draft')
-        ->and($page->sections->where('page', 'home'))->toHaveCount(8)->and($page->sections)->toHaveCount(21)
+        // Onboarding no longer writes an empty row for every block the theme
+        // declares. A block with nothing in it does not render, so pre-creating
+        // them would only hand a seller twenty-one blank boxes to fill in.
+        ->and($page->blocks)->toHaveCount(0)
         ->and($page->whatsapp_number)->toBe('+2348031234567');
 });
 
-it('seeds 7 sections for a store theme page', function () {
+it('leaves a new store page blank for the seller to write', function () {
     $seller = Seller::factory()->create();
 
     actingAs($seller)->post('/onboarding/business', ['name' => 'Ada Store', 'slug' => 'ada-store']);
@@ -44,7 +47,43 @@ it('seeds 7 sections for a store theme page', function () {
     ]);
     actingAs($seller)->post('/onboarding/review');
 
-    expect(StorePage::where('slug', 'ada-store')->first()->sections->where('page', 'home'))->toHaveCount(7);
+    expect(StorePage::where('slug', 'ada-store')->first()->blocks)->toHaveCount(0);
+});
+
+it('talks about a website once the seller has picked the service template', function () {
+    $seller = Seller::factory()->create();
+
+    actingAs($seller)->post('/onboarding/business', ['name' => 'Ada Braids', 'slug' => 'ada-braids']);
+    actingAs($seller)->post('/onboarding/theme', ['theme' => 'service']);
+
+    actingAs($seller)->get(route('onboarding.show', 'brand'))
+        ->assertOk()
+        ->assertSee('How your website looks')
+        ->assertSee('where new booking requests will arrive')
+        // A service seller is not opening a shop.
+        ->assertDontSee('Short Store Bio');
+
+    actingAs($seller)->get(route('onboarding.show', 'review'))
+        ->assertOk()
+        ->assertSee('Create my website')
+        ->assertDontSee('Create my storefront');
+});
+
+it('still talks about a storefront for a store template', function () {
+    $seller = Seller::factory()->create();
+
+    actingAs($seller)->post('/onboarding/business', ['name' => 'Ada Store', 'slug' => 'ada-store']);
+    actingAs($seller)->post('/onboarding/theme', ['theme' => 'store']);
+
+    actingAs($seller)->get(route('onboarding.show', 'brand'))
+        ->assertOk()
+        ->assertSee('How your storefront looks')
+        ->assertSee('where new orders will arrive')
+        ->assertSee('Short Store Bio');
+
+    actingAs($seller)->get(route('onboarding.show', 'review'))
+        ->assertOk()
+        ->assertSee('Create my storefront');
 });
 
 it('rejects reserved and duplicate slugs', function () {

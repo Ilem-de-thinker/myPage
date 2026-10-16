@@ -18,7 +18,7 @@ class SellerFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'email' => fake()->safeEmail(),
             'phone' => '+234'.fake()->numerify('80########'),
             'status' => 'active',
             'email_verified_at' => now(),
@@ -35,5 +35,14 @@ class SellerFactory extends Factory
     public function suspended(): static
     {
         return $this->state(fn () => ['status' => 'suspended']);
+    }
+
+    /**
+     * The platform team moderates the platform, so an admin is a seller with a
+     * flag rather than a separate account type.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn () => ['is_admin' => true]);
     }
 }

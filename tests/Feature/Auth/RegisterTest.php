@@ -1,6 +1,8 @@
 <?php
 
+use App\Domains\Auth\Events\SellerRegistered;
 use App\Domains\Auth\Notifications\EmailOtpNotification;
+use App\Domains\Auth\Notifications\WelcomeNotification;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Support\Facades\Notification;
 
@@ -68,7 +70,7 @@ it('normalises phone numbers on registration', function (string $input, string $
     Notification::fake();
 
     post('/register', [
-        'name' => 'Ada', 'email' => fake()->unique()->safeEmail(), 'phone' => $input,
+        'name' => 'Ada', 'email' => fake()->safeEmail(), 'phone' => $input,
         'password' => 'password123', 'password_confirmation' => 'password123',
     ]);
 
@@ -93,4 +95,30 @@ it('rejects invalid phone numbers', function () {
         'name' => 'Ada', 'email' => 'new@example.com', 'phone' => '12345',
         'password' => 'password123', 'password_confirmation' => 'password123',
     ])->assertSessionHasErrors('phone');
+});
+
+it('welcomes a new seller with the first step they have to take', function () {
+    Notification::fake();
+
+    post('/register', [
+        'name' => 'Ada Obi', 'email' => 'ada@example.com', 'phone' => '0803 123 4567',
+        'password' => 'password123', 'password_confirmation' => 'password123',
+    ]);
+
+    $seller = Seller::where('email', 'ada@example.com')->firstOrFail();
+
+    Notification::assertSentTo($seller, WelcomeNotification::class, function (WelcomeNotification $notification, array $channels) {
+        return $channels === ['mail']
+            && $notification->firstStepUrl === route('onboarding.show', 'business');
+    });
+});
+
+it('does not welcome a seller who has already verified', function () {
+    Notification::fake();
+
+    $seller = Seller::factory()->create();
+
+    event(new SellerRegistered($seller));
+
+    Notification::assertNothingSent();
 });

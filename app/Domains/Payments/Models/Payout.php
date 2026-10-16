@@ -4,12 +4,17 @@ namespace App\Domains\Payments\Models;
 
 use App\Domains\Payments\Enums\PayoutStatus;
 use App\Domains\Seller\Models\Seller;
+use Database\Factories\Domains\Payments\Models\PayoutFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/** @use HasFactory<PayoutFactory> */
 class Payout extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'seller_id',
         'reference',

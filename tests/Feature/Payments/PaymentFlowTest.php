@@ -176,7 +176,7 @@ it('refuses to mutate a settled ledger row', function () {
 it('accepts a correctly signed webhook and settles the order', function () {
     [$seller, $order, $transaction] = platformOrderPendingPayment(75000);
 
-    deliverPaystackWebhook($transaction->reference, 987654)->assertNoContent();
+    deliverPaystackWebhook($transaction->reference, 987654)->assertOk();
 
     expect($transaction->fresh()->status->value)->toBe('paid')
         ->and($order->fresh()->status)->toBe(OrderStatus::Paid)
@@ -195,8 +195,8 @@ it('rejects a webhook with a bad signature', function () {
 it('ignores a replayed webhook instead of crediting twice', function () {
     [$seller, , $transaction] = platformOrderPendingPayment();
 
-    deliverPaystackWebhook($transaction->reference, 555)->assertNoContent();
-    deliverPaystackWebhook($transaction->reference, 555)->assertNoContent();
+    deliverPaystackWebhook($transaction->reference, 555)->assertOk();
+    deliverPaystackWebhook($transaction->reference, 555)->assertOk();
 
     expect(WebhookEvent::count())->toBe(1)
         ->and(WalletLedger::count())->toBe(4)

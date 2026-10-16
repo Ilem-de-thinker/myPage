@@ -3,6 +3,7 @@
 namespace App\Shared\Traits;
 
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Tenancy\CrossTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,6 +26,12 @@ trait BelongsToSeller
     {
         if (app()->bound(StorePage::class)) {
             return app(StorePage::class)->seller_id;
+        }
+
+        // An admin reviews other people's rows, and a seller_id filter would
+        // hide them from someone whose job is to moderate the whole platform.
+        if (CrossTenant::enabled()) {
+            return null;
         }
 
         return auth()->user()?->id;
