@@ -2,8 +2,12 @@
 
 namespace App\Domains\Payments\Services\Gateways;
 
+use App\Domains\Payments\Data\GatewayCredentials;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -18,6 +22,8 @@ use RuntimeException;
  */
 class FlutterwaveGateway implements PaymentGatewayInterface
 {
+    public function __construct(private readonly GatewayCredentials $credentials) {}
+
     public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = [], array $options = []): array
     {
         $data = $this->http()->post('/payments', [
@@ -107,7 +113,7 @@ class FlutterwaveGateway implements PaymentGatewayInterface
      */
     public function sign(string $payload): string
     {
-        $hash = hash_hmac('sha256', $payload, (string) config('services.flutterwave.secret_hash'));
+        $hash = hash_hmac('sha256', $payload, (string) ($this->credentials->webhookSecret ?? $this->credentials->secretKey));
 
         return is_string($hash) ? $hash : '';
     }
@@ -165,10 +171,15 @@ class FlutterwaveGateway implements PaymentGatewayInterface
 
     private function http(): PendingRequest
     {
-        return Http::withToken((string) config('services.flutterwave.secret'))
+        return Http::withToken($this->credentials->secretKey)
             ->baseUrl('https://api.flutterwave.com/v3')
             ->acceptJson()
             ->timeout(20)
-            ->retry(2, 300);
+            ->retry(2, 300)
+            ->throw(function (Response $response, RequestException $exception): void {
+                if (in_array($response->status(), [401, 403], true) && $this->credentials->sellerId !== null) {
+                    SellerGateway::markCredentialsBroken($this->credentials->sellerId, $this->credentials->gateway);
+                }
+            });
     }
 }

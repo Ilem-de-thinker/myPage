@@ -1,0 +1,432 @@
+@import "./platform-tokens.css";
+@import "./platform-motion.css";
+@import "./platform-components.css";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Platform shell base
+   Everything here is scoped to the public platform. Merchant storefronts and the
+   dashboard keep their own token vocabularies.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+body[data-platform-shell] {
+  background-color: var(--platform-paper);
+  color: var(--platform-ink);
+  font-family: var(--platform-text);
+  font-size: var(--platform-text-base);
+  line-height: var(--platform-leading-body);
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+}
+
+body[data-platform-shell] ::selection {
+  background: var(--platform-support-wash-strong);
+  color: var(--platform-ink);
+}
+
+body[data-platform-shell] :focus-visible {
+  outline: 2px solid var(--platform-focus);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+body[data-platform-shell] a,
+body[data-platform-shell] button,
+body[data-platform-shell] input,
+body[data-platform-shell] select,
+body[data-platform-shell] textarea,
+body[data-platform-shell] summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body[data-platform-shell] img,
+body[data-platform-shell] svg {
+  max-width: 100%;
+}
+
+body[data-platform-shell] img {
+  background-color: var(--platform-surface);
+}
+
+.platform-container {
+  width: 100%;
+  max-width: var(--platform-container);
+  margin-inline: auto;
+  padding-inline: var(--platform-gutter);
+}
+
+.platform-container-narrow {
+  width: 100%;
+  max-width: var(--platform-container-narrow);
+  margin-inline: auto;
+  padding-inline: var(--platform-gutter);
+}
+
+.platform-section {
+  position: relative;
+  padding-block: var(--platform-section-y);
+}
+
+.platform-section--tight {
+  padding-block: clamp(3rem, 2rem + 3vw, 5rem);
+}
+
+.platform-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.platform-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--platform-space-3);
+}
+
+.platform-display {
+  font-family: var(--platform-display);
+  font-weight: 700;
+  letter-spacing: var(--platform-tracking-display);
+  line-height: var(--platform-leading-display);
+  text-wrap: balance;
+}
+
+.platform-title {
+  font-family: var(--platform-display);
+  font-weight: 700;
+  letter-spacing: var(--platform-tracking-tight);
+  line-height: var(--platform-leading-tight);
+  text-wrap: balance;
+}
+
+.platform-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--platform-accent);
+  font-size: var(--platform-text-2xs);
+  font-weight: 800;
+  letter-spacing: var(--platform-tracking-kicker);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.platform-kicker::before {
+  content: '';
+  display: inline-block;
+  inline-size: 1.75rem;
+  block-size: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.platform-kicker--invert {
+  color: var(--platform-accent-border);
+}
+
+.platform-lead {
+  color: var(--platform-ink-muted);
+  font-size: var(--platform-text-lg);
+  line-height: 1.65;
+  max-width: 44rem;
+  text-wrap: pretty;
+}
+
+.platform-meta {
+  color: var(--platform-ink-muted);
+  font-size: var(--platform-text-xs);
+  line-height: 1.5;
+}
+
+.platform-price {
+  font-family: var(--platform-display);
+  font-weight: 700;
+  letter-spacing: var(--platform-tracking-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.platform-measure {
+  max-width: 38rem;
+}
+
+.platform-measure-narrow {
+  max-width: 28rem;
+}
+
+.platform-balance {
+  text-wrap: balance;
+}
+
+.platform-pretty {
+  text-wrap: pretty;
+}
+
+/* Tone bands. Sticky headers must switch tone with the band; the JS toggles
+   `is-on-ink` so the wordmark and links stay readable across sections. */
+.tone-paper {
+  background-color: var(--platform-paper);
+  color: var(--platform-ink);
+}
+
+.tone-surface {
+  background-color: var(--platform-surface);
+  color: var(--platform-ink);
+}
+
+.tone-ink {
+  background-color: var(--platform-ink);
+  color: var(--platform-ink-invert);
+}
+
+.tone-support {
+  background-color: var(--platform-support);
+  color: var(--platform-ink-invert);
+}
+
+.tone-accent {
+  background-color: var(--platform-accent);
+  color: #fff9f4;
+}
+
+.tone-ink .platform-kicker,
+.tone-support .platform-kicker,
+.tone-accent .platform-kicker {
+  color: var(--platform-accent-border);
+}
+
+.tone-ink .platform-lead,
+.tone-ink .platform-meta,
+.tone-support .platform-lead,
+.tone-support .platform-meta,
+.tone-accent .platform-lead,
+.tone-accent .platform-meta {
+  color: color-mix(in srgb, var(--platform-ink-invert) 74%, transparent);
+}
+
+.section-paper {
+  background-color: var(--platform-paper);
+  color: var(--platform-ink);
+}
+
+.section-surface {
+  background-color: var(--platform-surface);
+  color: var(--platform-ink);
+}
+
+.section-ink {
+  background-color: var(--platform-ink);
+  color: var(--platform-ink-invert);
+}
+
+/* Layout stacking for the fixed background system. */
+body[data-platform-shell] > header,
+body[data-platform-shell] > main,
+body[data-platform-shell] > footer,
+body[data-platform-shell] > .platform-global-motion-field {
+  position: relative;
+  z-index: 2;
+}
+
+.platform-global-motion-field {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.platform-global-motion-field span {
+  position: absolute;
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--platform-accent) 20%, transparent);
+  border-radius: 50%;
+}
+
+.platform-global-motion-field span:nth-child(1) {
+  inline-size: 26rem;
+  block-size: 26rem;
+  right: -10rem;
+  top: 18vh;
+  animation: platform-drift-a 26s var(--ease-soft) infinite alternate;
+}
+
+.platform-global-motion-field span:nth-child(2) {
+  inline-size: 12rem;
+  block-size: 12rem;
+  left: -4rem;
+  top: 64vh;
+  border-color: color-mix(in srgb, var(--platform-support) 18%, transparent);
+  animation: platform-drift-b 20s var(--ease-soft) -4s infinite alternate;
+}
+
+.platform-global-motion-field i {
+  position: absolute;
+  inline-size: 0.35rem;
+  block-size: 0.35rem;
+  right: 22vw;
+  top: 44vh;
+  border-radius: 50%;
+  background: var(--platform-accent);
+  opacity: 0.35;
+  animation: platform-drift-c 14s var(--ease-soft) infinite alternate;
+}
+
+/* Header shell */
+.platform-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  min-height: 3.75rem;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  transition:
+    min-height var(--duration-normal) var(--ease-editorial),
+    background-color var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial),
+    box-shadow var(--duration-normal) var(--ease-editorial),
+    backdrop-filter var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-shell-header.is-scrolled {
+  min-height: 3.25rem;
+  border-bottom-color: var(--platform-line);
+  background: var(--platform-glass);
+  box-shadow: var(--platform-shadow-sm);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.platform-shell-header.is-on-ink:not(.is-scrolled) {
+  color: var(--platform-ink-invert);
+}
+
+.platform-shell-header.is-on-ink:not(.is-scrolled) .platform-header-link {
+  color: color-mix(in srgb, var(--platform-ink-invert) 74%, transparent);
+}
+
+.platform-shell-header.is-on-ink:not(.is-scrolled) .platform-header-link:hover {
+  color: var(--platform-ink-invert);
+}
+
+.platform-header-link {
+  position: relative;
+  color: var(--platform-ink-muted);
+  font-size: var(--platform-text-sm);
+  font-weight: 650;
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-editorial);
+}
+
+.platform-header-link:hover,
+.platform-header-link[aria-current="page"] {
+  color: var(--platform-ink);
+}
+
+.platform-header-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  block-size: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-header-link:hover::after,
+.platform-header-link[aria-current="page"]::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.platform-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1em;
+  color: currentColor;
+  font-family: var(--platform-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: var(--platform-tracking-tight);
+  line-height: 1;
+  text-decoration: none;
+}
+
+.platform-wordmark::after {
+  content: '.';
+  color: var(--platform-accent);
+}
+
+/* Scroll progress */
+.platform-scroll-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 2px;
+  z-index: 120;
+  background: linear-gradient(90deg, var(--platform-support), var(--platform-accent));
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+/* Page transitions. The fallback is a short, calm fade; content never waits
+   on JS for a whole page. */
+body.platform-page-leaving > main,
+body.platform-page-leaving > footer {
+  opacity: 0;
+  transform: translateY(-0.35rem);
+  transition:
+    opacity var(--duration-fast) var(--ease-sharp),
+    transform var(--duration-fast) var(--ease-sharp);
+}
+
+/* Reduced motion: complete static experience. Content is never hidden. */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-reveal],
+  .js-motion [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+}
+
+/* Keep the quick actions out of the way while a sheet owns the screen. */
+body.sheet-open {
+  overflow: hidden;
+}
+
+body.sheet-open .platform-floating-stack,
+body.sheet-open .platform-support-launcher {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.platform-floating-stack {
+  transition: opacity var(--platform-duration-fast) var(--platform-ease-out),
+    transform var(--platform-duration-fast) var(--platform-ease-out);
+}

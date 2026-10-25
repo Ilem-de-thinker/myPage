@@ -167,6 +167,16 @@ class GoogleAuthController
 
         Auth::login($seller, remember: true);
 
+        /*
+            A Google-only seller confirming a password-gated action. The flag is
+            set by PasswordConfirmationController::show() and is only readable
+            after Google has just vouched for this identity, so it cannot be used
+            to skip a confirmation that was never asked for.
+        */
+        if (session()->pull('auth.confirm_intent')) {
+            session()->put('auth.password_confirmed_at', time());
+        }
+
         $seller->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('dashboard'));

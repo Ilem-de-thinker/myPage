@@ -30,6 +30,7 @@ final class ThemeTokens
     public static function forPage(StorePage $page): array
     {
         $settings = $page->settings ?? [];
+        $themePreset = self::presetFor($page->theme->value, $settings['theme_preset'] ?? null);
 
         return self::build(
             primary: (string) $page->brand_color,
@@ -37,9 +38,9 @@ final class ThemeTokens
             accent: $settings['accent_color'] ?? null,
             mode: $settings['surface'] ?? null,
             radius: $settings['radius'] ?? null,
-            font: $settings['font'] ?? null,
-            themeFont: config('themes.'.$page->theme->value.'.font', []),
-            themeFontLink: config('themes.'.$page->theme->value.'.fonts_link'),
+            font: $themePreset === null ? ($settings['font'] ?? null) : null,
+            themeFont: config('themes.presets.'.($themePreset ?? '').'.font', config('themes.'.$page->theme->value.'.font', [])),
+            themeFontLink: config('themes.presets.'.($themePreset ?? '').'.fonts_link', config('themes.'.$page->theme->value.'.fonts_link')),
         );
     }
 
@@ -114,15 +115,16 @@ final class ThemeTokens
     public static function switchableCss(StorePage $page): array
     {
         $settings = $page->settings ?? [];
+        $themePreset = self::presetFor($page->theme->value, $settings['theme_preset'] ?? null);
 
         $arguments = [
             'primary' => (string) $page->brand_color,
             'secondary' => $settings['secondary_color'] ?? null,
             'accent' => $settings['accent_color'] ?? null,
             'radius' => $settings['radius'] ?? null,
-            'font' => $settings['font'] ?? null,
-            'themeFont' => config('themes.'.$page->theme->value.'.font', []),
-            'themeFontLink' => config('themes.'.$page->theme->value.'.fonts_link'),
+            'font' => $themePreset === null ? ($settings['font'] ?? null) : null,
+            'themeFont' => config('themes.presets.'.($themePreset ?? '').'.font', config('themes.'.$page->theme->value.'.font', [])),
+            'themeFontLink' => config('themes.presets.'.($themePreset ?? '').'.fonts_link', config('themes.'.$page->theme->value.'.fonts_link')),
         ];
 
         // The seller's choice is what renders with no attribute set, so it is
@@ -158,6 +160,17 @@ final class ThemeTokens
             array_keys($vars),
             $vars,
         ));
+    }
+
+    private static function presetFor(string $theme, mixed $preset): ?string
+    {
+        if (! is_string($preset) || ! isset(config('themes.presets')[$preset])) {
+            return null;
+        }
+
+        return in_array($theme, config("themes.presets.{$preset}.business_types", []), true)
+            ? $preset
+            : null;
     }
 
     /**
@@ -208,6 +221,7 @@ final class ThemeTokens
 
         $minimum = (float) config('theming.contrast.text_minimum', 4.5);
         $primaryChannels = self::channels($primary);
+        $brandScale = Color::palette($primary);
 
         $vars = [
             // Brand channels. Space-separated RGB is the only form that lets
@@ -216,6 +230,7 @@ final class ThemeTokens
             '--brand-primary' => $primaryChannels,
             '--brand-secondary' => self::channels($secondary),
             '--brand-accent' => self::channels($accent),
+            ...collect($brandScale)->mapWithKeys(fn (string $value, int $step): array => ['--brand-'.$step => $value])->all(),
 
             // Hex aliases. The legacy inline styles in the theme components
             // paint solid fills from these.

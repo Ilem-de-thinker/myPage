@@ -72,6 +72,22 @@ it('refuses to move another seller\'s order status', function () {
     expect($foreign->fresh()->status)->toBe(OrderStatus::PendingPayment);
 });
 
+it('refuses to mark an unpaid checkout paid by hand', function () {
+    [$seller, , $product] = sellerWithProduct();
+
+    $order = Order::factory()->platform()->create([
+        'seller_id' => $seller->id,
+        'store_page_id' => $product->store_page_id,
+    ]);
+
+    actingAs($seller)
+        ->post(route('dashboard.orders.status', $order), ['status' => OrderStatus::Paid->value])
+        ->assertStatus(422);
+
+    expect($order->fresh()->status)->toBe(OrderStatus::PendingPayment)
+        ->and($order->history()->count())->toBe(0);
+});
+
 it('shows the order detail with its items and allowed next steps', function () {
     [$seller, , $product] = sellerWithProduct();
 
@@ -161,7 +177,7 @@ it('saves a whatsapp order so the seller has a pending record', function () {
         ['theme' => 'store', 'status' => 'published'],
     );
 
-    $response = postJson("/{$page->slug}/checkout/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 2]],
         'name' => 'Ada Buyer',
     ])->assertOk();
@@ -184,7 +200,7 @@ it('does not decrement stock until the whatsapp order is confirmed', function ()
         ['theme' => 'store', 'status' => 'published'],
     );
 
-    postJson("/{$page->slug}/checkout/whatsapp", [
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 2]],
     ])->assertOk();
 

@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('data_subject_requests', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name', 120);
+            $table->string('email')->index();
+            $table->string('request_type', 24);
+            $table->text('details')->nullable();
+            $table->string('status', 24)->default('pending');
+            $table->timestamp('requested_at');
+            $table->timestamp('resolved_at')->nullable();
+            $table->timestamps();
+            $table->index(['status', 'requested_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('data_subject_requests');
+    }
+};

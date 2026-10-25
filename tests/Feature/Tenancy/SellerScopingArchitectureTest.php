@@ -6,9 +6,7 @@ use App\Domains\Billing\Models\FeatureFlag;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Booking\Models\BookingStatusHistory;
 use App\Domains\Orders\Models\OrderStatusHistory;
-use App\Domains\Payments\Models\Payout;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
 use App\Shared\Traits\BelongsToSeller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
@@ -52,11 +50,6 @@ $exempt = [
     // approved, and the admin queue is deliberately cross-seller.
     BadgeApplication::class => 'Admin review queue; per-page reads filter on store_page_id.',
 
-    // A seller\'s balance. Always reached through the seller->wallet relation
-    // or with an explicit seller_id, never from a bare all()/query() in a
-    // request. Confirmed: no request-path raw query exists.
-    Wallet::class => 'Reached only via relation or an explicit seller filter.',
-
     // Append-only history written alongside its parent. Never queried on its own.
     BookingStatusHistory::class => 'Child rows; always through the booking relation.',
     OrderStatusHistory::class => 'Child rows; always through the order relation.',
@@ -73,7 +66,6 @@ $exempt = [
  */
 $adminScoped = [
     Transaction::class,
-    Payout::class,
     Subscription::class,
 ];
 

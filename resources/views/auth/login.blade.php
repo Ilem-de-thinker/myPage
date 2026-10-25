@@ -3,7 +3,7 @@
 @section('content')
     <div class="space-y-2 mb-8">
         <h1 class="text-2xl sm:text-3xl font-display font-extrabold text-ink tracking-tight">Welcome back to your shop</h1>
-        <p class="text-xs sm:text-sm text-ink-2">Log in to manage orders, update your catalog, and check payouts.</p>
+        <p class="text-xs sm:text-sm text-ink-2">Log in to manage orders, update your catalogue, and check your payments.</p>
     </div>
 
     <form method="POST" action="{{ route('login.store') }}" class="space-y-4">

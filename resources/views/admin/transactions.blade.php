@@ -13,9 +13,6 @@
       <p class="mt-0.5 text-lg font-extrabold tabular-naira">
         {{ \App\Shared\Support\Money::format($totals['paid_kobo']) }}
       </p>
-      <p class="text-[11px] text-ink-3">
-        {{ \App\Shared\Support\Money::format($totals['commission_kobo']) }} commission
-      </p>
     </div>
   </div>
 
@@ -58,7 +55,6 @@
           <th class="px-4 py-3 font-semibold">Seller</th>
           <th class="px-4 py-3 font-semibold">For</th>
           <th class="px-4 py-3 text-right font-semibold">Amount</th>
-          <th class="px-4 py-3 text-right font-semibold">Commission</th>
           <th class="px-4 py-3 font-semibold">Gateway</th>
           <th class="px-4 py-3 font-semibold">Status</th>
           <th class="px-4 py-3 font-semibold">When</th>
@@ -80,9 +76,6 @@
             </td>
             <td class="px-4 py-3 text-right font-bold tabular-naira text-ink">
               {{ \App\Shared\Support\Money::format($transaction->amount_kobo) }}
-            </td>
-            <td class="px-4 py-3 text-right tabular-naira text-ink-3">
-              {{ \App\Shared\Support\Money::format($transaction->commission_kobo) }}
             </td>
             <td class="px-4 py-3 text-ink-3">{{ ucfirst((string) $transaction->gateway) }}</td>
             <td class="px-4 py-3">

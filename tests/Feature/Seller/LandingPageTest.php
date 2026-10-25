@@ -80,7 +80,7 @@ it('offers one sign in door on a storefront, in the footer', function () {
     $page = StorePage::factory()
         ->create(['status' => 'published', 'slug' => 'footer-link']);
 
-    $html = get('/footer-link')->assertOk()->getContent();
+    $html = get(storeUrl('footer-link'))->assertOk()->getContent();
 
     // The only way in is the footer link, so a buyer is never asked to log in.
     expect($html)->toContain('Sell on mypage.ng')
@@ -91,7 +91,7 @@ it('offers one sign in door on a storefront, in the footer', function () {
 it('points the storefront footer at the dashboard once the seller signs in', function () {
     [$seller, $page] = sellerWithPage(['status' => 'published', 'slug' => 'owner-footer']);
 
-    actingAs($seller)->get('/owner-footer')
+    actingAs($seller)->get(storeUrl('owner-footer'))
         ->assertOk()
         ->assertSee('Manage your page')
         ->assertDontSee('Sell on mypage.ng');

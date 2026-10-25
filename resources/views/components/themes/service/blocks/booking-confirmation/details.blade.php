@@ -12,7 +12,7 @@
     // The address, once: the studio card and the maps link quote the same thing.
     $where = collect([$page->address, $page->city, $page->state])->filter()->join(', ');
     $storefront = ['slug' => $page->slug];
-    $home = StoreUrl::home($page);
+    $home = StoreUrl::homePath($page);
 
     // Only a real booking carries these. Every figure below is read off the row,
     // so a booking with no deposit prints "Paid in full" rather than a zero.
@@ -45,7 +45,7 @@
     <h1 class="t-display-1 text-[var(--ink)]">Track Appointment &amp; Retainer.</h1>
 
     <p class="t-body-lg text-[var(--ink-2)] mt-4">
-      Look up your booking with the reference from your confirmation. Check the schedule, the address, and what is still held in escrow.
+      Look up your booking with the reference from your confirmation. Check the schedule, the address, and what you have paid.
     </p>
   </div>
 
@@ -55,7 +55,7 @@
     page by a piece of state the visitor could have got wrong.
   --}}
   <div class="card p-6 sm:p-8 rounded-[var(--radius-lg)] border border-[var(--rule)] mb-10">
-    <form method="GET" action="{{ route('storefront.booking-confirmation', $storefront) }}"
+    <form method="GET" action="{{ \App\Shared\Support\StoreUrl::path('storefront.booking-confirmation', $storefront) }}"
           class="flex flex-col sm:flex-row gap-4">
       <div class="flex-1">
         <label for="track-booking-ref" class="block text-xs font-bold text-[var(--ink)] mb-1.5">Booking Reference *</label>
@@ -104,13 +104,13 @@
             @endphp
             <span @class([
                 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--radius-pill)] text-[10px] font-bold border',
-                'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' => $secured,
-                'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' => ! $secured,
+                'bg-[var(--ok-wash)] text-[var(--ok-text)] border-[var(--ok-edge)]' => $secured,
+                'bg-[var(--warn-wash)] text-[var(--warn-text)] border-[var(--warn-edge)]' => ! $secured,
             ])>
               <span @class([
                   'w-1.5 h-1.5 rounded-full',
-                  'bg-emerald-500' => $secured,
-                  'bg-amber-500' => ! $secured,
+                  'bg-[var(--ok-text)]' => $secured,
+                  'bg-[var(--warn-text)]' => ! $secured,
               ]) aria-hidden="true"></span>
               {{ $booking->status->label() }}{{ $secured ? ' & Studio Time Reserved' : '' }}
             </span>
@@ -153,16 +153,16 @@
         </div>
       </div>
 
-      {{-- Escrow breakdown. Every figure is off the booking row, which was priced
+      {{-- Payment breakdown. Every figure is off the booking row, which was priced
            by the server from the service when it was created. --}}
       <div class="p-6 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] space-y-4">
         <div class="flex items-center justify-between gap-4">
           <span class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)]">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Escrow Vault Status</span>
+            <span>Payment Status</span>
           </span>
 
-          <span class="font-mono text-xs font-bold text-[var(--brand-text)]">Vault Token {{ $booking->reference }}</span>
+          <span class="font-mono text-xs font-bold text-[var(--brand-text)]">Reference {{ $booking->reference }}</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs">
@@ -172,11 +172,11 @@
           </div>
 
           <div>
-            <span class="text-[var(--ink-3)] block">Held in Escrow</span>
+            <span class="text-[var(--ink-3)] block">Paid at Booking</span>
             @if ($depositKobo > 0)
-              <p class="t-price-sm text-emerald-600 dark:text-emerald-400">{{ Money::format($depositKobo) }} (Locked)</p>
+              <p class="t-price-sm text-[var(--ok-text)]">{{ Money::format($depositKobo) }} (Paid)</p>
             @else
-              <p class="t-price-sm">{{ $totalKobo > 0 ? 'None held' : 'Nothing owed' }}</p>
+              <p class="t-price-sm">{{ $totalKobo > 0 ? 'Nothing paid' : 'Nothing owed' }}</p>
             @endif
           </div>
 
@@ -188,7 +188,7 @@
 
         @if ($depositKobo > 0)
           <p class="text-[11px] text-[var(--ink-2)] border-t border-[var(--brand-edge)] pt-3 leading-relaxed">
-            {{ Money::format($depositKobo) }} is held securely in escrow. It is released to {{ $page->name }} only once the appointment is done and you have approved the result.
+            {{ Money::format($depositKobo) }} was paid at booking and went straight to {{ $page->name }}. The balance is settled at the studio.
           </p>
         @endif
       </div>
@@ -210,7 +210,7 @@
             <a href="{{ $desk }}"
                target="_blank"
                rel="noopener noreferrer"
-               class="px-4 py-2.5 rounded-[var(--radius)] bg-[#25D366] text-white text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 shadow-sm">
+               class="px-4 py-2.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 shadow-sm">
               <x-themes.shared.whatsapp-icon />
               <span>Studio WhatsApp Desk</span>
             </a>

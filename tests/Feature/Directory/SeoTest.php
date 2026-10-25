@@ -8,6 +8,7 @@ use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 
@@ -36,7 +37,6 @@ beforeEach(function () {
 
     config([
         'app.url' => 'https://mypage.ng',
-        'mypage.path_routes' => true,
         // Pinned rather than inherited: .env turns the directory on locally, and
         // a sitemap that quietly gains or loses a URL depending on the developer's
         // machine is not a test anyone can trust.
@@ -61,13 +61,13 @@ afterEach(function () {
 });
 
 it('lists a published page in the sitemap', function () {
-    seoPage();
+    $page = seoPage();
 
     $this->artisan('sitemap:generate')->assertSuccessful();
 
     $xml = File::get(public_path('sitemaps/sitemap.xml'));
 
-    expect($xml)->toContain('mypage.ng/ada-textiles')
+    expect($xml)->toContain(parse_url(StoreUrl::home($page), PHP_URL_HOST))
         ->and($xml)->toContain('mypage.ng');
 });
 
@@ -145,7 +145,6 @@ it('tells crawlers to stay out of the private areas', function () {
         ->assertSee('User-agent: *', false)
         ->assertSee('Disallow: /admin')
         ->assertSee('Disallow: /dashboard')
-        ->assertSee('Disallow: /payouts')
         ->assertSee('Disallow: /login')
         ->assertSee('Allow: /');
 });
@@ -219,7 +218,7 @@ it('describes only the products a filtered listing is showing', function () {
 
     // A filtered page must not advertise what it filtered out, or the search
     // snippet describes a shop the visitor is not looking at.
-    $html = get('/'.$page->slug.'/products?category='.$fabrics->id)->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products?category='.$fabrics->id))->assertOk()->getContent();
 
     expect($html)->toContain('Ankara Print')
         ->and($html)->not->toContain('Lace Gown');
@@ -261,7 +260,7 @@ it('puts valid structured data on a live storefront', function () {
     $page = seoPage();
     $page->update(['status' => StoreStatus::Published]);
 
-    $html = get('/'.$page->slug)->assertOk()->getContent();
+    $html = get(storeUrl($page->slug))->assertOk()->getContent();
 
     expect($html)->toContain('application/ld+json');
 
@@ -279,14 +278,14 @@ it('puts no structured data on a suspended page', function () {
     // be unlisted. Anything else tells a buyer to keep trying.
     $page = seoPage(['status' => StoreStatus::Suspended]);
 
-    expect(get('/'.$page->slug)->assertNotFound()->getContent())
+    expect(get(storeUrl($page->slug))->assertNotFound()->getContent())
         ->not->toContain('application/ld+json');
 });
 
 it('does not let a seller name break out of the script tag', function () {
     $page = seoPage(['name' => '</script><script>alert(1)</script>']);
 
-    $html = get('/'.$page->slug)->assertOk()->getContent();
+    $html = get(storeUrl($page->slug))->assertOk()->getContent();
 
     // JSON_HEX_TAG turns the closing tag into a harmless escape sequence.
     expect($html)->not->toContain('</script><script>alert(1)')

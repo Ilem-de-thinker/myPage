@@ -3,11 +3,13 @@
 use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\SubscriptionCardExpiring;
 use App\Domains\Payments\Services\Gateways\FlutterwaveGateway;
 use App\Domains\Payments\Services\Gateways\PaystackGateway;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 
 use function Pest\Laravel\actingAs;
 
@@ -253,7 +255,7 @@ it('has no card page for a seller the gateway does not bill', function () {
 });
 
 it('speaks Paystack intervals rather than its own', function () {
-    $gateway = new PaystackGateway;
+    $gateway = app(PaystackGateway::class);
 
     Http::fake(['api.paystack.co/plan' => Http::response([
         'status' => true,
@@ -295,4 +297,28 @@ it('never touches the payment gateway while cancelling a manual transfer', funct
     // nothing there to switch off.
     Http::assertNothingSent();
     expect($subscription->fresh()->cancelled_at)->not->toBeNull();
+});
+
+it('notifies the seller in-app and by email when the card is expiring', function () {
+    Notification::fake();
+    [$seller] = subscribedSeller();
+
+    deliverSubscriptionEvent('subscription.expiring_cards', [
+        'subscription_code' => 'SUB_test123',
+        'next_payment_date' => '2026-11-01T00:00:00.000Z',
+    ])->assertOk();
+
+    Notification::assertSentTo(
+        $seller,
+        SubscriptionCardExpiring::class,
+        fn (SubscriptionCardExpiring $notification, array $channels): bool => in_array('mail', $channels, true)
+            && in_array('database', $channels, true),
+    );
+
+    deliverSubscriptionEvent('subscription.expiring_cards', [
+        'subscription_code' => 'SUB_test123',
+        'next_payment_date' => '2026-11-01T00:00:00.000Z',
+    ], 4243)->assertOk();
+
+    Notification::assertSentToTimes($seller, SubscriptionCardExpiring::class, 1);
 });

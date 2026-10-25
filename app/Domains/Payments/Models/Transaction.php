@@ -8,7 +8,6 @@ use Database\Factories\Domains\Payments\Models\TransactionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /** @use HasFactory<TransactionFactory> */
@@ -24,7 +23,6 @@ class Transaction extends Model
         'gateway',
         'amount_kobo',
         'fee_kobo',
-        'commission_kobo',
         'status',
         'paid_at',
         'gateway_payload',
@@ -36,7 +34,6 @@ class Transaction extends Model
             'status' => TransactionStatus::class,
             'amount_kobo' => 'integer',
             'fee_kobo' => 'integer',
-            'commission_kobo' => 'integer',
             'gateway_payload' => 'array',
             'paid_at' => 'datetime',
         ];
@@ -50,18 +47,5 @@ class Transaction extends Model
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);
-    }
-
-    public function ledgerEntries(): HasMany
-    {
-        return $this->hasMany(WalletLedger::class);
-    }
-
-    /**
-     * Amount the seller actually earns once commission is taken.
-     */
-    public function sellerAmountKobo(): int
-    {
-        return $this->amount_kobo - $this->commission_kobo;
     }
 }

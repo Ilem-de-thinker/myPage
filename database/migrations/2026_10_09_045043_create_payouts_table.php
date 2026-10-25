@@ -1,6 +1,5 @@
 <?php
 
-use App\Domains\Payments\Enums\PayoutStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +13,7 @@ return new class extends Migration
             $table->foreignId('seller_id')->constrained()->cascadeOnDelete();
             $table->string('reference')->unique();
             $table->integer('amount_kobo');
-            $table->enum('status', array_column(PayoutStatus::cases(), 'value'))->default(PayoutStatus::Pending->value);
+            $table->enum('status', ['pending', 'paid', 'failed'])->default('pending');
             $table->string('bank_code', 16);
             $table->string('account_number', 32);
             $table->string('account_name');

@@ -1,0 +1,432 @@
+/**
+ * MyPage.ng — public component styles
+ *
+ * Tailwind utilities carry layout, spacing and colour in the Blade views. This
+ * file only holds the pieces that cannot be expressed cleanly as utilities:
+ * tactile media surfaces, the layered hero, marquees, editorial rails and the
+ * assistant's animated states.
+ */
+
+/* ── Cards & media ─────────────────────────────────────────────────────────── */
+
+.platform-card-base {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-xl);
+  background: var(--platform-card);
+  box-shadow: var(--platform-shadow-sm);
+  color: var(--platform-ink);
+  transition:
+    transform var(--duration-normal) var(--ease-editorial),
+    box-shadow var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-card-base:hover {
+  border-color: var(--platform-support-border);
+  box-shadow: var(--platform-shadow-lg);
+  transform: translateY(-0.25rem);
+}
+
+.platform-card-base:focus-within {
+  border-color: var(--platform-support);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-support) 16%, transparent);
+}
+
+.platform-media-curtain {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--platform-surface);
+}
+
+.platform-media-curtain img {
+  transition: transform var(--duration-deliberate) var(--ease-cinematic);
+}
+
+.platform-card-base:hover .platform-media-curtain img {
+  transform: scale(1.035);
+}
+
+.platform-silhouette-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--platform-surface);
+  color: var(--platform-ink-muted);
+}
+
+.platform-silhouette-box > .relative {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+
+.platform-hero-search {
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-xl);
+  background: var(--platform-card);
+  box-shadow: var(--platform-shadow-md);
+  transition:
+    border-color var(--duration-normal) var(--ease-editorial),
+    box-shadow var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-hero-search:focus-within {
+  border-color: var(--platform-support);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--platform-support) 14%, transparent),
+    var(--platform-shadow-lg);
+}
+
+.platform-hero-image-stack {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.platform-hero-image {
+  position: absolute;
+  display: block;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-2xl);
+  object-fit: cover;
+  box-shadow: var(--platform-shadow-xl);
+}
+
+.platform-hero-image-primary {
+  inset-block-start: 2%;
+  inset-inline-end: 0;
+  inline-size: min(62%, 21rem);
+  aspect-ratio: 4 / 5;
+  rotate: 2.5deg;
+  opacity: 0.92;
+}
+
+.platform-hero-image-secondary {
+  inset-block-end: 8%;
+  inset-inline-start: 4%;
+  inline-size: min(46%, 15rem);
+  aspect-ratio: 4 / 5;
+  rotate: -4deg;
+  opacity: 0.82;
+}
+
+.platform-hero-image-label {
+  position: absolute;
+  inset-block-end: 2%;
+  inset-inline-end: 6%;
+  z-index: 2;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-pill);
+  background: var(--platform-glass);
+  color: var(--platform-ink-muted);
+  padding: 0.35rem 0.75rem;
+  font-size: var(--platform-text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.platform-hero-card {
+  position: absolute;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-xl);
+  background: var(--platform-card);
+  box-shadow: var(--platform-shadow-lg);
+  will-change: transform;
+}
+
+.drift-slow-1 {
+  animation: platform-hero-drift-a 15s var(--ease-soft) infinite alternate;
+}
+
+.drift-slow-2 {
+  animation: platform-hero-drift-b 19s var(--ease-soft) -4s infinite alternate;
+}
+
+.drift-slow-3 {
+  animation: platform-hero-drift-c 13s var(--ease-soft) -2s infinite alternate;
+}
+
+@keyframes platform-hero-drift-a {
+  to { translate: 0.4rem -0.9rem; rotate: -1.2deg; }
+}
+
+@keyframes platform-hero-drift-b {
+  to { translate: -0.55rem 0.7rem; rotate: 1.4deg; }
+}
+
+@keyframes platform-hero-drift-c {
+  to { translate: 0.6rem -0.5rem; rotate: -0.8deg; }
+}
+
+/* ── Marquee ───────────────────────────────────────────────────────────────── */
+
+.platform-marquee-wrap {
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.platform-marquee-inner {
+  display: flex;
+  inline-size: max-content;
+  align-items: center;
+  animation: platform-marquee-run 42s linear infinite;
+  will-change: transform;
+}
+
+.platform-marquee-wrap:hover .platform-marquee-inner,
+.platform-marquee-wrap:focus-within .platform-marquee-inner {
+  animation-play-state: paused;
+}
+
+@keyframes platform-marquee-run {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ── Category rail ─────────────────────────────────────────────────────────── */
+
+.category-rail-container {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-block-end: 0.5rem;
+}
+
+.category-rail-container::-webkit-scrollbar {
+  display: none;
+}
+
+.category-rail-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1024px) {
+  .category-rail-container.category-strip {
+    display: flex;
+    overflow: visible;
+    gap: 0.75rem;
+    padding-block-end: 0;
+  }
+
+  .category-rail-container.category-strip .category-rail-item {
+    flex: 1 1 0;
+    inline-size: auto;
+    min-inline-size: 0;
+    transition:
+      flex-grow var(--duration-deliberate) var(--ease-editorial),
+      border-color var(--duration-normal) var(--ease-editorial),
+      box-shadow var(--duration-normal) var(--ease-editorial);
+  }
+
+  .category-rail-container.category-strip .category-rail-item:hover,
+  .category-rail-container.category-strip .category-rail-item:focus-within {
+    flex-grow: 2;
+  }
+}
+
+/* ── Directory & storefront ────────────────────────────────────────────────── */
+
+.platform-directory-header {
+  position: relative;
+  overflow: clip;
+}
+
+.platform-filter-bar {
+  transition:
+    box-shadow var(--duration-normal) var(--ease-editorial),
+    background-color var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-filter-bar.is-stuck {
+  box-shadow: var(--platform-shadow-sm);
+}
+
+.platform-store-cover {
+  background:
+    radial-gradient(circle at 78% 16%, color-mix(in srgb, var(--platform-support) 16%, transparent), transparent 52%),
+    radial-gradient(circle at 14% 86%, color-mix(in srgb, var(--platform-accent) 12%, transparent), transparent 48%),
+    var(--platform-surface);
+}
+
+.sheet-drag-handle {
+  inline-size: 2.75rem;
+  block-size: 0.3rem;
+  margin: 0 auto 1.25rem;
+  border-radius: var(--platform-radius-pill);
+  background: var(--platform-line-strong);
+}
+
+/* ── Assistant panel ───────────────────────────────────────────────────────── */
+
+.marketplace-suggestion {
+  min-height: 2.5rem;
+}
+
+.marketplace-skeleton {
+  block-size: 6rem;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-lg);
+  background:
+    linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--platform-card) 70%, transparent) 40%,
+      transparent 60%
+    ),
+    var(--platform-surface);
+  background-size: 220% 100%;
+  animation: marketplace-shimmer 1.4s var(--ease-soft) infinite;
+}
+
+@keyframes marketplace-shimmer {
+  to { background-position: -120% 0; }
+}
+
+.marketplace-loading-line {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.marketplace-loading-line span {
+  display: block;
+  block-size: 0.35rem;
+  border-radius: var(--platform-radius-pill);
+  background: var(--platform-accent);
+  animation: marketplace-loading 1s var(--ease-editorial) infinite alternate;
+}
+
+.marketplace-loading-line span:nth-child(1) { inline-size: 1.75rem; }
+.marketplace-loading-line span:nth-child(2) { inline-size: 1rem; animation-delay: 120ms; }
+.marketplace-loading-line span:nth-child(3) { inline-size: 0.45rem; animation-delay: 240ms; }
+
+@keyframes marketplace-loading {
+  to { opacity: 0.25; transform: translateY(-0.18rem); }
+}
+
+.marketplace-result-card {
+  animation: marketplace-result-in var(--duration-slow) var(--ease-editorial) both;
+  animation-delay: calc(var(--result-index, 0) * 80ms);
+}
+
+@keyframes marketplace-result-in {
+  from { opacity: 0; transform: translate3d(0, 0.65rem, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ── Sticky story ──────────────────────────────────────────────────────────── */
+
+.platform-story-visual-shell {
+  position: relative;
+}
+
+.platform-story-route {
+  stroke-dasharray: 7 9;
+  animation: platform-route-march 32s linear infinite;
+}
+
+.platform-story-step-card {
+  transition:
+    border-color var(--duration-normal) var(--ease-editorial),
+    background-color var(--duration-normal) var(--ease-editorial),
+    transform var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-story-step-card.is-active {
+  border-color: var(--platform-support);
+  background: var(--platform-card);
+  box-shadow: var(--platform-shadow-md);
+}
+
+/* The JS engine swaps these two classes on each frame. Without JS the first
+   frame is visible and the rest are suppressed. */
+.story-visual-frame {
+  transition:
+    opacity var(--duration-slow) var(--ease-editorial),
+    transform var(--duration-slow) var(--ease-cinematic);
+}
+
+/* ── Background bits ───────────────────────────────────────────────────────── */
+
+.platform-overlay-system {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  overflow: hidden;
+}
+
+.platform-overlay-system .platform-grain-overlay {
+  z-index: 0;
+}
+
+.platform-overlay-system .platform-spotlight {
+  z-index: 1;
+}
+
+.platform-grid-canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.platform-route-line-one {
+  inset-block-start: 16vh;
+  inset-inline-end: -3rem;
+  inline-size: min(30rem, 48vw);
+  opacity: 0.8;
+}
+
+.platform-route-pulse {
+  fill: var(--platform-accent);
+  animation: platform-node-pulse 3.6s var(--ease-soft) infinite alternate;
+}
+
+@keyframes platform-node-pulse {
+  to { r: 7; opacity: 0.45; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
+  .platform-card-base:hover,
+  .platform-media-curtain img {
+    transform: none;
+  }
+
+  .drift-slow-1,
+  .drift-slow-2,
+  .drift-slow-3,
+  .platform-marquee-inner,
+  .marketplace-skeleton,
+  .marketplace-loading-line span,
+  .marketplace-result-card,
+  .platform-story-route,
+  .platform-route-pulse {
+    animation: none !important;
+  }
+
+  .platform-hero-image,
+  .platform-hero-card {
+    rotate: 0deg;
+    translate: none;
+  }
+}

@@ -92,7 +92,7 @@
                     <h1 class="text-lg font-bold text-[var(--ink)]">Search Results</h1>
                     <p class="t-meta mt-0.5">Showing {{ $total }} verified {{ $total === 1 ? 'merchant' : 'merchants' }}{{ $city ? ' in '.$city : '' }}</p>
                 </div>
-                <span class="text-xs text-[var(--ink-3)]">Sorted by Rating &amp; Escrow Track Record</span>
+                <span class="text-xs text-[var(--ink-3)]">Sorted by Rating &amp; Response Record</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

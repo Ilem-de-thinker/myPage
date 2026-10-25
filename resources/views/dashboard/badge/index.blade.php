@@ -8,12 +8,24 @@
 @endphp
 
     <x-ui.page-header
-        title="Verified badge"
-        subtitle="A tick buyers trust. It costs nothing, and you can only have one at a time."
+        title="Verify your business"
+        subtitle="One document, looked at by a person. Verification is a trust signal; it does not route or hold buyer payments."
         width="max-w-2xl mx-auto"
     />
 
     <div class="max-w-2xl mx-auto space-y-4">
+        @if ($status !== null && $status !== BadgeStatus::Approved)
+            <div class="rounded-2xl border border-rule bg-card px-6 py-5">
+                <p class="text-xs font-semibold text-ink">While you wait, this is what is locked</p>
+                <ul class="mt-2 space-y-1 text-[11px] text-ink-3">
+                    <li>A verified tick on your storefront and listings</li>
+                    <li>Higher trust when buyers compare businesses</li>
+                    <li>Clearer identity information for moderation</li>
+                </ul>
+                <p class="mt-2 text-[11px] text-ink-3">You can keep building your page and accepting direct gateway payments while the review is pending.</p>
+            </div>
+        @endif
+
         @if ($status === BadgeStatus::Approved)
             <div class="rounded-2xl border border-ok-edge bg-ok-wash p-6 text-center">
                 <p class="text-sm font-semibold text-ok-text">Your page is verified.</p>
@@ -45,10 +57,29 @@
             @csrf
 
             <label class="block">
-                <span class="text-xs font-semibold text-ink">Business name, exactly as registered</span>
+                <span class="text-xs font-semibold text-ink">Storefront business name</span>
                 <input type="text" name="business_name" required value="{{ old('business_name', $application?->business_name ?? $page->name) }}"
                        class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
-                <span class="mt-1 block text-[11px] text-ink-3">This is what we will check against your document.</span>
+                <span class="mt-1 block text-[11px] text-ink-3">The public name buyers see.</span>
+            </label>
+
+            <label class="block">
+                <span class="text-xs font-semibold text-ink">Registered legal name</span>
+                <input type="text" name="registered_legal_name" required value="{{ old('registered_legal_name', $application?->registered_legal_name ?? $page->name) }}"
+                       class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                <span class="mt-1 block text-[11px] text-ink-3">The name printed on your CAC record or identity document.</span>
+            </label>
+
+            <label class="block">
+                <span class="text-xs font-semibold text-ink">CAC/RC or identity number</span>
+                <input type="text" name="registration_number" required value="{{ old('registration_number', $application?->registration_number) }}"
+                       class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+            </label>
+
+            <label class="block">
+                <span class="text-xs font-semibold text-ink">Document expiry date <span class="font-normal text-ink-3">(required for national ID)</span></span>
+                <input type="date" name="document_expires_at" value="{{ old('document_expires_at', $application?->document_expires_at?->format('Y-m-d')) }}"
+                       class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
             </label>
 
             <label class="block">
@@ -63,7 +94,7 @@
                 <span class="text-xs font-semibold text-ink">Upload it</span>
                 <input type="file" name="document" required accept=".pdf,.jpg,.jpeg,.png"
                        class="mt-1 w-full text-xs text-ink-2 file:mr-3 file:rounded-lg file:border-0 file:bg-tint file:px-3 file:py-2 file:text-xs file:font-semibold">
-                <span class="mt-1 block text-[11px] text-ink-3">PDF or image, up to 4 MB. We store it privately.</span>
+                <span class="mt-1 block text-[11px] text-ink-3">PDF or image, up to 8 MB. It is stored privately for {{ config('legal.kyc_retention_years') }} years after submission.</span>
             </label>
 
             <label class="block">

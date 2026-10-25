@@ -30,7 +30,7 @@
       <div>
         <nav aria-label="Breadcrumb" class="mb-2">
           <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-            <li><a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
+            <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
             <li aria-hidden="true">/</li>
             <li class="text-[var(--ink)] font-semibold" aria-current="page">Catalogue</li>
           </ol>
@@ -88,7 +88,7 @@
         @if ($filters->term())
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
             <span>“{{ $filters->term() }}”</span>
-            <a href="{{ route('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['q' => null])) }}"
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['q' => null])) }}"
                class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Remove search filter">×</a>
           </span>
         @endif
@@ -98,7 +98,7 @@
           @continue(! $chip)
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
             <span>Category: {{ $chip->name }}</span>
-            <a href="{{ route('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['category' => array_values(array_diff($filters->categoryIds(), [$categoryId]))])) }}"
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['category' => array_values(array_diff($filters->categoryIds(), [$categoryId]))])) }}"
                class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Remove {{ $chip->name }} category filter">×</a>
           </span>
         @endforeach
@@ -107,7 +107,7 @@
           @if ($filters->input($key))
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
               <span>{{ $prefix }} {{ \App\Shared\Support\Money::format($key === 'min' ? $filters->minKobo() : $filters->maxKobo()) }}</span>
-              <a href="{{ route('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), [$key => null])) }}"
+              <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), [$key => null])) }}"
                  class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Remove {{ $prefix }} price filter">×</a>
             </span>
           @endif
@@ -116,12 +116,12 @@
         @if ($filters->sort() !== \App\Domains\Catalog\Enums\ProductSort::Latest)
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
             <span>{{ $filters->sort()->label() }}</span>
-            <a href="{{ route('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['sort' => null])) }}"
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug] + array_diff_key($filters->activeFilters(), ['sort' => null])) }}"
                class="text-[var(--ink-3)] hover:text-[var(--ink)] font-bold ml-1" aria-label="Reset sorting">×</a>
           </span>
         @endif
 
-        <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
            class="text-xs font-semibold text-[var(--brand-text)] hover:underline ml-2">
           Clear all filters
         </a>
@@ -216,7 +216,7 @@
               </p>
 
               @if ($filters->hasFilters())
-                <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+                <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
                    class="mt-6 inline-flex min-h-12 items-center rounded-[var(--radius)] px-7 text-[15px] font-bold"
                    style="background: var(--brand); color: var(--brand-ink)">
                   Clear all filters

@@ -14,7 +14,7 @@
 @php
     use App\Shared\Support\Money;
 
-    $action = route('storefront.products', ['slug' => $page->slug]);
+    $action = \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]);
     $selected = $filters->categoryIds();
     // Naira in the boxes, because that is the unit the labels are written in.
     $minNaira = $filters->input('min');
@@ -24,20 +24,7 @@
 @endphp
 
 <form method="GET" action="{{ $action }}"
-      x-data="{
-           open: {{ $categories->isNotEmpty() ? 'true' : 'false' }},
-           q: @js($filters->term() ?? ''),
-           timer: null,
-           search() {
-               clearTimeout(this.timer);
-               // 350ms: long enough that a pause mid-word does not cost a
-               // query, short enough that it still reads as typing. Alpine's own
-               // .debounce modifier would work too, but it cannot be undone when
-               // the visitor hits the X, and a pending timer that fires after a
-               // clear puts the old search straight back.
-               this.timer = setTimeout(() => this.$el.submit(), 350);
-           },
-       }"
+      x-data="productFilters(@jsExpr(['open' => $categories->isNotEmpty(), 'q' => $filters->term() ?? '']))"
       @input.debounce.350ms="search()"
       class="space-y-6">
 
@@ -57,14 +44,14 @@
              x-model="q"
              placeholder="Search products"
              autocomplete="off"
-             class="w-full h-10 pl-3 pr-9 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
+             class="w-full min-h-11 pl-3 pr-9 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
 
       {{-- Always in the DOM, shown by the model rather than by the server: a
            clear button that only appears after a round trip is a button that is
            not there when you need it. Cancels the pending debounce first, so a
            clear cannot be undone by the search it was clearing. --}}
       <button type="button" x-show="q" x-cloak
-              @click="clearTimeout(timer); q = ''; $el.form.submit()"
+              @click="clearSearch()"
               aria-label="Clear search"
               class="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-[var(--ink-3)] hover:text-[var(--ink)]">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -81,7 +68,7 @@
       Sort By
     </label>
     <select id="{{ $idPrefix }}-sort" name="sort"
-            class="w-full h-10 px-3 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
+            class="w-full min-h-11 px-3 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">
       @foreach ($sorts as $sort)
         <option value="{{ $sort->value }}" @selected($filters->sort() === $sort)>{{ $sort->label() }}</option>
       @endforeach
@@ -133,7 +120,7 @@
                  step="100"
                  value="{{ $minNaira }}"
                  placeholder="{{ ltrim($floorNaira, '₦ ') }}"
-                 class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums focus:border-[var(--brand)]">
+                 class="w-full min-h-11 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums focus:border-[var(--brand)]">
         </div>
 
         <div>
@@ -146,7 +133,7 @@
                  step="100"
                  value="{{ $maxNaira }}"
                  placeholder="{{ ltrim($ceilingNaira, '₦ ') }}"
-                 class="w-full h-9 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums focus:border-[var(--brand)]">
+            class="w-full min-h-11 px-2 text-xs rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-mono tabular-nums focus:border-[var(--brand)]">
         </div>
       </div>
     </fieldset>
@@ -154,7 +141,7 @@
 
   <div class="pt-3 border-t border-[var(--rule)] flex gap-2">
     <button type="submit"
-            class="flex-1 h-10 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs hover:opacity-90 transition-opacity">
+                 class="flex-1 min-h-11 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs hover:opacity-90 transition-opacity">
       Apply Filters
     </button>
 
@@ -162,7 +149,7 @@
          catalogue is a control that does nothing. --}}
     @if ($filters->hasFilters())
       <a href="{{ $action }}"
-         class="px-3 h-10 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)] font-semibold text-xs flex items-center justify-center hover:bg-[var(--surface)] transition-colors">
+         class="px-3 min-h-11 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)] font-semibold text-xs flex items-center justify-center hover:bg-[var(--surface)] transition-colors">
         Clear
       </a>
     @endif

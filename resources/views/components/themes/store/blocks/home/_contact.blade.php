@@ -45,12 +45,12 @@
           <a href="{{ $whatsapp }}"
              target="_blank"
              rel="noopener noreferrer"
-             class="h-12 px-6 rounded-[var(--radius)] bg-[#25D366] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity">
+             class="h-12 px-6 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity">
             <span>Book a Fitting on WhatsApp</span>
           </a>
         @endif
 
-        <a href="{{ route('storefront.contact', ['slug' => $page->slug]) }}" class="h-12 px-6 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-bold text-xs flex items-center justify-center hover:bg-[var(--surface)] transition-colors">
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.contact', ['slug' => $page->slug]) }}" class="h-12 px-6 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] font-bold text-xs flex items-center justify-center hover:bg-[var(--surface)] transition-colors">
           Send Direct Inquiry
         </a>
       </div>

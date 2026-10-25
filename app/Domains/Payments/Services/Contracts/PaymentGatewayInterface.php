@@ -112,4 +112,12 @@ interface PaymentGatewayInterface
      * endpoint expects.
      */
     public function resolveRecipient(string $bankCode, string $accountNumber, string $accountName): string;
+
+    /**
+     * Signature the gateway sends with webhook deliveries, for this account.
+     *
+     * Each seller has their own secret, so a delivery is only genuine for the
+     * account it was addressed to.
+     */
+    public function sign(string $payload): string;
 }

@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Domains\Admin\Models;
+
+enum StoreReportStatus: string
+{
+    case Open = 'open';
+    case Resolved = 'resolved';
+    case Dismissed = 'dismissed';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Open => 'Open',
+            self::Resolved => 'Resolved',
+            self::Dismissed => 'Dismissed',
+        };
+    }
+}

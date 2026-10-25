@@ -7,6 +7,16 @@
 > **Status:** the platform is usable end-to-end. The design layer is *not*
 > consistent — section 7 lists every place it isn't. That list is the brief.
 
+> **Update 2026-10-23.** Escrow is being removed (buyer payments now go to the
+> seller's own Paystack account; the platform holds nothing). References to an
+> "escrow" page in this document are historical — that page is going, not getting
+> restyled. Two replacements need design work, and neither is covered below yet:
+>
+> - **"Not verified by mypage.ng"** must render as an explicit state in both themes
+>   (today the badge renders nothing when unverified), on cards and at checkout.
+> - **Report this store** and **store support contact** need a place on every
+>   storefront page, including checkout and order tracking.
+
 ---
 
 ## 1. What the platform is

@@ -13,6 +13,16 @@ class UpdateOrderStatus
 {
     public function handle(Order $order, OrderStatus $to, ?Seller $by = null, ?string $note = null): Order
     {
+        /*
+         * An on-platform order becomes paid because the gateway says so, never
+         * because someone clicked a button. Cash or transfer that never reached
+         * the seller's account would otherwise be indistinguishable from a
+         * settled checkout, and the buyer would be told it was paid.
+         */
+        if ($by !== null && $order->status === OrderStatus::PendingPayment && $to === OrderStatus::Paid) {
+            throw new InvalidTransition($order->status, $to);
+        }
+
         if (! $order->status->canMoveTo($to)) {
             throw new InvalidTransition($order->status, $to);
         }

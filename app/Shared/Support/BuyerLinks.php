@@ -16,11 +16,10 @@ use Illuminate\Support\Facades\URL;
  * the reference is printed on a receipt and read out on WhatsApp, so it is not
  * a secret, and it has to be retyped at every shop a buyer has ever used.
  *
- * The fix already exists elsewhere in this codebase. Escrow proved that "the URL
- * is the capability" works: the release token is unguessable, it only ever opens
- * one order, and nobody has to remember a password. These are the same idea for
- * the read-only screens, built on Laravel's signed URLs rather than a stored
- * token because there is nothing here to authorise — only to show.
+ * The link itself is the capability. An unguessable, expiring URL needs no
+ * account and no password, and it only ever opens one order or booking. These
+ * are built on Laravel's signed URLs because there is nothing here to authorise
+ * — only to show.
  *
  * The links expire. A link that never expires is a permanent public URL for
  * somebody's address and order history, which is not what a convenience is

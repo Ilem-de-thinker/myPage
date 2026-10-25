@@ -22,6 +22,7 @@
     $showcased = $featured->count() > 0
         ? $featured->concat($services->reject(fn (Service $service) => $featured->contains('id', $service->id))->take(3 - $featured->count()))
         : $services->take(3);
+    $preset = $page->settings['theme_preset'] ?? 'minimal-swiss';
 @endphp
 
 @if ($showcased->isNotEmpty())
@@ -33,14 +34,14 @@
           <h2 class="t-display-2 text-[var(--ink)] mt-1">{{ $heading ?: 'Signature Studio Offerings' }}</h2>
         </div>
 
-        <a href="{{ route('storefront.services', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.services', ['slug' => $page->slug]) }}"
            class="text-xs font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1">
           <span>View Full Rate Card</span>
           <span aria-hidden="true">&rarr;</span>
         </a>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div data-collection-style="{{ $preset }}" class="theme-grid theme-grid-services grid grid-cols-1 md:grid-cols-3 gap-6">
         @foreach ($showcased as $service)
           @include('themes.service.partials.service-card', [
               'service' => $service,
@@ -52,7 +53,7 @@
 
       @if ($services->count() > 3)
         <p class="mt-8 text-xs">
-          <a href="{{ route('storefront.services', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.services', ['slug' => $page->slug]) }}"
              class="font-bold text-[var(--brand-text)] hover:underline inline-flex items-center gap-1">
             <span>See every service</span>
             <span aria-hidden="true">&rarr;</span>

@@ -14,7 +14,10 @@ class BadgeApplicationFactory extends Factory
 
     public function definition(): array
     {
-        $page = StorePage::factory()->create();
+        // Unverified, because that is the only state a page can apply from: the
+        // admin's decision is what sets verified_at, so a factory page that
+        // arrived already trusted would make every approval assertion vacuous.
+        $page = StorePage::factory()->unverified()->create();
 
         return [
             'seller_id' => $page->seller_id,

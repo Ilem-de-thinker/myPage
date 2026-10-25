@@ -61,7 +61,7 @@ it('records a booking request and hands the buyer a prefilled message', function
     [$seller, $service, $page] = whatsappBookable();
     $startsAt = nextMondayMorning();
 
-    $response = postJson("/{$page->slug}/book/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/book/whatsapp'), [
         'service' => $service->id,
         'starts_at' => $startsAt->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -83,7 +83,7 @@ it('does not hold the slot for a WhatsApp request', function () {
     [$seller, $service, $page] = whatsappBookable();
     $startsAt = nextMondayMorning();
 
-    postJson("/{$page->slug}/book/whatsapp", [
+    postJson(storeUrl($page->slug, '/book/whatsapp'), [
         'service' => $service->id,
         'starts_at' => $startsAt->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -105,7 +105,7 @@ it('does not hold the slot for a WhatsApp request', function () {
 it('puts a booking request in the seller inbox for them to confirm', function () {
     [$seller, $service, $page] = whatsappBookable();
 
-    postJson("/{$page->slug}/book/whatsapp", [
+    postJson(storeUrl($page->slug, '/book/whatsapp'), [
         'service' => $service->id,
         'starts_at' => nextMondayMorning()->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -133,7 +133,7 @@ it('puts a booking request in the seller inbox for them to confirm', function ()
 it('adds a booking request to the customer book', function () {
     [$seller, $service, $page] = whatsappBookable();
 
-    postJson("/{$page->slug}/book/whatsapp", [
+    postJson(storeUrl($page->slug, '/book/whatsapp'), [
         'service' => $service->id,
         'starts_at' => nextMondayMorning()->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -147,7 +147,7 @@ it('adds a booking request to the customer book', function () {
 it('still needs a name and a phone to send a request', function () {
     [$seller, $service, $page] = whatsappBookable();
 
-    postJson("/{$page->slug}/book/whatsapp", [
+    postJson(storeUrl($page->slug, '/book/whatsapp'), [
         'service' => $service->id,
         'starts_at' => nextMondayMorning()->toIso8601String(),
         'phone' => '08031234567',
@@ -159,7 +159,7 @@ it('still needs a name and a phone to send a request', function () {
 it('offers the WhatsApp fallback on the booking page', function () {
     [$seller, $service, $page] = whatsappBookable();
 
-    $html = get("/{$page->slug}/book")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/book'))->assertOk()->getContent();
 
     expect($html)
         ->toContain('Ask on WhatsApp instead')

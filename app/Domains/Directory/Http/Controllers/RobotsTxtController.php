@@ -55,7 +55,6 @@ class RobotsTxtController extends Controller
         return [
             '/admin',
             '/dashboard',
-            '/payouts',
             '/login',
             '/register',
             '/forgot-password',

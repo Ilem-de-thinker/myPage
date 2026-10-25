@@ -24,6 +24,8 @@
       @if ($service->image_path)
         <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
              alt="{{ $service->name }}"
+             width="800"
+             height="600"
              loading="lazy"
              class="h-full w-full object-cover">
       @else
@@ -43,12 +45,15 @@
       <span class="text-xs text-[var(--ink-3)] font-medium">{{ $where ?: '—' }}</span>
     </div>
 
-    <h3 class="t-title text-[var(--ink)] mb-2">
-      <a href="{{ route('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]) }}"
-         class="card-stretched-link hover:underline">
-        {{ $service->name }}
-      </a>
-    </h3>
+    <div class="mb-2 flex items-center justify-between gap-2">
+      <h3 class="t-title text-[var(--ink)]">
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]) }}"
+           class="card-stretched-link hover:underline">
+          {{ $service->name }}
+        </a>
+      </h3>
+      <x-themes.shared.verified-badge :page="$page" />
+    </div>
 
     @if ($service->description)
       <p class="text-xs text-[var(--ink-2)] line-clamp-3 mb-4 leading-relaxed">
@@ -82,7 +87,7 @@
         <span class="text-[var(--ink-3)] block">Deposit Required</span>
         <span class="font-semibold text-[var(--brand-text)]">
           @if ($service->hasDeposit())
-            {{ \App\Shared\Support\Money::format($service->depositKobo()) }} (Escrow)
+            {{ \App\Shared\Support\Money::format($service->depositKobo()) }} (Deposit)
           @else
             None — paid in full
           @endif
@@ -98,7 +103,7 @@
 
       {{-- Sits above the stretched link, so the card stays one click deep and the
            button is still a button. --}}
-      <a href="{{ route('storefront.book', ['slug' => $page->slug, 'service' => $service->id]) }}"
+      <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug, 'service' => $service->id]) }}"
          class="relative z-20 px-3.5 py-1.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold hover:opacity-90 transition-opacity">
         {{ $bookLabel }}
       </a>

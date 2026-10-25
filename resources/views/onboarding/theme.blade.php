@@ -10,7 +10,14 @@
         <form method="POST" action="{{ route('onboarding.store', 'theme') }}" class="bg-card p-6 sm:p-8 rounded-2xl border border-rule shadow-sm space-y-5">
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-data="{ theme: '{{ $data['theme'] ?? '' }}' }">
-                @foreach (['store' => ['Store', 'Sell products with a cart, variants and stock tracking.'], 'service' => ['Service', 'Take bookings and deposits for your services.']] as $value => [$label, $desc])
+                @foreach ($availableThemes as $availableTheme)
+                    @php
+                        $value = $availableTheme->value;
+                        $label = $availableTheme->label();
+                        $desc = $availableTheme === \App\Domains\Seller\Enums\Theme::Store
+                            ? 'Sell products with a cart, variants and stock tracking.'
+                            : 'Take bookings and deposits for your services.';
+                    @endphp
                     <label class="border-2 rounded-2xl p-5 cursor-pointer transition-colors"
                            :class="theme === '{{ $value }}' ? 'border-brand bg-brand-wash/40' : 'border-rule hover:border-rule-strong'">
                         <input type="radio" name="theme" value="{{ $value }}" class="sr-only" x-model="theme" @checked(($data['theme'] ?? '') === $value) required>

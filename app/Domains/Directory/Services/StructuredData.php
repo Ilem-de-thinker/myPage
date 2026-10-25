@@ -124,7 +124,7 @@ class StructuredData
             ]))->all();
         }
 
-        return $data;
+        return self::withFaq($page, $data);
     }
 
     /**
@@ -182,6 +182,43 @@ class StructuredData
                 '@type' => 'EducationalOccupationalCredential',
                 'credentialCategory' => 'verified business',
             ]];
+        }
+
+        return self::withFaq($page, $data);
+    }
+
+    /**
+     * Add only complete FAQ rows. A partial draft must not become misleading
+     * search metadata while the seller is still editing the block.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function withFaq(StorePage $page, array $data): array
+    {
+        $block = $page->blocks()
+            ->where('page', 'home')
+            ->where('key', 'faq')
+            ->first();
+
+        $items = collect($block?->field('items') ?? [])
+            ->filter(fn ($item): bool => is_array($item) && filled($item['question'] ?? null) && filled($item['answer'] ?? null))
+            ->map(fn (array $item): array => [
+                '@type' => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => [
+                    '@type' => 'Answer',
+                    'text' => strip_tags((string) $item['answer']),
+                ],
+            ])
+            ->values()
+            ->all();
+
+        if ($items !== []) {
+            $data['subjectOf'] = [
+                '@type' => 'FAQPage',
+                'mainEntity' => $items,
+            ];
         }
 
         return $data;

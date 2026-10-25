@@ -31,12 +31,9 @@ use App\Domains\Orders\Models\AbandonedCart;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Orders\Models\OrderItem;
 use App\Domains\Orders\Models\OrderStatusHistory;
-use App\Domains\Payments\Enums\PayoutStatus;
 use App\Domains\Payments\Enums\TransactionStatus;
-use App\Domains\Payments\Models\Payout;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
-use App\Domains\Payments\Models\WalletLedger;
 use App\Domains\Seller\Enums\PriceTier;
 use App\Domains\Seller\Enums\ReviewStatus;
 use App\Domains\Seller\Models\PageBlock;
@@ -213,18 +210,27 @@ class DemoSellerSeeder extends Seeder
     }
 
     /**
-     * Transactions and payouts, so the admin money screens have something in
-     * them. Written straight to the models rather than driven through the
-     * gateways: this is display data, and a seeder that depends on Paystack
-     * being reachable is a seeder that breaks the day the API rate limits us.
+     * Transactions and seller gateway keys, so the admin money screen and a
+     * demo checkout both have something real to work with. Written straight to
+     * the models rather than driven through the gateways: a seeder that depends
+     * on Paystack being reachable is a seeder that breaks the day the API rate
+     * limits us.
      */
     private function money(array $store, array $service): void
     {
-        $commissionBps = (int) config('mypage.commission_bps', 150);
-
         foreach ([$store, $service] as $index => $account) {
             $seller = $account['seller'];
             $page = $account['page'];
+
+            SellerGateway::withoutGlobalScopes()->create([
+                'seller_id' => $seller->id,
+                'gateway' => 'paystack',
+                'environment' => 'test',
+                'public_key' => 'pk_test_demo_'.$seller->id,
+                'secret_key' => 'sk_test_demo_'.$seller->id,
+                'secret_key_last4' => 'demo',
+                'verified_at' => now(),
+            ]);
 
             $orders = Order::withoutGlobalScopes()
                 ->where('store_page_id', $page->id)
@@ -232,7 +238,6 @@ class DemoSellerSeeder extends Seeder
                 ->get();
 
             foreach ($orders as $n => $order) {
-                $commission = (int) round($order->total_kobo * ($commissionBps / 10000));
                 $paidAt = $order->created_at->copy()->addMinutes(3);
 
                 Transaction::withoutGlobalScopes()->create([
@@ -240,10 +245,9 @@ class DemoSellerSeeder extends Seeder
                     'payable_type' => $order->getMorphClass(),
                     'payable_id' => $order->id,
                     'reference' => $order->reference,
-                    'gateway' => $index === 0 ? 'paystack' : 'paystack',
+                    'gateway' => 'paystack',
                     'amount_kobo' => $order->total_kobo,
                     'fee_kobo' => (int) round($order->total_kobo * 0.015),
-                    'commission_kobo' => $commission,
                     // One deliberate failure so the status filter has something
                     // in it that is not a success.
                     'status' => $n === 1 && $index === 0 ? TransactionStatus::Failed : TransactionStatus::Paid,
@@ -259,59 +263,14 @@ class DemoSellerSeeder extends Seeder
                     'gateway' => 'paystack',
                     'amount_kobo' => $order->total_kobo,
                     'fee_kobo' => 0,
-                    'commission_kobo' => $commission,
                     'status' => TransactionStatus::Pending,
                 ]);
             }
         }
-
-        // One failed payout, so the admin payout queue is not empty.
-        Payout::withoutGlobalScopes()->create([
-            'seller_id' => $service['seller']->id,
-            'reference' => 'PO'.Str::upper(Str::random(10)),
-            'amount_kobo' => 120000,
-            'status' => PayoutStatus::Failed,
-            'bank_code' => '058',
-            'account_number' => '2034888888',
-            'account_name' => 'Kemi Adeyemi',
-            'gateway' => 'paystack',
-            'failure_reason' => 'Paystack rejected the transfer: account is restricted.',
-            'processed_at' => now()->subDays(2),
-        ]);
-
-        Payout::withoutGlobalScopes()->create([
-            'seller_id' => $store['seller']->id,
-            'reference' => 'PO'.Str::upper(Str::random(10)),
-            'amount_kobo' => 850000,
-            'status' => PayoutStatus::Paid,
-            'bank_code' => '007',
-            'account_number' => '0123456789',
-            'account_name' => 'Ada Textiles Limited',
-            'gateway' => 'paystack',
-            'gateway_reference' => 'TRF'.Str::upper(Str::random(8)),
-            'processed_at' => now()->subDays(3),
-        ]);
-
-        // And a healthy balance for the store seller, so /payouts opens with
-        // something to withdraw rather than an empty wallet.
-        Wallet::forSeller($store['seller']->id)->increment('balance_kobo', 1_850_000);
-
-        $store['seller']->forceFill([
-            'payout_bank_code' => '007',
-            'payout_account_number' => '0123456789',
-            'payout_account_name' => 'Ada Textiles Limited',
-        ])->save();
-
-        $service['seller']->forceFill([
-            'payout_bank_code' => '058',
-            'payout_account_number' => '2034888888',
-            'payout_account_name' => 'Kemi Adeyemi',
-        ])->save();
     }
 
     /**
-     * The verified badge in its three states, plus one frozen escrow, so the
-     * admin queue has something to actually decide on.
+     * The verified badge in its three states.
      */
     private function trustAndFlags(array $store, array $service): void
     {
@@ -326,13 +285,21 @@ class DemoSellerSeeder extends Seeder
         // Ada earned the tick. The page is stamped too, because that column is
         // what the directory sort and the structured data read.
         $store['page']->forceFill(['verified_at' => now()->subDays(10)])->save();
+        $store['seller']->forceFill([
+            'legal_name' => 'Ada Textiles Limited',
+            'legal_registration_type' => 'cac',
+            'legal_registration_number' => 'RC-ADA-2026',
+            'kyc_verified_at' => now()->subDays(10),
+        ])->save();
 
         BadgeApplication::create([
             'seller_id' => $store['seller']->getKey(),
             'store_page_id' => $store['page']->getKey(),
             'status' => BadgeStatus::Approved,
             'business_name' => 'Ada Textiles Limited',
+            'registered_legal_name' => 'Ada Textiles Limited',
             'document_type' => 'cac',
+            'registration_number' => 'RC-ADA-2026',
             'document_path' => 'badges/demo/ada-cac.pdf',
             'submitted_at' => now()->subDays(12),
             'reviewed_by_seller_id' => $admin->getKey(),
@@ -345,7 +312,10 @@ class DemoSellerSeeder extends Seeder
             'store_page_id' => $service['page']->getKey(),
             'status' => BadgeStatus::Pending,
             'business_name' => 'Kemi Braids & Beauty Ltd',
+            'registered_legal_name' => 'Kemi Adebayo',
             'document_type' => 'national_id',
+            'registration_number' => 'NIN-DEMO-2026',
+            'document_expires_at' => now()->addYears(2)->toDateString(),
             'document_path' => 'badges/demo/kemi-id.jpg',
             'note' => 'Trading name is Kemi Braids; the ID is under my legal name.',
             'submitted_at' => now()->subDay(),
@@ -365,8 +335,6 @@ class DemoSellerSeeder extends Seeder
         // Ordered by dependency: the foreign keys do the work, but being explicit
         // keeps this readable and lets it run on a database with no constraints.
         foreach ([
-            WalletLedger::class,
-            Payout::class,
             Transaction::class,
             AbandonedCart::class,
             OrderStatusHistory::class,

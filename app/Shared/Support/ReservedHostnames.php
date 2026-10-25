@@ -21,12 +21,12 @@ final class ReservedHostnames
      */
     public static function all(): array
     {
-        $apex = strtolower(trim((string) config('mypage.domain', 'mypage.test')));
+        $apex = strtolower(trim((string) config('mypage.domain')));
 
         $reserved = [$apex, 'www.'.$apex];
 
         // Loopback and placeholder names. Deliberately not a TLD list: listing
-        // "test" or "invalid" would also refuse "notmypage.test", which is an
+        // "test" or "invalid" would also refuse an unrelated domain, which is an
         // ordinary domain that happens to sit beside ours rather than under it.
         foreach (['localhost', '127.0.0.1', '0.0.0.0'] as $host) {
             $reserved[] = $host;
@@ -41,7 +41,7 @@ final class ReservedHostnames
     public static function isReserved(string $host): bool
     {
         $host = Hostname::withoutWww(Hostname::normalise($host) ?? $host);
-        $apex = Hostname::withoutWww(strtolower(trim((string) config('mypage.domain', 'mypage.test'))));
+        $apex = Hostname::withoutWww(strtolower(trim((string) config('mypage.domain'))));
 
         foreach (self::all() as $reserved) {
             $reserved = Hostname::withoutWww($reserved);
@@ -52,7 +52,7 @@ final class ReservedHostnames
         }
 
         // Nothing under the apex may be claimed, whatever the apex is in this
-        // environment. Checked separately so a dev-only apex like mypage.test is
+        // environment. Checked separately so the configured development apex is
         // protected on staging too.
         return $host === $apex || str_ends_with($host, '.'.$apex);
     }

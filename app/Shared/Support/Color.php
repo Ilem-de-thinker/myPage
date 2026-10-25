@@ -126,6 +126,22 @@ final class Color
     }
 
     /**
+     * Build a compact 50–900 scale that keeps the merchant hue while reducing
+     * chroma at the extremes so every shade remains usable in UI surfaces.
+     *
+     * @return array<int, string>
+     */
+    public static function palette(string $hex): array
+    {
+        [$lightness, $chroma, $hue] = self::oklch($hex);
+        $anchors = [50 => 0.97, 100 => 0.93, 200 => 0.86, 300 => 0.76, 400 => 0.65, 500 => $lightness, 600 => 0.45, 700 => 0.35, 800 => 0.25, 900 => 0.16];
+
+        return collect($anchors)->mapWithKeys(fn (float $anchor, int $step): array => [
+            $step => self::fromOklch($anchor, min($chroma, 0.16) * (1 - abs(0.5 - $anchor) * 0.65), $hue),
+        ])->all();
+    }
+
+    /**
      * @return list<float> red, green, blue as 0-1 linear values
      */
     private static function linearChannels(string $hex): array

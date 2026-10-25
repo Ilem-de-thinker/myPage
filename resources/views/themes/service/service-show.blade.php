@@ -7,7 +7,10 @@
     decides on a service page, so that is where the times should be. The
     standalone booking page stays for someone who has not chosen yet.
 --}}
+@php($themePreset = $page->settings['theme_preset'] ?? 'minimal-swiss')
+
 <x-themes.shared.layout :page="$page">
+  <div data-detail-style="{{ $themePreset }}" class="theme-detail theme-detail-service">
   @foreach ($blocks as $block)
     <x-themes.service.blocks.service-show.intro :page="$page" :block="$block" :service="$service" />
   @endforeach
@@ -31,7 +34,7 @@
 
     <div class="mt-8">
       <x-ui.review-form
-          :action="route('storefront.service.review', ['slug' => $page->slug, 'serviceSlug' => $service->slug])"
+          :action="\App\Shared\Support\StoreUrl::path('storefront.service.review', ['slug' => $page->slug, 'serviceSlug' => $service->slug])"
           :reviewable="$service"
           :subject="$service->name" />
     </div>
@@ -45,4 +48,5 @@
           :staff="$service->staff" />
     </div>
   @endif
+  </div>
 </x-themes.shared.layout>

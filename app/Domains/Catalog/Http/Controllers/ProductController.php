@@ -2,8 +2,10 @@
 
 namespace App\Domains\Catalog\Http\Controllers;
 
+use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Catalog\Actions\AdjustStock;
 use App\Domains\Catalog\Exceptions\OutOfStock;
+use App\Domains\Catalog\Jobs\ProcessProductImage;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Shared\Support\Money;
@@ -18,6 +20,7 @@ class ProductController extends Controller
     public function index(Request $request): View
     {
         $page = $request->user()->storePages()->with('blocks')->firstOrFail();
+        abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
         $products = Product::query()
             ->with(['images'])
             ->where('store_page_id', $page->id)
@@ -33,14 +36,17 @@ class ProductController extends Controller
     public function create(Request $request): View
     {
         $page = $request->user()->storePages()->firstOrFail();
+        abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
         $categories = Category::query()->where('store_page_id', $page->id)->orderBy('position')->get();
 
         return view('dashboard.products.form', ['page' => $page, 'categories' => $categories, 'product' => null]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SubscriptionEntitlements $entitlements): RedirectResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
+        abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
+        $entitlements->assertCanCreateListing($page);
         $data = $this->validated($request);
         $priceKobo = Money::toKobo($data['price']);
         unset($data['price']);
@@ -56,7 +62,8 @@ class ProductController extends Controller
 
         if ($request->hasFile('images')) {
             foreach (array_values($request->file('images')) as $i => $file) {
-                $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $i]);
+                $image = $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $i]);
+                ProcessProductImage::dispatch($image->getKey());
             }
         }
 
@@ -68,6 +75,7 @@ class ProductController extends Controller
     public function edit(Request $request, Product $product): View
     {
         $page = $request->user()->storePages()->firstOrFail();
+        abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
         abort_unless($product->store_page_id === $page->id, 403);
         $categories = Category::query()->where('store_page_id', $page->id)->orderBy('position')->get();
 
@@ -99,7 +107,8 @@ class ProductController extends Controller
 
         if ($request->hasFile('images')) {
             foreach (array_values($request->file('images')) as $i => $file) {
-                $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $product->images()->count() + $i]);
+                $image = $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $product->images()->count() + $i]);
+                ProcessProductImage::dispatch($image->getKey());
             }
         }
 

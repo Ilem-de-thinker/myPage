@@ -71,7 +71,12 @@
             </ul>
         </div>
 
-        @php $next = $order->status->allowedTransitions(); @endphp
+        @php
+            $next = collect($order->status->allowedTransitions())
+                ->reject(fn ($status) => $order->status === \App\Domains\Orders\Enums\OrderStatus::PendingPayment
+                    && $status === \App\Domains\Orders\Enums\OrderStatus::Paid)
+                ->all();
+        @endphp
 
         @if ($next)
             <div class="bg-card rounded-2xl border border-rule p-6">
@@ -87,77 +92,6 @@
                         </form>
                     @endforeach
                 </div>
-            </div>
-        @endif
-
-        @if ($order->escrow)
-            <div class="bg-card rounded-2xl border border-rule p-6">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">Escrow</h2>
-                        <span class="inline-block rounded-full px-3 py-1 text-xs font-semibold {{ $order->escrow->status->badgeClasses() }}">
-                            {{ $order->escrow->status->label() }}
-                        </span>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[11px] uppercase tracking-wide text-ink-3">Held</p>
-                        <p class="mt-1 text-lg font-extrabold text-ink">{{ \App\Shared\Support\Money::format($order->escrow->amount_kobo) }}</p>
-                    </div>
-                </div>
-
-                <p class="mt-4 text-xs text-ink-3">
-                    This buyer's money is held by {{ config('app.name') }} instead of your wallet.
-                    @if ($order->escrow->auto_releases_at && $order->escrow->isHeld())
-                        It releases itself {{ $order->escrow->auto_releases_at->diffForHumans() }}
-                        unless you raise a dispute first.
-                    @endif
-                </p>
-
-                @if ($order->escrow->dispute_reason)
-                    <div class="mt-4 rounded-xl bg-warn-wash border border-warn-edge px-4 py-3 text-xs text-warn-text">
-                        <p class="font-semibold">
-                            Dispute
-                            @if ($order->escrow->disputed_by_seller_id)
-                                raised by you
-                            @else
-                                raised by the buyer
-                            @endif
-                        </p>
-                        <p class="mt-1">{{ $order->escrow->dispute_reason }}</p>
-                        @if ($order->escrow->status === \App\Domains\Billing\Models\EscrowStatus::Frozen)
-                            <p class="mt-2">An admin decides where this goes. Neither of you can move it.</p>
-                        @endif
-                    </div>
-                @endif
-
-                @if ($order->escrow->isHeld())
-                    <form method="POST" action="{{ route('dashboard.orders.escrow-dispute', $order) }}"
-                          class="mt-5 border-t border-rule pt-4">
-                        @csrf
-                        <label class="block">
-                            <span class="text-xs font-semibold text-ink">Raise a dispute and freeze the money</span>
-                            <textarea name="reason" rows="3" required minlength="20" maxlength="1000"
-                                      class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2 text-sm"
-                                      placeholder="The buyer says the second Ankara set was never delivered, but the courier marked it collected.">{{ old('reason') }}</textarea>
-                            <span class="mt-1 block text-[11px] text-ink-3">
-                                Freezing stops the payout. An admin then decides: you cannot undo this yourself.
-                            </span>
-                        </label>
-                        @error('reason')
-                            <p class="mt-2 text-xs font-semibold text-danger-text">{{ $message }}</p>
-                        @enderror
-                        <button class="mt-3 rounded-xl border border-danger-edge px-4 py-2.5 text-xs font-semibold text-danger-text hover:bg-danger-wash">
-                            Freeze and escalate
-                        </button>
-                    </form>
-                @endif
-
-                @if ($order->escrow->isHeld())
-                    <p class="mt-4 text-[11px] text-ink-3">
-                        Share this link with the buyer so they can release early if they are happy:
-                    </p>
-                    <code class="mt-1 block break-all rounded-lg bg-surface px-3 py-2 text-[11px] text-ink-2">{{ route('storefront.escrow', ['slug' => $page->slug, 'token' => $order->escrow->releaseToken()]) }}</code>
-                @endif
             </div>
         @endif
 

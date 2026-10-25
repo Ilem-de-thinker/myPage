@@ -87,6 +87,8 @@ describe('business details settings', function () {
             'address' => '22b Oduduwa Crescent, Lekki',
             'city' => 'Lekki',
             'state' => 'Lagos',
+            'latitude' => '6.4474',
+            'longitude' => '3.4722',
             'social' => ['instagram' => 'adatextiles'],
         ])->assertSessionDoesntHaveErrors();
 
@@ -97,6 +99,8 @@ describe('business details settings', function () {
             ->and($page->whatsapp_number)->toBe('+2348031234567')
             ->and($page->address)->toBe('22b Oduduwa Crescent, Lekki')
             ->and($page->city)->toBe('Lekki')
+            ->and($page->latitude)->toBe(6.4474)
+            ->and($page->longitude)->toBe(3.4722)
             ->and($page->social_links)->toBe(['instagram' => 'https://www.instagram.com/adatextiles']);
     });
 
@@ -169,13 +173,16 @@ describe('business details on the public page', function () {
             'address' => '14B Adeniran Ogunsanya Street, Surulere',
             'city' => 'Surulere',
             'state' => 'Lagos',
+            'latitude' => 6.5031,
+            'longitude' => 3.3532,
             'public_email' => 'kemi@example.com',
             'social_links' => ['instagram' => 'https://www.instagram.com/kemibraids'],
         ]);
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, '/contact'))
             ->assertOk()
             ->assertSee('14B Adeniran Ogunsanya Street, Surulere')
+            ->assertSee('6.5031%2C3.3532')
             ->assertSee('kemi@example.com')
             ->assertSee('https://www.instagram.com/kemibraids');
     });
@@ -185,7 +192,7 @@ describe('business details on the public page', function () {
 
         $page->update(['social_links' => ['instagram' => 'https://www.instagram.com/kemibraids']]);
 
-        $html = get("/{$page->slug}")->assertOk()->getContent();
+        $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
         expect($html)->toContain('https://www.instagram.com/kemibraids')
             ->not->toContain('https://www.tiktok.com/');
@@ -201,7 +208,7 @@ describe('business details on the public page', function () {
             'public_email' => 'kemi@example.com',
         ]);
 
-        get("/{$page->slug}/contact")
+        get(storeUrl($page->slug, '/contact'))
             ->assertOk()
             ->assertSee('14B Adeniran Ogunsanya Street, Surulere')
             ->assertSee('kemi@example.com')
@@ -218,7 +225,7 @@ describe('business details on the public page', function () {
             'social_links' => ['instagram' => 'https://www.instagram.com/kemibraids'],
         ]);
 
-        $html = get("/{$page->slug}")->assertOk()->getContent();
+        $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
         expect($html)->toContain('"sameAs":["https://www.instagram.com/kemibraids"]');
     });
@@ -230,7 +237,7 @@ describe('business details on the public page', function () {
             'social_links' => ['instagram' => 'https://www.instagram.com/kemibraids'],
         ]);
 
-        $html = get("/{$page->slug}")->assertOk()->getContent();
+        $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
         expect($html)->toContain('"sameAs":["https://www.instagram.com/kemibraids"]');
     });
@@ -238,7 +245,7 @@ describe('business details on the public page', function () {
     it('omits sameAs when the seller has no social links', function () {
         [$seller, $page] = detailsPage();
 
-        $html = get("/{$page->slug}")->assertOk()->getContent();
+        $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
         expect($html)->not->toContain('"sameAs"');
     });
@@ -267,7 +274,7 @@ describe('service detail page', function () {
 
         $page->blocks()->where('page', 'service-show')->delete();
 
-        get("/{$page->slug}/services/braid-consultation")
+        get(storeUrl($page->slug, '/services/braid-consultation'))
             ->assertOk()
             ->assertSee('Braid consultation')
             ->assertSee('Reserve a slot')
@@ -287,6 +294,6 @@ describe('service detail page', function () {
 
         $page->blocks()->where('page', 'services')->delete();
 
-        get("/{$page->slug}/services")->assertOk()->assertSee('Braid consultation');
+        get(storeUrl($page->slug, '/services'))->assertOk()->assertSee('Braid consultation');
     });
 });

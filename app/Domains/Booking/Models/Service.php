@@ -5,6 +5,7 @@ namespace App\Domains\Booking\Models;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Enums\ServiceSort;
+use App\Domains\Directory\Jobs\SyncDirectorySearchIndex;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Money;
 use App\Shared\Traits\BelongsToSeller;
@@ -29,6 +30,7 @@ class Service extends Model
         'name',
         'slug',
         'description',
+        'ai_metadata',
         'image_path',
         'duration_min',
         'buffer_min',
@@ -36,6 +38,7 @@ class Service extends Model
         'deposit_type',
         'deposit_value',
         'is_active',
+        'is_directory_listed',
         'position',
         'view_count',
         'is_featured',
@@ -54,10 +57,12 @@ class Service extends Model
             'price_kobo' => 'integer',
             'deposit_value' => 'integer',
             'is_active' => 'boolean',
+            'is_directory_listed' => 'boolean',
             'is_featured' => 'boolean',
             'view_count' => 'integer',
             'rating' => 'float',
             'review_count' => 'integer',
+            'ai_metadata' => 'array',
             'deposit_type' => DepositType::class,
             'billing_unit' => BillingUnit::class,
             // `array`, not SupportCollection::class. Laravel reads any other class
@@ -74,6 +79,8 @@ class Service extends Model
         static::creating(function (Service $service) {
             $service->slug = $service->slug ?: static::generateSlug($service->name);
         });
+        static::saved(fn (Service $service): mixed => SyncDirectorySearchIndex::dispatch(self::class, $service->getKey()));
+        static::deleted(fn (Service $service): mixed => SyncDirectorySearchIndex::dispatch(self::class, $service->getKey()));
     }
 
     public static function generateSlug(string $name): string

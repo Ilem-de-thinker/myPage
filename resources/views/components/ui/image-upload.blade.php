@@ -1,0 +1,2 @@
+@props(['name' => 'images[]', 'label' => 'Images', 'multiple' => true])
+<label {{ $attributes->merge(['class' => 'block rounded-2xl border border-dashed border-rule-strong bg-card p-4 text-xs font-semibold text-ink-2']) }}><span>{{ $label }}</span><input type="file" name="{{ $name }}" accept="image/jpeg,image/png,image/webp" @if($multiple) multiple @endif class="mt-3 block min-h-11 w-full text-xs text-ink"></label>

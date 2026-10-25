@@ -3,6 +3,7 @@
 namespace App\Domains\Seller\Models;
 
 use App\Domains\Auth\Notifications\EmailOtpNotification;
+use App\Domains\Billing\Models\Subscription;
 use Database\Factories\Domains\Seller\Models\SellerFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,9 @@ class Seller extends Authenticatable implements MustVerifyEmail
 
     protected $fillable = [
         'name',
+        'legal_name',
+        'legal_registration_type',
+        'legal_registration_number',
         'email',
         'phone',
         'password',
@@ -27,6 +31,10 @@ class Seller extends Authenticatable implements MustVerifyEmail
         'email_otp_hash',
         'email_otp_expires_at',
         'google_id',
+        'terms_accepted_at',
+        'terms_version',
+        'privacy_accepted_at',
+        'privacy_version',
     ];
 
     protected $hidden = [
@@ -42,6 +50,10 @@ class Seller extends Authenticatable implements MustVerifyEmail
             'last_login_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
             'password' => 'hashed',
+            'terms_accepted_at' => 'datetime',
+            'privacy_accepted_at' => 'datetime',
+            'kyc_verified_at' => 'datetime',
+            'kyc_document_expires_at' => 'date',
         ];
     }
 
@@ -61,6 +73,11 @@ class Seller extends Authenticatable implements MustVerifyEmail
     public function storePages(): HasMany
     {
         return $this->hasMany(StorePage::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 
     public function isActive(): bool

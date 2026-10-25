@@ -27,9 +27,23 @@
                 @if (session('status'))
                     <div class="mb-4 rounded-xl bg-ok-wash border border-ok-edge text-ok-text text-xs px-4 py-3">{{ session('status') }}</div>
                 @endif
+                @if ($errors->any())
+                    <div role="alert" class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-3">
+                        <p class="font-semibold">Please review the highlighted information.</p>
+                        <ul class="mt-1 list-disc pl-4 space-y-0.5">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 @yield('content')
             </div>
-            <div class="pt-8 text-center sm:text-left text-xs text-ink-3">© 2026 mypage.ng · Nigeria's #1 Social Commerce Platform</div>
+            <div class="pt-8 text-center text-xs text-ink-3 sm:text-left">
+                © {{ now()->year }} mypage.ng ·
+                <a href="{{ route('legal.policy', 'privacy') }}" class="hover:text-ink">Privacy</a> ·
+                <a href="{{ route('legal.policy', 'terms') }}" class="hover:text-ink">Terms</a>
+            </div>
         </div>
 
         <div class="hidden lg:flex flex-1 bg-ink text-white p-16 flex-col justify-between relative overflow-hidden">
@@ -43,7 +57,7 @@
                 <div class="space-y-4 text-sm text-ink-3">
                     <div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">✓</div><span>Clean mobile catalog with your brand colors & logo</span></div>
                     <div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">✓</div><span>No more checking fake alert receipts manually</span></div>
-                    <div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">✓</div><span>Escrow protection that gives doubtful buyers confidence</span></div>
+                    <div class="flex items-center gap-3"><div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">✓</div><span>Payments that go straight to the seller, never through us</span></div>
                 </div>
             </div>
             <div class="relative z-10 flex items-center justify-between text-xs text-ink-3 pt-8 border-t border-slate-800">

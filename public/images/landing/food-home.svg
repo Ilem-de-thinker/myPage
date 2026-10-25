@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 875" role="img" aria-labelledby="title desc">
+  <title id="title">Food and home illustration</title><desc id="desc">Editorial illustration of a food and home display.</desc>
+  <rect width="700" height="875" fill="#e9dfcf"/><rect x="80" y="160" width="540" height="540" rx="40" fill="#f7f2e9"/>
+  <ellipse cx="350" cy="550" rx="200" ry="72" fill="#2f4a3b"/><circle cx="350" cy="440" r="132" fill="#d0a675"/><circle cx="295" cy="402" r="26" fill="#ad5941"/><circle cx="402" cy="470" r="30" fill="#c97d68"/>
+  <path d="M145 295h410" stroke="#2f4a3b" stroke-width="26" stroke-linecap="round"/><path d="M210 295v-80M350 295v-110M490 295v-80" stroke="#2f4a3b" stroke-width="18" stroke-linecap="round"/>
+</svg>

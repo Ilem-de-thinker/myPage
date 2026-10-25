@@ -17,7 +17,7 @@ final class WhatsApp
     public static function productLink(StorePage $page, Product $product): string
     {
         $message = "Hello {$page->name}, I'd like to buy:\n\n{$product->name}\nPrice: {$product->priceLabel}\n"
-            .'Link: '.route('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]);
+            .'Link: '.StoreUrl::absolute($page, 'storefront.product', ['productSlug' => $product->slug]);
 
         return self::link($page, $message);
     }

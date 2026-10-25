@@ -1,9 +1,9 @@
 <x-admin.layout title="Overview">
   @php
       $cards = [
-          ['Gross sales', \App\Shared\Support\Money::format($metrics['gmv_kobo']), 'Money that actually settled'],
-          ['Commission', \App\Shared\Support\Money::format($metrics['commission_kobo']), config('mypage.commission_bps').' bps of each sale'],
-          ['Held in escrow', \App\Shared\Support\Money::format($metrics['escrow_held_kobo']), 'Buyer money not yet released'],
+          ['Gross sales', \App\Shared\Support\Money::format($metrics['gmv_kobo']), 'Money that settled in sellers’ own accounts'],
+          ['Paid orders', $metrics['paid_orders'], 'Of '.$metrics['orders'].' orders'],
+          ['Stores', $metrics['stores'], ($metrics['stores_by_theme']['store'] ?? 0).' shop · '.($metrics['stores_by_theme']['service'] ?? 0).' booking'],
           ['Paid subscriptions', $metrics['active_subscriptions'], 'Of '.$metrics['sellers'].' sellers'],
       ];
   @endphp
@@ -20,7 +20,7 @@
     @endforeach
   </div>
 
-  <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+  <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
     <div class="rounded-2xl border border-rule bg-card p-5">
       <p class="text-[11px] uppercase tracking-wide text-ink-3">Orders</p>
       <p class="mt-2 font-display text-xl font-bold">
@@ -29,35 +29,11 @@
     </div>
 
     <div class="rounded-2xl border border-rule bg-card p-5">
-      <p class="text-[11px] uppercase tracking-wide text-ink-3">Stores</p>
-      <p class="mt-2 font-display text-xl font-bold">{{ $metrics['stores'] }}</p>
-      <p class="mt-1 text-[11px] text-ink-3">
-        {{ ($metrics['stores_by_theme']['store'] ?? 0) }} shop,
-        {{ ($metrics['stores_by_theme']['service'] ?? 0) }} booking
-      </p>
-    </div>
-
-    <div class="rounded-2xl border border-rule bg-card p-5">
       <p class="text-[11px] uppercase tracking-wide text-ink-3">Needs attention</p>
       <p class="mt-2 font-display text-xl font-bold">
-        {{ $metrics['open_disputes'] }} {{ \Illuminate\Support\Str::plural('dispute', $metrics['open_disputes']) }}
+        {{ $metrics['suspended_stores'] }} {{ \Illuminate\Support\Str::plural('store', $metrics['suspended_stores']) }} suspended
       </p>
-      @if ($metrics['suspended_stores'] > 0)
-        <p class="mt-1 text-[11px] text-ink-3">{{ $metrics['suspended_stores'] }} suspended stores</p>
-      @endif
+      <a href="{{ route('admin.stores') }}" class="mt-1 inline-block text-[11px] font-semibold text-brand hover:underline">Review stores</a>
     </div>
   </div>
-
-  @if ($metrics['open_disputes'] > 0)
-    <div class="mt-6 rounded-2xl border border-warn-edge bg-warn-wash p-5">
-      <p class="text-sm font-semibold text-warn-text">
-        {{ $metrics['open_disputes'] }} {{ \Illuminate\Support\Str::plural('escrow is', $metrics['open_disputes']) }} frozen.
-      </p>
-      <p class="mt-1 text-xs text-warn-text">Frozen money does not move until an admin decides. Nobody else can release it.</p>
-      <a href="{{ route('admin.escrows', ['status' => 'frozen']) }}"
-         class="mt-3 inline-block rounded-xl bg-amber-900 px-4 py-2 text-xs font-semibold text-white">
-        Open the dispute queue
-      </a>
-    </div>
-  @endif
 </x-admin.layout>

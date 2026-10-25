@@ -21,6 +21,7 @@ function directoryPage(array $attributes = []): StorePage
         'slug' => 'test-shop-'.Str::random(6),
         'theme' => Theme::Store,
         'status' => StoreStatus::Published,
+        'is_directory_opted_in' => true,
         'city' => 'Lagos',
         'state' => 'Lagos',
         'tagline' => 'Quality fabric, cut and stitched to measure.',
@@ -41,7 +42,7 @@ it('lists a published page', function () {
     get('/directory')
         ->assertOk()
         ->assertSee('Ada Textiles')
-        ->assertSee('1 page');
+        ->assertSee('data-counter="1"', false);
 });
 
 it('never lists a draft', function () {
@@ -98,12 +99,18 @@ it('hides the directory when the panic switch is on', function () {
     get('/directory')->assertNotFound();
 });
 
-it('filters by theme', function () {
-    directoryPage(['name' => 'Fabric Shop', 'slug' => 'fabric-shop', 'theme' => Theme::Store]);
-    directoryPage(['name' => 'Braids Studio', 'slug' => 'braids-studio', 'theme' => Theme::Service]);
+it('splits stores, products and services into separate catalogue pages', function () {
+    $page = directoryPage(['name' => 'Fabric Shop', 'slug' => 'fabric-shop']);
 
-    get('/directory?theme=store')->assertOk()->assertSee('Fabric Shop')->assertDontSee('Braids Studio');
-    get('/directory?theme=service')->assertOk()->assertSee('Braids Studio')->assertDontSee('Fabric Shop');
+    Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $page->seller_id,
+        'name' => 'Ankara Fabric',
+    ]);
+
+    get('/directory/stores')->assertOk()->assertSee('Fabric Shop');
+    get('/directory/products')->assertOk()->assertSee('Ankara Fabric');
+    get('/directory/services')->assertOk()->assertDontSee('Ankara Fabric');
 });
 
 it('filters by state', function () {
@@ -146,7 +153,11 @@ it('only offers states that have a published page', function () {
 it('resolves a clean state url to the stored name', function () {
     directoryPage(['state' => 'Cross River']);
 
-    get('/directory/cross-river')->assertOk()->assertSee('Cross River');
+    get('/directory/cross-river')
+        ->assertRedirect(route('directory.stores', ['state' => 'Cross River']))
+        ->assertStatus(301);
+
+    get('/directory/stores?state=Cross%20River')->assertOk()->assertSee('Cross River');
 });
 
 it('offers a category that a published page actually carries', function () {
@@ -183,15 +194,15 @@ it('does not mix a category into a page that does not sell it', function () {
         'store_page_id' => $tailor->id, 'seller_id' => $tailor->seller_id, 'category_id' => $category->id,
     ]);
 
-    get('/directory?category=ankwa')
+    get('/directory/products?category=ankwa')
         ->assertOk()
         ->assertSee('Tailor')
         ->assertDontSee('Salon');
 });
 
 it('puts a verified page above an unverified one', function () {
-    // Explicit about the unverified one: the factory seeds a verified_at for some
-    // pages, and a null here has to actually win.
+    // Explicit about both: the factory verifies its pages by default, and a null
+    // has to actually win here rather than being overwritten by the default.
     $plain = directoryPage(['name' => 'Plain Shop', 'slug' => 'plain-shop']);
     $plain->forceFill(['verified_at' => null])->save();
 
@@ -222,5 +233,5 @@ it('does not count a suspended page towards the total', function () {
     directoryPage(['name' => 'Live Shop', 'slug' => 'live-shop']);
     directoryPage(['name' => 'Dead Shop', 'slug' => 'dead-shop', 'status' => StoreStatus::Suspended]);
 
-    get('/directory')->assertOk()->assertSee('1 page');
+    get('/directory')->assertOk()->assertSee('data-counter="1"', false);
 });

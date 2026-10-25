@@ -2,9 +2,11 @@
 
 use App\Domains\Admin\Middleware\EnsureUserIsAdmin;
 use App\Domains\Shared\Middleware\EnsureSubscriptionValid;
+use App\Shared\Middleware\EnsureApexHost;
 use App\Shared\Middleware\EnsureFeatureIsEnabled;
 use App\Shared\Middleware\EnsureOnboardingComplete;
 use App\Shared\Middleware\EnsureSellerIsActive;
+use App\Shared\Middleware\EnsureSellerIsVerified;
 use App\Shared\Middleware\ForwardCustomDomainToStorefront;
 use App\Shared\Middleware\ResolveStorePage;
 use App\Shared\Middleware\SecurityHeaders;
@@ -21,52 +23,58 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::middleware(['web', 'auth', 'seller.active', 'admin'])
+            /*
+             | The storefront owns {store}.{domain}. These groups are registered
+             | before the apex ones on purpose: on a tenant host "/" and paths
+             | such as /products, /cart and /login collide with platform routes,
+             | and the shop has to win on its own address. On the apex the domain
+             | constraint does not match at all, so nothing here can swallow a
+             | platform path.
+             */
+            Route::middleware(['web', 'resolve.store'])
+                ->domain('{slug}.'.config('mypage.domain'))
+                ->group(base_path('routes/storefront.php'));
+
+            Route::middleware(['web', 'resolve.store'])
+                ->domain('{slug}.'.config('mypage.domain'))
+                ->group(base_path('routes/checkout.php'));
+
+            /*
+             | The apex routes. ForwardCustomDomainToStorefront answers a seller's
+             | own domain first, and EnsureApexHost 404s a tenant subdomain for
+             | any path the storefront did not claim.
+             */
+            Route::middleware(['web', 'auth', 'seller.active', 'admin', 'apex.host'])
                 ->prefix('admin')
                 ->group(base_path('routes/admin.php'));
 
-            /*
-             | The apex routes. ForwardCustomDomainToStorefront sits in front of
-             | them so that on one of a seller's own domains a request is
-             | answered by the shop rather than by whichever dashboard route
-             | happens to share the path.
-             */
-            Route::middleware(['web', 'forward.custom.domain'])
+            Route::middleware(['web', 'forward.custom.domain', 'apex.host'])
                 ->group(base_path('routes/web.php'));
 
-            Route::prefix('webhooks')->group(base_path('routes/webhooks.php'));
-
             /*
-             | The storefront runs on two kinds of host. On mypage.ng the seller's
-             | slug is in the path, because that is what the URL has to look like
-             | when every seller shares one domain. On a seller's own domain
-             | there is no slug at all: the hostname is the whole address, so the
-             | segment is optional and ResolveStorePage falls back to looking the
-             | shop up by host.
-             |
-             | web.php is registered above these groups, so an apex route such as
-             | /login or /directory always wins over an optional storefront slug.
+             | Storefront pages such as /about and /cart exist only in the shop's
+             | route file, so on a custom domain there is no apex route to carry
+             | the forwarding middleware. Without a fallback, those paths 404
+             | before a seller's own domain is ever considered. On the apex this
+             | is still a 404.
              */
-            if (config('mypage.path_routes')) {
-                Route::middleware(['web', 'resolve.store'])
-                    ->prefix('{slug?}')
-                    ->group(base_path('routes/storefront.php'));
+            Route::middleware(['web', 'forward.custom.domain', 'apex.host'])
+                ->group(function (): void {
+                    Route::fallback(fn () => abort(404));
+                });
 
-                Route::middleware(['web', 'resolve.store'])
-                    ->prefix('{slug?}')
-                    ->group(base_path('routes/checkout.php'));
-            } else {
-                Route::middleware(['web', 'resolve.store'])
-                    ->domain('{slug}.'.config('mypage.domain'))
-                    ->group(base_path('routes/storefront.php'));
-
-                Route::middleware(['web', 'resolve.store'])
-                    ->domain('{slug}.'.config('mypage.domain'))
-                    ->group(base_path('routes/checkout.php'));
-            }
+            Route::prefix('webhooks')->group(base_path('routes/webhooks.php'));
         },
     )
+    ->withCommands([__DIR__.'/../app/Domains/Ai/Console'])
     ->withMiddleware(function (Middleware $middleware): void {
+        /*
+         * Forwarding has to run before routing, not just on routes that already
+         * matched. A custom-domain POST (checkout, booking) matches no apex route
+         * by method, so it never reached the per-group middleware and 405'd.
+         */
+        $middleware->append(ForwardCustomDomainToStorefront::class);
+
         // Baseline browser protections belong on every HTML route, including
         // the landing page, dashboard, and storefronts.
         $middleware->appendToGroup('web', SecurityHeaders::class);
@@ -74,11 +82,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'seller.active' => EnsureSellerIsActive::class,
             'onboarding.complete' => EnsureOnboardingComplete::class,
+            /*
+             * Deliberately not called 'verified'. That name is Laravel's own alias
+             * for EnsureEmailIsVerified, and it is applied here on purpose: a
+             * seller confirms their address on the way in. Business verification
+             * is a different question with a different answer, and naming it
+             * differently is the only way a reader of routes/web.php can tell them
+             * apart.
+             */
+            'business.verified' => EnsureSellerIsVerified::class,
             'resolve.store' => ResolveStorePage::class,
             'subscription.valid' => EnsureSubscriptionValid::class,
             'admin' => EnsureUserIsAdmin::class,
             'feature' => EnsureFeatureIsEnabled::class,
             'forward.custom.domain' => ForwardCustomDomainToStorefront::class,
+            'apex.host' => EnsureApexHost::class,
         ]);
 
         // Gateway deliveries are signed, not session-authenticated.
@@ -105,6 +123,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             AuthenticatesRequests::class,
             ForwardCustomDomainToStorefront::class,
+        );
+
+        /*
+         * And the apex guard has to run before auth for the same reason: on a
+         * tenant host a dashboard path must 404, not bounce to a login screen
+         * that belongs to the apex.
+         */
+        $middleware->prependToPriorityList(
+            AuthenticatesRequests::class,
+            EnsureApexHost::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

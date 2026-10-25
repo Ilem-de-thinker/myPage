@@ -70,12 +70,12 @@ class DomainVerifier
     /**
      * Does this hostname resolve to our CNAME target?
      *
-     * Compared against the canonical target so "domains.mypage.test" and
-     * "domains.mypage.test." both count, and only ours counts.
+     * Compared against the canonical target so a trailing dot from DNS does not
+     * create a false negative, and only our configured target counts.
      */
     public function resolvesToUs(string $host): bool
     {
-        $target = rtrim((string) config('mypage.custom_domain.cname_target', 'domains.mypage.test'), '.');
+        $target = rtrim((string) config('mypage.custom_domain.cname_target'), '.');
 
         foreach ($this->dns->cnameTargets($host) as $candidate) {
             if (rtrim($candidate, '.') === $target) {

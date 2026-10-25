@@ -15,17 +15,27 @@
         @endif
     </x-ui.page-header>
 
-    <form method="POST" action="{{ $product ? route('products.update', $product) : route('products.store') }}" enctype="multipart/form-data" class="bg-card p-6 rounded-2xl border border-rule space-y-5 max-w-2xl mx-auto">
+    <form method="POST" action="{{ $product ? route('products.update', $product) : route('products.store') }}" enctype="multipart/form-data" class="bg-card p-6 rounded-2xl border border-rule space-y-5 max-w-2xl mx-auto" x-data="aiListingForm(@jsExpr([
+        'name' => old('name', $product?->name ?? ''),
+        'description' => old('description', $product?->description ?? ''),
+        'task' => 'listing_copy',
+        'feature' => 'products',
+        'endpoint' => route('dashboard.ai.run'),
+        'csrf' => csrf_token(),
+    ]))">
         @csrf
         @if ($product) @method('PUT') @endif
 
         <div>
-            <label class="block text-xs font-semibold text-ink mb-1.5">Name</label>
-            <input type="text" name="name" value="{{ old('name', $product?->name) }}" required class="w-full px-4 py-2.5 rounded-xl border border-rule-strong text-sm focus:outline-none focus:border-brand">
+            <div class="mb-1.5 flex items-center justify-between gap-3">
+                <label class="block text-xs font-semibold text-ink">Name</label>
+                <button type="button" @click="draftCopy" :disabled="aiLoading || !name && !description" class="rounded-lg border border-brand-edge bg-brand-wash px-2.5 py-1.5 text-[11px] font-bold text-brand-text disabled:opacity-50"><span x-text="aiLoading ? 'Drafting…' : 'Draft with AI'"></span></button>
+            </div>
+            <input type="text" name="name" x-model="name" required class="w-full px-4 py-2.5 rounded-xl border border-rule-strong text-sm focus:outline-none focus:border-brand">
             @error('name') <p class="text-danger-text text-[11px] mt-1">{{ $message }}</p> @enderror
         </div>
 
-        <div x-data="{ newCat: false, name: '', error: '', busy: false }">
+        <div x-data="newCategoryForm(@jsExpr(['endpoint' => route('categories.store'), 'csrf' => csrf_token()]))">
             <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-semibold text-ink">Category</label>
                 <button type="button" @click="newCat = true" class="text-[11px] font-semibold text-brand hover:text-brand-text">+ New category</button>
@@ -44,18 +54,7 @@
                     <p x-show="error" x-text="error" class="text-danger-text text-[11px] mb-2"></p>
                     <div class="flex justify-end gap-2">
                         <button type="button" @click="newCat = false" class="px-4 py-2 text-xs font-semibold text-ink-3">Cancel</button>
-                        <button type="button" :disabled="busy" @click="busy = true; error = '';
-                            fetch('{{ route('categories.store') }}', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                                body: JSON.stringify({ name })
-                            }).then(async r => {
-                                if (!r.ok) { error = (await r.json()).message ?? 'Could not create category'; busy = false; return; }
-                                const cat = await r.json();
-                                const opt = new Option(cat.name, cat.id, true, true);
-                                $refs.catSelect.add(opt);
-                                name = ''; newCat = false; busy = false;
-                            }).catch(() => { error = 'Network error'; busy = false; })"
+                        <button type="button" :disabled="busy" @click="create()"
                             class="px-4 py-2 rounded-xl bg-brand text-white text-xs font-semibold">Create</button>
                     </div>
                 </div>
@@ -76,7 +75,9 @@
 
         <div>
             <label class="block text-xs font-semibold text-ink mb-1.5">Description</label>
-            <textarea name="description" rows="4" class="w-full px-4 py-2.5 rounded-xl border border-rule-strong text-sm">{{ old('description', $product?->description) }}</textarea>
+            <textarea name="description" x-model="description" rows="4" class="w-full px-4 py-2.5 rounded-xl border border-rule-strong text-sm"></textarea>
+            <p x-show="aiMessage" x-text="aiMessage" class="mt-2 text-[11px] text-ok-text"></p>
+            <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
         </div>
 
         <div>
@@ -103,10 +104,10 @@
         </div>
 
         @php $savedImages = $product?->images?->map(fn ($img) => \Illuminate\Support\Facades\Storage::url($img->path))->all() ?? []; @endphp
-        <div x-data="{ previewOpen: false, previews: @js($savedImages) }">
+        <div x-data="imagePreview(@jsExpr(['previews' => $savedImages]))">
             <label class="block text-xs font-semibold text-ink mb-1.5">Images</label>
             <input type="file" name="images[]" multiple accept="image/*" class="text-sm"
-                   @change="previews = [...previews, ...Array.from($event.target.files).map(f => URL.createObjectURL(f))]">
+                   @change="addFiles($event)">
             <button type="button" @click="previewOpen = true" :disabled="previews.length === 0"
                     class="mt-2 text-xs font-semibold text-brand disabled:text-ink-3 disabled:cursor-not-allowed">Preview images</button>
             <div x-cloak x-show="previewOpen" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">

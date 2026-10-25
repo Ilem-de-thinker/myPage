@@ -2,10 +2,10 @@
 
 namespace App\Domains\Booking\Http\Controllers;
 
+use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Models\Service;
-use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Html;
 use Illuminate\Http\RedirectResponse;
@@ -48,9 +48,10 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SubscriptionEntitlements $entitlements): RedirectResponse
     {
         $page = $this->page($request);
+        $entitlements->assertCanCreateListing($page);
 
         $service = $page->services()->create([
             ...$this->validated($request, $page),
@@ -246,7 +247,7 @@ class ServiceController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
 
-        abort_unless($page->theme === Theme::Service, 404);
+        abort_unless(in_array($page->businessType(), ['service', 'both'], true), 404);
 
         return $page;
     }

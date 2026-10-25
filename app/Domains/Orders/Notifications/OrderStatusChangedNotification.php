@@ -3,6 +3,7 @@
 namespace App\Domains\Orders\Notifications;
 
 use App\Domains\Orders\Models\Order;
+use App\Shared\Mail\TransactionalMailMessage;
 use App\Shared\Support\BuyerLinks;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,7 +35,7 @@ class OrderStatusChangedNotification extends Notification
     {
         $order = $this->order;
 
-        $message = (new MailMessage)
+        $message = (new TransactionalMailMessage)
             ->subject("Your order {$order->reference} is now {$this->statusLabel}")
             ->greeting($order->customer_name ? "Hello {$order->customer_name}," : 'Hello,')
             ->line("Your order {$order->reference} from {$order->storePage?->name} is now {$this->statusLabel}.");
@@ -55,6 +56,7 @@ class OrderStatusChangedNotification extends Notification
         $message->line('Keep this link. It is how you check on the order without an account, and it works for 30 days.');
 
         return $message
-            ->action('Track your order', BuyerLinks::order($order->storePage, $order));
+            ->action('Track your order', BuyerLinks::order($order->storePage, $order))
+            ->platformFooter();
     }
 }

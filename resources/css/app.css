@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "./storefront-theme.css";
+@import "./platform.css";
+
+/* Compact public and dashboard scale requested by the product direction. */
+html { font-size: 95%; }
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -32,6 +36,18 @@
 }
 
 @theme {
+      --font-display: var(--platform-display);
+      --color-platform-paper: var(--platform-paper);
+      --color-platform-surface: var(--platform-surface);
+      --color-platform-card: var(--platform-card);
+      --color-platform-ink: var(--platform-ink);
+      --color-platform-muted: var(--platform-ink-muted);
+      --color-platform-accent: var(--platform-accent);
+      --color-platform-support: var(--platform-support);
+      --color-platform-line: var(--platform-line);
+      --radius-platform: var(--platform-radius-md);
+      --radius-platform-lg: var(--platform-radius-xl);
+      --radius-platform-xl: var(--platform-radius-2xl);
       --color-brand: var(--brand);
       --color-brand-ink: var(--brand-ink);
       --color-brand-text: var(--brand-text);

@@ -1,0 +1,611 @@
+/**
+ * MyPage.ng — shared motion layer
+ *
+ * Declarative opt-in attributes are documented in DESIGN.md. The engine in
+ * resources/js/motion/ sets the custom properties; this file only describes the
+ * before/after states. Only transform and opacity animate. Without JavaScript
+ * `.js-motion` is absent, so every reveal is fully visible.
+ */
+
+/* ── Reveals ───────────────────────────────────────────────────────────────── */
+
+.js-motion [data-reveal] {
+  --reveal-distance: var(--motion-reveal-distance);
+  --reveal-duration: var(--duration-deliberate);
+  --reveal-ease: var(--ease-editorial);
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance), 0);
+  transition:
+    opacity var(--reveal-duration) var(--reveal-ease),
+    transform var(--reveal-duration) var(--reveal-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.js-motion [data-reveal="fade"] {
+  --reveal-distance: 0px;
+}
+
+.js-motion [data-reveal="rise-sm"] {
+  --reveal-distance: 0.75rem;
+}
+
+.js-motion [data-reveal="scale"] {
+  --reveal-distance: 0px;
+  transform: scale(0.965);
+}
+
+.js-motion [data-reveal="scale-up"] {
+  --reveal-distance: 0px;
+  transform: scale(0.92);
+}
+
+.js-motion [data-reveal="clip-curtain"] {
+  --reveal-distance: 0px;
+  clip-path: inset(0 0 100% 0);
+  transform: none;
+  transition:
+    clip-path var(--reveal-duration) var(--ease-cinematic),
+    opacity var(--reveal-duration) var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js-motion [data-reveal="clip-left"] {
+  --reveal-distance: 0px;
+  clip-path: inset(0 100% 0 0);
+  transform: none;
+  transition:
+    clip-path var(--reveal-duration) var(--ease-cinematic),
+    opacity var(--reveal-duration) var(--ease-editorial);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js-motion [data-reveal="mask-line"] {
+  --reveal-distance: 0px;
+  overflow: hidden;
+  opacity: 1;
+  transform: none;
+}
+
+.js-motion [data-reveal="mask-line"] > * {
+  display: block;
+  transform: translate3d(0, 108%, 0);
+  transition: transform var(--reveal-duration) var(--ease-cinematic);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js-motion [data-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  clip-path: inset(0 0 0 0);
+}
+
+.js-motion [data-reveal="scale"].is-visible,
+.js-motion [data-reveal="scale-up"].is-visible {
+  transform: scale(1);
+}
+
+.js-motion [data-reveal="mask-line"].is-visible > * {
+  transform: translate3d(0, 0, 0);
+}
+
+.js-motion [data-stagger] > [data-reveal] {
+  transition-delay: calc(
+    var(--stagger-index, 0) * var(--motion-stagger-step) + var(--reveal-delay, 0ms)
+  );
+}
+
+/* Motion is paused for off-screen decorative elements and hidden tabs. */
+.motion-paused *,
+.motion-paused *::before,
+.motion-paused *::after,
+.is-motion-offscreen *,
+.is-motion-offscreen *::before,
+.is-motion-offscreen *::after {
+  animation-play-state: paused !important;
+}
+
+/* ── Parallax & tilt ───────────────────────────────────────────────────────── */
+
+[data-parallax] {
+  will-change: transform;
+}
+
+.platform-tilt {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --lift: 0px;
+  transform: perspective(1200px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(var(--lift));
+  transform-style: preserve-3d;
+  transition:
+    transform var(--duration-normal) var(--ease-editorial),
+    box-shadow var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+  will-change: transform;
+}
+
+/* ── Magnetic buttons & arrow links ────────────────────────────────────────── */
+
+.btn-magnetic {
+  position: relative;
+  transition:
+    transform var(--duration-fast) var(--ease-editorial),
+    background-color var(--duration-fast) var(--ease-editorial),
+    border-color var(--duration-fast) var(--ease-editorial),
+    color var(--duration-fast) var(--ease-editorial),
+    box-shadow var(--duration-fast) var(--ease-editorial);
+  will-change: transform;
+}
+
+.btn-magnetic:active {
+  transform: scale(0.975);
+}
+
+.link-draw {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-draw::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -0.15em;
+  block-size: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--duration-normal) var(--ease-editorial);
+}
+
+.link-draw:hover::after,
+.link-draw:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.arrow-slide svg,
+.arrow-slide .platform-arrow {
+  transition: transform var(--duration-normal) var(--ease-editorial);
+}
+
+.arrow-slide:hover svg,
+.arrow-slide:hover .platform-arrow,
+.group:hover .arrow-slide svg,
+.group:hover .platform-arrow {
+  transform: translateX(0.22rem);
+}
+
+/* ── Film grain ────────────────────────────────────────────────────────────── */
+
+.platform-grain-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: -60%;
+  inline-size: 220%;
+  block-size: 220%;
+  z-index: 1;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.62'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: platform-grain-shift 26s steps(8) infinite;
+}
+
+@keyframes platform-grain-shift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-2%, 2%, 0); }
+  50% { transform: translate3d(2%, -1%, 0); }
+  75% { transform: translate3d(-1%, -2%, 0); }
+}
+
+/* ── Reactive dot grid ─────────────────────────────────────────────────────── */
+
+.platform-background-system {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.platform-grid-field {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(circle at 50% 38%, #000 18%, transparent 76%);
+  mask-image: radial-gradient(circle at 50% 38%, #000 18%, transparent 76%);
+}
+
+.platform-grid-field canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.platform-grid-field--lines {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--platform-ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--platform-ink) 4%, transparent) 1px, transparent 1px);
+  background-size: 88px 88px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 74%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 74%, transparent);
+}
+
+/* ── Ghost typography & route lines ────────────────────────────────────────── */
+
+.platform-ghost-type {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  color: transparent;
+  font-family: var(--platform-display);
+  font-weight: 800;
+  line-height: 0.78;
+  letter-spacing: -0.07em;
+  white-space: nowrap;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--platform-ink) 8%, transparent);
+  text-stroke: 1px color-mix(in srgb, var(--platform-ink) 8%, transparent);
+  will-change: transform;
+}
+
+.platform-ghost-type--primary {
+  inset-block-start: 11vh;
+  inset-inline-start: -5vw;
+  font-size: clamp(5rem, 19vw, 17rem);
+  opacity: 0.6;
+  transform: rotate(-3deg);
+}
+
+.platform-ghost-type--secondary {
+  inset-block-end: 6vh;
+  inset-inline-end: -6vw;
+  font-size: clamp(4rem, 13vw, 12rem);
+  opacity: 0.45;
+  transform: rotate(2deg);
+}
+
+.tone-ink .platform-ghost-type,
+.tone-support .platform-ghost-type {
+  -webkit-text-stroke-color: color-mix(in srgb, var(--platform-ink-invert) 14%, transparent);
+}
+
+.platform-route-svg {
+  position: absolute;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.platform-route-path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--platform-accent) 44%, transparent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 7 8;
+  animation: platform-route-march 34s linear infinite;
+}
+
+.platform-route-path--soft {
+  stroke: color-mix(in srgb, var(--platform-support) 34%, transparent);
+  stroke-dasharray: 3 10;
+}
+
+.platform-route-node {
+  fill: var(--platform-accent);
+}
+
+.platform-route-node--support {
+  fill: var(--platform-support);
+}
+
+@keyframes platform-route-march {
+  to { stroke-dashoffset: -400; }
+}
+
+/* When the IO engine starts a draw it adds .is-route-drawing and animates the
+   dash offset in JS. The base class remains a static dashed line without JS. */
+.platform-route-path.is-route-drawing {
+  animation: none;
+  transition: stroke-dashoffset var(--duration-cinematic) var(--ease-cinematic);
+}
+
+/* ── Cursor spotlight (desktop, pointer-fine only) ─────────────────────────── */
+
+.platform-spotlight {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  background: radial-gradient(
+    520px circle at var(--spot-x, 50vw) var(--spot-y, 50vh),
+    color-mix(in srgb, var(--platform-accent) 6%, transparent),
+    transparent 68%
+  );
+  transition: opacity var(--duration-slow) var(--ease-editorial);
+}
+
+body.has-pointer .platform-spotlight {
+  opacity: 1;
+}
+
+/* ── Floating hero cards / idle drift ──────────────────────────────────────── */
+
+.platform-float {
+  animation: platform-idle 14s var(--ease-soft) infinite alternate;
+  animation-delay: var(--float-delay, 0s);
+}
+
+.platform-float--b {
+  animation-duration: 18s;
+  animation-delay: -5s;
+}
+
+.platform-float--c {
+  animation-duration: 11s;
+  animation-delay: -2s;
+}
+
+@keyframes platform-idle {
+  from { transform: translate3d(0, 0, 0) rotate(var(--float-rotate, 0deg)); }
+  to { transform: translate3d(var(--float-x, 10px), var(--float-y, -16px), 0) rotate(calc(var(--float-rotate, 0deg) + 1.5deg)); }
+}
+
+.platform-hero-card {
+  position: relative;
+  border: 1px solid var(--platform-line);
+  border-radius: var(--platform-radius-xl);
+  background: var(--platform-card);
+  box-shadow: var(--platform-shadow-lg);
+}
+
+.platform-hero-card--ink {
+  border-color: transparent;
+  background: var(--platform-ink);
+  color: var(--platform-ink-invert);
+}
+
+/* ── Marquee ───────────────────────────────────────────────────────────────── */
+
+.platform-marquee {
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.platform-marquee__track {
+  display: flex;
+  inline-size: max-content;
+  align-items: center;
+  gap: var(--marquee-gap, 2.5rem);
+  animation: platform-marquee var(--marquee-duration, 42s) linear infinite;
+  will-change: transform;
+}
+
+.platform-marquee:hover .platform-marquee__track,
+.platform-marquee:focus-within .platform-marquee__track,
+.platform-marquee.is-motion-offscreen .platform-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes platform-marquee {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.platform-marquee--reverse .platform-marquee__track {
+  animation-direction: reverse;
+}
+
+/* ── Sticky storytelling ───────────────────────────────────────────────────── */
+
+.platform-story {
+  position: relative;
+}
+
+.platform-story__grid {
+  display: grid;
+  gap: clamp(2rem, 4vw, 4rem);
+}
+
+.platform-story__visual {
+  position: relative;
+}
+
+.platform-story__frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow: hidden;
+  border-radius: var(--platform-radius-2xl);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  opacity: 0;
+  transform: translate3d(0, 1.25rem, 0) scale(0.985);
+  transition:
+    opacity var(--duration-deliberate) var(--ease-editorial),
+    transform var(--duration-deliberate) var(--ease-cinematic);
+  pointer-events: none;
+}
+
+.platform-story__frame.is-active {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  pointer-events: auto;
+}
+
+.platform-story__step {
+  transition:
+    border-color var(--duration-normal) var(--ease-editorial),
+    background-color var(--duration-normal) var(--ease-editorial),
+    transform var(--duration-normal) var(--ease-editorial);
+}
+
+.platform-story__step.is-active {
+  border-color: var(--platform-support-border);
+  background: var(--platform-card);
+}
+
+@media (min-width: 1024px) {
+  .platform-story__grid {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    align-items: start;
+  }
+
+  .platform-story__visual {
+    position: sticky;
+    top: 6.5rem;
+    block-size: min(72vh, 48rem);
+  }
+
+  .platform-story__steps {
+    display: grid;
+    gap: 8rem;
+    padding-block: 8vh 22vh;
+  }
+}
+
+/* ── Horizontal rail ───────────────────────────────────────────────────────── */
+
+.platform-rail {
+  display: flex;
+  gap: var(--rail-gap, 1rem);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-block-end: 0.5rem;
+}
+
+.platform-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.platform-rail > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* Desktop hover-expanding category strip */
+.platform-category-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--strip-count, 6), minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.platform-category-strip__item {
+  min-inline-size: 0;
+  transition:
+    flex-grow var(--duration-deliberate) var(--ease-editorial),
+    transform var(--duration-deliberate) var(--ease-editorial);
+}
+
+@media (min-width: 1024px) {
+  .platform-category-strip {
+    display: flex;
+  }
+
+  .platform-category-strip__item {
+    flex: 1 1 0;
+  }
+
+  .platform-category-strip__item:hover,
+  .platform-category-strip__item:focus-within {
+    flex-grow: 2.35;
+  }
+}
+
+/* ── Card stacking (used by trending + featured) ────────────────────────────── */
+
+.platform-stack-card {
+  transition:
+    transform var(--duration-normal) var(--ease-editorial),
+    box-shadow var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+}
+
+@media (min-width: 1024px) {
+  .platform-stack-card:hover {
+    --lift: -0.4rem;
+    z-index: 3;
+  }
+}
+
+/* ── Scroll-driven enhancement ─────────────────────────────────────────────── */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .platform-scroll-fade {
+      animation: platform-scroll-fade linear both;
+      animation-timeline: view();
+      animation-range: entry 8% cover 34%;
+    }
+
+    @keyframes platform-scroll-fade {
+      from { opacity: 0.35; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  }
+}
+
+/* ── Drift helpers ─────────────────────────────────────────────────────────── */
+
+@keyframes platform-drift-a {
+  to { transform: translate3d(-2.5rem, 2rem, 0) rotate(8deg); }
+}
+
+@keyframes platform-drift-b {
+  to { transform: translate3d(2rem, -1.5rem, 0) rotate(-6deg); }
+}
+
+@keyframes platform-drift-c {
+  to { transform: translate3d(-1.5rem, 2.5rem, 0); opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
+  .platform-grain-overlay,
+  .platform-float,
+  .platform-marquee__track,
+  .platform-global-motion-field span,
+  .platform-global-motion-field i,
+  .platform-route-path {
+    animation: none !important;
+  }
+
+  .platform-ghost-type,
+  .platform-spotlight,
+  .platform-global-motion-field {
+    display: none !important;
+  }
+
+  .platform-story__frame {
+    opacity: 1;
+    transform: none;
+    position: static;
+    pointer-events: auto;
+  }
+}
+
+/* Low-data and low-end devices: simplify, do not remove content. */
+html[data-low-data="true"] .platform-grain-overlay,
+html[data-low-data="true"] .platform-ghost-type,
+html[data-low-data="true"] .platform-spotlight,
+html[data-low-data="true"] .platform-float,
+html.save-data .platform-grain-overlay,
+html.save-data .platform-ghost-type,
+html.save-data .platform-spotlight,
+html.save-data .platform-float {
+  display: none !important;
+}
+
+html[data-low-data="true"] .platform-marquee__track {
+  animation-duration: 90s;
+}

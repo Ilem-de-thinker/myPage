@@ -2,6 +2,7 @@
 
 namespace App\Domains\Seller\Http\Controllers;
 
+use App\Domains\Admin\Models\PlatformSetting;
 use App\Domains\Billing\Services\Feature;
 use App\Domains\Seller\Enums\PriceTier;
 use App\Domains\Seller\Enums\Theme;
@@ -66,10 +67,17 @@ class StorefrontSettingsController extends Controller
                 'surface' => $page->settings['surface'] ?? config('theming.defaults.surface'),
                 'radius' => $page->settings['radius'] ?? config('theming.defaults.radius'),
                 'font' => $page->settings['font'] ?? null,
+                'theme_preset' => $page->settings['theme_preset'] ?? ($page->theme === Theme::Service ? 'minimal-swiss' : 'catalog'),
             ],
-            'brandFontNote' => ($page->settings['font'] ?? null) === null
-                ? 'The typeface your theme was designed with.'
-                : (config('theming.fonts.'.$page->settings['font'].'.note') ?? ''),
+            'brandFontNote' => 'Typeface locked to the selected theme direction.',
+            'carouselSlides' => $page->carouselSlides()->get(),
+            'carouselEnabled' => PlatformSetting::value("theme.{$page->theme->value}.carousel", true),
+            'heroStylesEnabled' => PlatformSetting::value("theme.{$page->theme->value}.hero_styles", true),
+            'layoutOptions' => collect(config("themes.{$page->theme->value}.pages.home.blocks", []))
+                ->reject(fn (string $key): bool => in_array($key, config("themes.{$page->theme->value}.required", []), true))
+                ->mapWithKeys(fn (string $key): array => [
+                    $key => config("themes.{$page->theme->value}.blocks.home_{$key}.label", ucfirst($key)),
+                ]),
         ]);
     }
 
@@ -148,6 +156,8 @@ class StorefrontSettingsController extends Controller
             'address' => ['nullable', 'string', 'max:190'],
             'city' => ['required', 'string', 'max:120'],
             'state' => ['required', 'string', 'max:120'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'social' => ['array'],
             'social.*' => ['nullable', 'string', 'max:190'],
         ]);
@@ -159,6 +169,8 @@ class StorefrontSettingsController extends Controller
             'address' => $validated['address'] ?? null,
             'city' => $validated['city'],
             'state' => $validated['state'],
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
             // Normalised rather than stored raw, so what renders is always a URL
             // we built ourselves and never something a seller typed.
             'social_links' => SocialLinks::normalise($validated['social'] ?? []),
@@ -184,10 +196,21 @@ class StorefrontSettingsController extends Controller
             'surface' => ['sometimes', 'nullable', Rule::in(array_keys(config('theming.modes')))],
             'radius' => ['sometimes', 'nullable', Rule::in(array_keys(config('theming.radii')))],
             'font' => ['sometimes', 'nullable', Rule::in(array_merge([''], array_keys(config('theming.fonts'))))],
+            'theme_preset' => ['sometimes', Rule::in($this->availablePresets($page->theme))],
+            'hero_style' => ['sometimes', Rule::in(['immersive', 'split', 'minimal'])],
+            'hero_alignment' => ['sometimes', Rule::in(['left', 'center'])],
+            'hero_overlay' => ['sometimes', Rule::in(['soft', 'deep', 'none'])],
+            'carousel_autoplay' => ['sometimes', 'boolean'],
+            'show_trust_strip' => ['sometimes', 'boolean'],
+            'show_metrics' => ['sometimes', 'boolean'],
+            'hidden_sections' => ['sometimes', 'array'],
+            'hidden_sections.*' => ['string', Rule::in($this->layoutKeys($page))],
             'logo' => ['sometimes', 'nullable', 'file', 'image', 'max:2048'],
             'cover' => ['sometimes', 'nullable', 'file', 'image', 'max:4096'],
+            'og_image' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'remove_logo' => ['sometimes', 'boolean'],
             'remove_cover' => ['sometimes', 'boolean'],
+            'remove_og_image' => ['sometimes', 'boolean'],
         ]);
 
         $page->brand_color = $validated['brand_color'];
@@ -200,12 +223,21 @@ class StorefrontSettingsController extends Controller
         $settings['surface'] = $validated['surface'] ?? ($settings['surface'] ?? config('theming.defaults.surface'));
         $settings['radius'] = $validated['radius'] ?? ($settings['radius'] ?? config('theming.defaults.radius'));
 
-        $font = $validated['font'] ?? null;
-        $settings['font'] = ($font === null || $font === '') ? null : $font;
+        $settings['theme_preset'] = $validated['theme_preset'] ?? ($settings['theme_preset'] ?? ($page->theme === Theme::Service ? 'minimal-swiss' : 'catalog'));
+        $settings['font'] = null;
+        $settings['hero_style'] = $validated['hero_style'] ?? ($settings['hero_style'] ?? 'immersive');
+        $settings['hero_alignment'] = $validated['hero_alignment'] ?? ($settings['hero_alignment'] ?? 'center');
+        $settings['hero_overlay'] = $validated['hero_overlay'] ?? ($settings['hero_overlay'] ?? 'deep');
+        $settings['carousel_autoplay'] = $request->boolean('carousel_autoplay');
+        $settings['show_trust_strip'] = $request->boolean('show_trust_strip');
+        $settings['show_metrics'] = $request->boolean('show_metrics');
+        $hiddenSections = $settings['hidden_sections'] ?? [];
+        $hiddenSections['home'] = array_values($validated['hidden_sections'] ?? []);
+        $settings['hidden_sections'] = $hiddenSections;
 
         $page->settings = $settings;
 
-        foreach (['logo' => 'logo_path', 'cover' => 'cover_path'] as $input => $column) {
+        foreach (['logo' => 'logo_path', 'cover' => 'cover_path', 'og_image' => 'og_image_path'] as $input => $column) {
             if ($request->boolean("remove_{$input}")) {
                 if ($page->{$column}) {
                     Storage::disk('public')->delete($page->{$column});
@@ -230,6 +262,15 @@ class StorefrontSettingsController extends Controller
         return back()->with('status', 'Your brand has been updated.');
     }
 
+    /** @return list<string> */
+    private function layoutKeys(StorePage $page): array
+    {
+        return collect(config("themes.{$page->theme->value}.pages.home.blocks", []))
+            ->reject(fn (string $key): bool => in_array($key, config("themes.{$page->theme->value}.required", []), true))
+            ->values()
+            ->all();
+    }
+
     /**
      * Whether this business appears in the public discovery hub.
      *
@@ -248,6 +289,8 @@ class StorefrontSettingsController extends Controller
         $validated = $request->validate([
             'is_directory_opted_in' => ['nullable', 'boolean'],
             'price_tier' => ['nullable', 'integer', Rule::in(array_column(PriceTier::cases(), 'value'))],
+            'reduce_motion' => ['nullable', 'boolean'],
+            'animated_background' => ['nullable', 'boolean'],
         ]);
 
         $optedIn = $request->boolean('is_directory_opted_in');
@@ -255,6 +298,10 @@ class StorefrontSettingsController extends Controller
         $page->fill([
             'is_directory_opted_in' => $optedIn,
             'price_tier' => PriceTier::tryFromRequest($validated['price_tier'] ?? null),
+            'settings' => array_merge($page->settings ?? [], [
+                'reduce_motion' => $request->boolean('reduce_motion'),
+                'animated_background' => $request->boolean('animated_background'),
+            ]),
         ])->save();
 
         // Turning the listing off has to survive a seller turning it back on.
@@ -309,6 +356,16 @@ class StorefrontSettingsController extends Controller
         }
 
         return $rules;
+    }
+
+    /** @return list<string> */
+    private function availablePresets(Theme $theme): array
+    {
+        return collect(config('themes.presets'))
+            ->filter(fn (array $preset): bool => in_array($theme->value, $preset['business_types'], true))
+            ->keys()
+            ->values()
+            ->all();
     }
 
     /**

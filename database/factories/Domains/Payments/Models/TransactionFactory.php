@@ -26,7 +26,6 @@ class TransactionFactory extends Factory
             'reference' => 'MP'.Str::upper(Str::random(12)),
             'gateway' => 'paystack',
             'amount_kobo' => fake()->numberBetween(100000, 5000000),
-            'commission_kobo' => 0,
             'status' => TransactionStatus::Pending,
         ];
     }

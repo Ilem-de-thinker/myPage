@@ -1,5 +1,22 @@
 # MYPAGE.NG — Laravel 13 Project Structure & Build Plan
 
+> **Revision 2026-10-23 — payment architecture.** This document still shows
+> `Payments/EscrowAccount`, `Wallet`, `WalletLedger`, `Payout` and
+> `EscrowProviderInterface`. Those are **being removed**: buyer payments go to each
+> seller's own Paystack account, not to the platform, so there is no platform
+> balance to hold, move or pay out. Replace them with:
+>
+> - `SellerGateway` (`seller_id`, `gateway`, `environment`, `public_key`,
+>   `secret_key` encrypted, `secret_key_last4`, `webhook_secret` encrypted,
+>   `verified_at`, `last_failed_at`, unique on `seller_id + gateway`)
+> - `StoreReport` (`store_page_id`, `category`, `body`, reporter contact withheld
+>   from the seller, `status`, `resolved_by_seller_id`, `resolved_at`, `admin_note`)
+>
+> Also new: storefronts move to enforced subdomains (`{store}.mypage.ng`), and the
+> `verified` badge becomes a buyer-facing marker plus a checkout switch rather than
+> a dashboard gate. The decision and deletion list are at the top of
+> `before lunch.md`; build tracking is Phase 17 of `todo.md`.
+
 > **Stack:** PHP 8.4 · Laravel 13 · MySQL 8 · Redis · Tailwind CSS 4 · Alpine.js · Livewire 4 (dashboard) · Laravel Sanctum (public API) · Queues (Redis) · Paystack + Flutterwave SDKs · WhatsApp Cloud API
 > **Repo:** `mypage-ng/` monolith-first (modular monolith, domain-organized)
 
@@ -301,7 +318,7 @@ mypage-ng/
 │   │   ├── 0001_01_01_000001_create_sellers_and_store_pages.php
 │   │   ├── 0001_01_01_000002_create_products_and_inventory.php
 │   │   ├── 0001_01_01_000003_create_orders_and_items.php
-│   │   ├── 0001_01_01_000004_create_transactions_wallets_escrow.php
+│   │   ├── 0001_01_01_000004_create_transactions_seller_gateways_store_reports.php
 │   │   ├── 0001_01_01_000005_create_customers_and_crm.php
 │   │   ├── 0001_01_01_000006_create_messaging_tables.php
 │   │   ├── 0001_01_01_000007_create_billing_tables.php
@@ -366,16 +383,25 @@ mypage-ng/
 ```
 sellers ──1:N── store_pages ──1:N── products ──1:N── product_variants / product_images
 store_pages ──1:N── orders ──1:N── order_items
-orders ──1:1── transactions ──1:1── escrow_accounts
-sellers ──1:1── wallets ──1:N── wallet_ledger (double-entry)
+orders ──1:1── transactions            (buyer → seller, via the seller's gateway)
+sellers ──1:N── seller_gateways        (one per gateway; secret_key encrypted)
+store_pages ──1:N── store_reports      (buyer reports about a store)
 customers (unique per seller+phone) ──1:N── orders
 whatsapp_connections ──1:N── broadcast_campaigns ──1:N── broadcast_recipients
-subscriptions (seller N:1 plans)
+subscriptions (seller N:1 plans)        (seller → mypage.ng, platform gateway)
 ```
+
+The withdrawn tables — `escrow_accounts`, `wallets`, `wallet_ledger`, `payouts` —
+are gone. Buyer money never enters a platform account, so there is nothing to hold,
+ledger or pay out.
 
 **Key invariants (enforced in service layer + DB constraints):**
 - All money stored as **integer kobo**. No floats. Ever.
-- Every wallet movement writes **two** ledger rows (debit/credit) in one DB transaction.
+- ~~Every wallet movement writes two ledger rows.~~ Withdrawn with the ledger.
+- A buyer payment is only ever confirmed by a gateway transaction. **No manual
+  "mark as paid"**, and bank transfer is not an accepted method.
+- A seller's secret key is never fillable, never serialised, never queued, and is
+  proven against the gateway before it is stored.
 - Order status changes always write an `order_status_histories` row.
 - WhatsApp broadcasts require opt-in flag on customer; opt-outs honored before send.
 
@@ -387,7 +413,7 @@ subscriptions (seller N:1 plans)
 |---|---|---|
 | **P0 — Foundation (wk 1–2)** | Auth, seller onboarding, store page CRUD, slug routing (`{slug}.mypage.ng`), Tailwind/Livewire shell | Seller can create + publish a page |
 | **P1 — Catalog (wk 3–4)** | Products, images, variants, categories, stock counts, public storefront render + wa.me order button | Buyer can browse page and send order via WhatsApp |
-| **P2 — Payments (wk 5–7)** | Paystack + Flutterwave init/verify, webhooks (idempotent), checkout on storefront, platform commission ledger, seller wallet | First real ₦ collected end-to-end |
+| **P2 — Payments (wk 5–7)** | Paystack + Flutterwave init/verify, per-tenant webhooks (idempotent), checkout on the seller's subdomain against the seller's own credentials, encrypted seller gateway settings | First real ₦ collected end-to-end, into the seller's account |
 | **P3 — Order Inbox + CRM (wk 8–10)** | Parse WhatsApp prefilled messages into orders, order status pipeline, auto customer-book, inventory decrement | The ₦3,500/mo product exists |
 | **P4 — Escrow + Billing (wk 11–13)** | Escrow hold/release/dispute, subscriptions, verified badge application | Two revenue streams live |
 | **P5 — Messaging (wk 14–16)** | WhatsApp Cloud API connect, templates, cost-aware broadcast composer, wa.me fallback | Broadcasts with live ₦ cost estimate |
@@ -400,10 +426,10 @@ subscriptions (seller N:1 plans)
 1. **Gateways behind an interface.** `PaymentGatewayInterface` — Paystack/Flutterwave are swappable; never call them from controllers.
 2. **Idempotent webhooks.** Every webhook stores a unique event id; retries are safe. Signature verification mandatory.
 3. **Queues for everything slow.** Messaging, catalog sync, payouts, sitemap → Redis queues + Horizon.
-4. **Feature flags from day one.** `mypage.php` config + DB flags for escrow, broadcasts, directory — ship dark, enable per cohort.
+4. **Feature flags from day one.** `mypage.php` config + DB flags for broadcasts, directory, custom domains — ship dark, enable per cohort. Escrow is no longer a flag; it is removed.
 5. **Multi-tenancy discipline.** Every catalog/order/customer query scoped through `BelongsToSeller` global scope; store page lookups resolved by slug/domain middleware.
 6. **Audit everything money touches.** Ledger rows immutable; admin actions logged.
-7. **Pest tests for money paths.** Payment init/verify, escrow release, commission calc, payout — 100% feature coverage, no exceptions.
+7. **Pest tests for money paths.** Payment init/verify, cross-tenant webhook isolation, seller credential handling, the unverified-seller warning at checkout — 100% feature coverage, no exceptions. Escrow, commission and payout tests go with the code they tested.
 
 ---
 

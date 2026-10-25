@@ -3,8 +3,6 @@
 namespace App\Domains\Admin\Services;
 
 use App\Domains\Billing\Enums\SubscriptionStatus;
-use App\Domains\Billing\Models\Escrow;
-use App\Domains\Billing\Models\EscrowStatus;
 use App\Domains\Billing\Models\Subscription;
 use App\Domains\Orders\Enums\OrderStatus;
 use App\Domains\Orders\Models\Order;
@@ -15,22 +13,22 @@ use App\Domains\Seller\Models\StorePage;
 /**
  * Platform numbers for the admin home. Each one is a separate count so the panel
  * stays cheap: no loops, no per-row aggregates.
+ *
+ * There is no commission line because the platform takes none: a buyer pays the
+ * seller's own gateway account, and our revenue is subscriptions only.
  */
 class PlatformMetrics
 {
     /**
      * @return array{
      *     gmv_kobo: int,
-     *     commission_kobo: int,
-     *     escrow_held_kobo: int,
      *     orders: int,
      *     paid_orders: int,
      *     stores: int,
      *     stores_by_theme: array<string, int>,
      *     suspended_stores: int,
      *     sellers: int,
-     *     active_subscriptions: int,
-     *     open_disputes: int
+     *     active_subscriptions: int
      * }
      */
     public function snapshot(): array
@@ -46,9 +44,6 @@ class PlatformMetrics
 
         return [
             'gmv_kobo' => (int) (clone $sales)->sum('total_kobo'),
-            // 150 basis points is the platform take configured in mypage.php.
-            'commission_kobo' => (int) round((clone $sales)->sum('total_kobo') * ((int) config('mypage.commission_bps', 0) / 10000)),
-            'escrow_held_kobo' => (int) Escrow::withoutGlobalScopes()->held()->sum('amount_kobo'),
             'orders' => Order::withoutGlobalScopes()->count(),
             'paid_orders' => (clone $sales)->count(),
             'stores' => StorePage::withoutGlobalScopes()->count(),
@@ -63,9 +58,6 @@ class PlatformMetrics
             'sellers' => Seller::withoutGlobalScopes()->count(),
             'active_subscriptions' => Subscription::withoutGlobalScopes()
                 ->where('status', SubscriptionStatus::Active->value)
-                ->count(),
-            'open_disputes' => Escrow::withoutGlobalScopes()
-                ->where('status', EscrowStatus::Frozen->value)
                 ->count(),
         ];
     }

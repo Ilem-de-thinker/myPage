@@ -39,6 +39,21 @@
         </div>
 
         <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-rule pt-4">
+          <div class="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-surface px-3 py-3">
+            <div>
+              <p class="text-xs font-bold text-ink">Directory listing</p>
+              <p class="text-[11px] text-ink-3">{{ $page->is_directory_opted_in ? ($page->is_featured ? 'Approved and featured' : 'Approved') : 'Not listed' }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              @foreach ([['approve', 'Approve'], ['suspend', 'Remove'], ['feature', 'Feature'], ['unfeature', 'Unfeature']] as [$action, $label])
+                <form method="POST" action="{{ route('admin.stores.directory', $page) }}">
+                  @csrf
+                  <input type="hidden" name="directory_action" value="{{ $action }}">
+                  <button class="rounded-lg border border-rule bg-card px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-brand">{{ $label }}</button>
+                </form>
+              @endforeach
+            </div>
+          </div>
           @if ($page->status->value === 'suspended')
             <form method="POST" action="{{ route('admin.stores.reinstate', $page) }}">
               @csrf

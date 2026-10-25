@@ -1,12 +1,18 @@
 # mypage.ng — before lunch
 
-Consolidated working state, 2026-10-16. Four documents merged into one, each
-section marked with where it came from so nothing here reads as more settled than
-it is.
+Consolidated working state, 2026-10-16, with a payment-architecture decision
+recorded on 2026-10-23. Each section is marked with where it came from so nothing
+here reads as more settled than it is.
 
-**Read this first if you only read one thing:** the *Launch gate* at the end of
-§2. Seven items block taking real money, and four of them are legal exposure
-rather than engineering.
+**Read this first if you only read one thing:** the *Payment architecture* section
+immediately below. It reverses the escrow, wallet, commission and payout design
+that the rest of this document spends a great deal of effort on. Everything after
+it that concerns buyer money describes how the code got here, not where it is
+going.
+
+Second: the *Launch gate* at the end of §2, rewritten on the same date. It is
+shorter than it was, because three of its items were about moving money the
+platform no longer touches.
 
 Two things deliberately **not** merged, because they are long references rather
 than working state:
@@ -14,8 +20,132 @@ than working state:
 - `MYPAGE.NG — Implementation Plan (Phase 0 to Launch) (1).md` — the build plan
 - `mypage-ng-laravel13-project-plan (1).md` — directory structure and schema
 
-Also still on disk and still current: `docs/escrow.md`, `docs/booking-system.md`,
+Also still on disk and still current: `docs/booking-system.md`,
 `docs/ui-ux-spec.md`, `AGENTS.md`, `CLAUDE.md`, `README.md`, `todo.md`.
+`docs/escrow.md` is now historical — see its banner and the section below.
+
+> `README.md` is still the stock Laravel readme. It is listed as current above
+> because it was, not because it says anything about this product. Worth replacing
+> before launch.
+
+---
+
+<!-- source: decision, 2026-10-23 -->
+
+## Payment architecture — decided 2026-10-23
+
+This supersedes every escrow, wallet, commission and payout statement in this
+file and in the implementation plan. Where they disagree with this section, this
+section wins. Nothing in the older sections has been deleted: it is history, and
+it explains why the code looks the way it does.
+
+Two money flows, and they never meet.
+
+1. **Seller → mypage.ng.** The platform's own Paystack account, for the monthly
+   subscription. This is the **only** money mypage.ng holds. Everything in
+   *"Required from you" §A* still applies unchanged: plan codes, the webhook URL,
+   a running queue worker, live keys and a correct `APP_URL`.
+2. **Buyer → seller.** The **seller's own** Paystack account, using credentials
+   the seller enters in their dashboard settings. The money lands in the seller's
+   Paystack balance. mypage.ng never holds it, never splits it, never escrows it
+   and never pays it out.
+
+**Bank transfer is refused as a buyer payment method.** It is not offered, not
+recorded, and cannot be accepted as proof of payment. No order on mypage.ng can
+reach `paid` by a seller ticking a box. Every buyer payment the platform knows
+about is a gateway transaction with a verifiable reference. This is a tracking
+decision first and a fraud decision second: an untracked transfer is a payment
+nobody can reconcile or refund.
+
+### What this deletes
+
+- **Escrow, in every form** — hold, release, auto-release, freeze, dispute
+  arbitration, buyer release tokens, and the whole OTP-on-release security plan.
+  There is no platform-held money to release.
+- **Wallet, ledger and commission.** `wallets`, `wallet_ledger`,
+  `CommissionCalculator`, the double-entry rules. The seller's balance is in
+  their own Paystack account; the platform has no balance to track.
+- **Payouts.** `RequestPayout`, `ProcessPayout`, payout bank details, the payout
+  queue, the withdrawal screen. There is nothing to withdraw from.
+- **Platform-executed refunds.** A refund happens in the seller's own Paystack
+  account. The platform can record that one was agreed; it cannot move the money.
+- `FEATURE_ESCROW` and the platform-wide buyer `PAYMENT_GATEWAY` setting.
+
+Removing these is a **deletion, not a flag**. The lesson recorded under BLOCKER 1
+applies exactly: a dead control left in place will be "fixed" by someone later.
+
+### What survives
+
+- `Order` and `Booking`, their statuses, history, events and notifications. Order
+  tracking, order inbox, abandoned carts and the customer book are unaffected.
+- Checkout — but it initialises against the **seller's** credentials, on the
+  **seller's** subdomain, and the callback returns there.
+- Webhooks — but **per tenant**, each verified with that seller's own secret.
+- Subscription billing, exactly as built.
+- The verified badge — now a buyer-facing trust signal, not a money gate.
+
+### New requirements this creates
+
+1. **Subdomain routing is enforced.** `{store}.mypage.ng` is the canonical
+   storefront address, so the seller's name comes first and the buyer is plainly
+   buying from that business. `STOREFRONT_PATH_ROUTES` goes to `false`.
+   `{slug}.mypage.ng` must be resolvable by host, and the apex routes must not
+   answer on a tenant host. This also removes the custom-domain TLS problem for
+   every seller on a subdomain (one wildcard certificate).
+2. **Seller gateway credentials.** A dedicated store, encrypted at rest, written
+   only by a dedicated action, hidden from serialisation, with the key proven
+   against the gateway before it is saved. See the storage rules under *"HIGH 4"*
+   below, which now describes a different thing.
+3. **Per-tenant webhooks.** With per-seller keys, an event can only be verified
+   with that seller's secret, so delivery lands on
+   `{store}.mypage.ng/webhooks/paystack` and the tenant is resolved from the host.
+   **This is the operational cost of the decision**: every seller must paste that
+   URL into their own Paystack dashboard, and the ones who do not will have paid
+   orders that never settle. It needs a dashboard checklist item and a visible
+   warning on the seller's gateway settings screen.
+4. **A buyer-facing trust marker on unverified sellers.** Today the badge renders
+   *nothing* when a seller is unverified, and silence reads as "nothing to see".
+   It must be explicit: "Not verified by mypage.ng" on the page, on product
+   cards, and at the moment of ordering.
+5. **A way for a buyer to report a store to mypage.ng, and a way to reach the
+   store's own support.** Both are prerequisites for a marketplace that no longer
+   arbitrates payment disputes: reporting is the only route a wronged buyer has to
+   the platform. See *"Reporting and support"* below.
+
+### Verification changes meaning
+
+An unverified seller keeps full access to their dashboard, can build their shop,
+and **can still take payments**. Verification is a trust signal, not a payment
+switch. Confirmed in the 2026-10-23 conversation.
+
+- Checkout still works for an unverified seller. The buyer is told, plainly and
+  before paying, that the store is **not yet verified by mypage.ng** — the money
+  goes to the seller, not to the platform, so the platform cannot vouch for it.
+- Their public page, product cards, checkout and order screen carry an unmissable
+  "Not verified by mypage.ng" marker. Silence must not read as approval.
+- Verification still buys something worth having: a visible tick, higher
+  directory placement (the directory already sorts on `verified_at`), and the
+  absence of the warning at checkout.
+
+The warning is the whole mechanism. It has to be legible to someone who is about
+to enter card details, which means it belongs next to the pay button, not in a
+footer.
+
+### Reporting and support
+
+- **Report a store to mypage.ng.** A report form reachable from every storefront
+  and every order. Categories: fraud, goods never arrived, not as described,
+  misleading listing, payment problem, other. It writes a row the seller cannot
+  see, with the reporter's identity withheld from the seller. The admin panel
+  gets a queue with counts; a store that accrues unresolved reports is visible
+  platform-wide, which is the thing the old admin had no view of.
+- **Support to the store.** The store's own contact routes — WhatsApp, public
+  email, contact form — are the buyer's first line and must be present on every
+  page of both themes, not only the contact page.
+- **Support to mypage.ng.** A platform contact and an address on the legal pages,
+  plus the report form, is the minimum. A ticket inbox is not required for launch.
+- A report is **not** a dispute and the platform does not adjudicate money. It is
+  a moderation input: it can lead to suspension, never to a transfer.
 
 ---
 
@@ -116,6 +246,46 @@ Two things have to be decided before anything else in this file:
 
 Do not leave it as it is. Right now a reader of the routes would reasonably
 believe the dashboard is behind a verification check.
+
+---
+
+#### BLOCKER 1 — corrected and resolved, 2026-10-23
+
+**The diagnosis above is wrong on one fact, and the correction matters.**
+
+`verified` *was* registered. It is Laravel's own alias for
+`Illuminate\Auth\Middleware\EnsureEmailIsVerified`, and `Seller implements
+MustVerifyEmail`. So the 56 routes were gated — on the seller's **email address**,
+which is a working control. The check used above,
+`array_key_exists('verified', app('router')->getMiddleware())`, returned `false`
+because `Router::getMiddleware()` holds route middleware, not the alias map. The
+alias map is `app(Illuminate\Contracts\Http\Kernel::class)->getMiddlewareAliases()`.
+
+What was actually true, and is the real defect: the routes read as if they gated
+*business* verification, and business verification gated nothing. An unverified
+seller with a confirmed email reached the whole dashboard and could take money.
+
+**Resolved as follows:**
+
+- A second middleware, `App\Shared\Middleware\EnsureSellerIsVerified`, registered
+  as **`business.verified`** — deliberately *not* `verified`, because overwriting
+  Laravel's alias would silently drop email verification everywhere it is relied
+  on. It reads `store_pages.verified_at` and redirects an unverified seller to the
+  badge screen.
+- The 56 inline `->middleware('verified')` calls are gone. The dashboard group
+  states both controls once:
+  `['verified', 'onboarding.complete', 'subscription.valid', 'business.verified']`.
+- Badge and onboarding routes are exempt, or the redirect loops.
+- `payouts` routes join the group; they had no verification at all.
+- 15 tests in `tests/Feature/Security/VerifiedGateTest.php`, including two that
+  assert email verification still works and that the alias map cannot regress.
+- The duplicate `dashboard.orders.escrow-dispute` route is deleted.
+
+**Superseded by the 2026-10-23 payment decision:** the dashboard must *not* be
+gated on business verification. An unverified seller keeps full dashboard access
+and builds their shop. `business.verified` is repurposed as the **payment gate**
+on checkout, and the public marker becomes explicit. The middleware, the factory
+states and the tests are kept; the group membership is not.
 
 ---
 
@@ -249,6 +419,40 @@ https://YOUR-DOMAIN/webhooks/flutterwave
 
 ---
 
+#### HIGH 1 — rescoped, 2026-10-23
+
+This item was written when the platform held buyer money. Under the payment
+decision it narrows to **subscription billing only**, which is a much smaller
+surface — and it grows a second, harder requirement on the seller side.
+
+Still required, unchanged:
+
+- Live Paystack keys for the **platform's own** account, plan codes for
+  starter/growth/pro, a running queue worker, and a correct `APP_URL`.
+- Rotate the disclosed test keys.
+- A sweep for unprocessed `webhook_events`. The missing nightly job is a real bug
+  and it now affects subscription renewals rather than buyer orders. A lapsed
+  subscription webhook that is dropped means a seller is cut off while they have
+  paid.
+
+New, and larger than the old item: **per-seller webhook delivery.** Buyer payments
+now arrive on each seller's own Paystack account, so:
+
+- The webhook URL is `https://{store}.mypage.ng/webhooks/paystack`, and the tenant
+  is resolved from the host before the payload can be verified.
+- Each seller must register that URL in their own Paystack dashboard. Nothing in
+  Paystack's API can do it for them. A seller who skips this has a working
+  checkout and orders that never settle.
+- Retry/sweep must therefore work per tenant, not once per platform.
+
+Flutterwave: the recurring-billing gap (`FlutterwaveGateway` throws
+`unsupported()` on every plan and subscription method) still means
+`PAYMENT_GATEWAY=flutterwave` has no billing. For buyer payments the gateway is
+now the **seller's** choice, so this is a documentation and validation problem:
+only offer gateways whose buyer-payment path is actually implemented.
+
+---
+
 ### HIGH 2 — No transactional email is delivered, and no Mailable templates exist
 
 `MAIL_MAILER=log`. Nothing reaches a buyer or a seller.
@@ -310,6 +514,68 @@ number can take money.
 
 ---
 
+#### HIGH 4 — rescoped, 2026-10-23
+
+The last sentence is no longer true, and the item changes shape because of it.
+
+There is no platform payout account and no platform-held money, so "an unverified
+seller can take money from us" is gone. What remains is that the badge still
+identifies **nothing about the business**: `badge_applications.business_name` is a
+free-text field pre-filled with the display name, `document_type` is a category
+rather than a number, and there is no CAC/RC number, TIN, expiry or re-check.
+
+Under the payment decision, verification is what makes a seller's checkout work
+and puts a tick in front of buyers. That makes identity capture *more* important,
+not less — a seller's own Paystack account is where the money goes, and the only
+thing tying that account to a real business is what the badge captured.
+
+Required before the checkout is switched on for a seller:
+
+- A registered legal name, distinct from the account holder's name and the public
+  display name, plus a CAC/RC number or national ID number.
+- The document number stored separately from the uploaded file, so it can be
+  re-checked without opening the image.
+- Retention and deletion rules for the uploaded document — it is personal data.
+- Re-verification, or at minimum an expiry, so a badge is not permanent by
+  accident. `verified_at` is currently set once and never revisited.
+
+**Seller gateway credentials are the new HIGH 3-class problem** (see HIGH 3 for
+the admin-can't-read-the-document bug, still open). Storing a per-seller secret
+key is a security obligation in its own right:
+
+- `text` column under an `encrypted` cast, with `APP_PREVIOUS_KEYS` documented so
+  `key:generate` does not destroy every seller's key.
+- Not fillable; written by one action. Hidden from `toArray()` and JSON.
+- `#[SensitiveParameter]` on every method that receives it, never in a queue
+  payload, never logged, never `Http::debug()`.
+- Proven against the gateway **before** it is saved, and a later 401 marks it
+  broken and notifies the seller.
+- `sk_test_` rejected in production and `sk_live_` rejected outside it.
+- `password.confirm` required to change it, so a hijacked session cannot redirect
+  a seller's money.
+
+Encryption at rest protects a database dump or a leaked backup. It does not
+protect a fully compromised host, because `APP_KEY` sits beside the database.
+That is defence in depth, not a vault; a KMS-wrapped key is the later step.
+
+**Rotating `APP_KEY` without destroying saved seller keys:**
+
+1. Generate the new key: `php artisan key:generate --show`.
+2. Set `APP_KEY=<new>` and `APP_PREVIOUS_KEYS=<old>` in the environment. Laravel
+   decrypts with the old key and writes with the new one.
+3. Clear caches (`php artisan config:clear`, or rebuild `config:cache`) and
+   restart queue workers and the web process.
+4. Verify one seller's key still works from the Payment keys screen, then leave
+   `APP_PREVIOUS_KEYS` set. Rows written before the rotation stay readable only
+   while it is present.
+
+There is no re-encryption command yet, so **retiring the old key means every
+seller re-entering their key**. Do not remove `APP_PREVIOUS_KEYS` until either a
+re-encryption pass exists or that cost has been accepted; without it, every
+`seller_gateways.secret_key` becomes undecryptable.
+
+---
+
 ### MEDIUM 1 — No cookie consent mechanism, because there is no analytics yet
 
 No banner component, no consent storage: `grep` for `cookie_consent`,
@@ -343,31 +609,63 @@ unless the edge is in front.
 
 ### LOW 1 — Dead and stale test claims
 
-- `todo.md:658` claims 562 tests pass. `required_from_you.md:231-243` records
-  that recent work was written but **not run**. Re-run the full suite before
-  quoting a number.
+- ~~`todo.md:658` claims 562 tests pass.~~ Re-run 2026-10-23: **722 tests, 722
+  passing, 2182 assertions.** The number in `todo.md` is now that one. Quoting a
+  count is still a bad habit — a green number is not a working product, which is
+  this file's own lesson.
 - Six `ReviewsTest` failures documented at `required_from_you.md` C1 have since
   been fixed; that section is now out of date in the other direction.
+- `tests/Feature/Security/VerifiedGateTest.php` was added on 2026-10-23 (15 tests)
+  for the business-verification gate. It is green. Note that its *dashboard
+  membership* is being reversed by the payment decision above; the alias,
+  credentials and factory states stay.
 
 ---
 
 ### Launch gate
 
-Do not take real money until, at minimum:
+Rewritten 2026-10-23 for the payment architecture above. The old gate was
+written for a platform that held buyer money; the last three items of the old
+version (payout, refund, escrow reconciliation) no longer describe anything.
 
-1. BLOCKER 1 resolved — decided and either wired or deleted.
-2. BLOCKER 2 resolved — real pages, real links, real content.
-3. BLOCKER 3 resolved — consent recorded, DSAR endpoints exist.
-4. BLOCKER 4 resolved — legal entity captured, NDPC registration filed.
-5. HIGH 1 resolved — live keys, `APP_URL` correct, webhook retry sweep built,
-   test keys rotated.
-6. HIGH 2 resolved — real mailer, branded templates, SPF/DKIM/DMARC, verified
-   delivery with one real order end to end.
-7. HIGH 3 resolved — admin can actually read the KYC document.
+Do not take real money until:
 
-Then one real ₦ payment settled, one real payout to a bank account, and one real
-refund, all reconciled by hand. See *"MYPAGE.NG — Implementation Plan"* s.5.4,
-the go-live checklist, items 4, 5 and 8.
+1. **BLOCKER 2** resolved — real legal pages, real links, real content.
+2. **BLOCKER 3** resolved — consent recorded, DSAR endpoints exist.
+3. **BLOCKER 4** resolved — legal entity captured, NDPC registration filed.
+4. **HIGH 2** resolved — real mailer, branded templates, SPF/DKIM/DMARC, and one
+   real order's email verified end to end. This now blocks more than it did: a
+   dropped webhook notification is the only way a seller learns an order exists.
+5. **HIGH 3** resolved — admin can actually read the KYC document.
+6. **Subdomain routing** enforced, with host-only cookies and a wildcard
+   certificate. Every checkout callback and every webhook depends on the tenant
+   host being right.
+7. **Seller gateway credentials** built to the storage rules under HIGH 4, with
+   the key proven before save.
+8. **Per-tenant webhook delivery** built, with the seller-facing setup step and a
+   visible "webhook not configured" state.
+9. **The unverified-seller warning** live on both themes: on the page, on
+   product cards, and beside the pay button. Checkout is *not* blocked.
+10. **Report a store** and **store support contact** live on both themes.
+11. **Subscription billing live**: platform live keys, plan codes, queue worker,
+    correct `APP_URL`, rotated test keys, unprocessed-webhook sweep.
+12. **Escrow, wallet, ledger, commission and payout code deleted** — not flagged
+    off. A dead money path in a live app is the same defect as a dead
+    authorization control.
+
+Then, by hand, with something small:
+
+- One real ₦ subscription charge to **mypage.ng**, reconciled in Paystack.
+- One real ₦ order paid to a **seller's own Paystack account**, including the
+  seller pasting the webhook URL, the order reaching `paid`, the stock moving and
+  the buyer receiving their email.
+- One seller spelling their own key wrong, and the app refusing it instead of
+  silently failing.
+- One buyer reporting a store, and the report arriving in the admin queue.
+
+The old wording of the final line is kept here for the record: *"one real ₦
+payment settled, one real payout to a bank account, and one real refund, all
+reconciled by hand."* Payout and refund are no longer platform actions.
 
 ---
 
@@ -382,6 +680,16 @@ is skipped.
 
 Nothing here is a suggestion. Section A is blocking — real money cannot move
 until it is done.
+
+> **Rescoped 2026-10-23.** Section A now concerns **subscription billing only**:
+> the seller paying mypage.ng. Buyer payments no longer touch a platform account,
+> so the old implication that these keys gate every payment is gone. What is new
+> is per-seller gateway configuration and per-tenant webhooks — see the payment
+> decision section at the top of this file. Section A1's plans, A2's platform
+> webhook, A3's queue worker, A4's live keys and A5's `APP_URL` all still apply.
+>
+> B1, B2, B3 and B4 remain open decisions for subscription billing. C1 is stale
+> and has been fixed; C2 is still open.
 
 ---
 
@@ -520,17 +828,31 @@ untracked, verified), but rotate them anyway — it costs one click.
 
 #### A5. `APP_URL` must be correct in production
 
-`callback_url` is generated from `APP_URL` via `route()`. Wrong, and the buyer is
-sent back to a host that does not exist after paying.
+`APP_URL` is the apex (`https://mypage.ng`). It is what `StoreUrl::platform()` and
+every platform link (login, dashboard, pricing) are built from, so a wrong value sends
+sellers to a host that does not exist.
+
+Payment callbacks are a **17.3** item, not finished. Today `InitializePayment` builds
+the callback with `route('checkout.callback')`, which resolves to the seller's
+**subdomain**. That is reachable, but on a custom-domain checkout it walks the buyer to
+`shop.mypage.ng`; because cookies are host-only, anything session-backed after the
+return (cart, flash) is lost. 17.3 must build the callback from the storefront
+request's own host and register the callback on custom domains too.
+
+That gives two hard requirements now:
 
 ```
-APP_URL=https://YOUR-DOMAIN
+APP_URL=https://mypage.ng
 ```
 
-Note that seller storefronts run on their own custom domains. A buyer paying on
-`shop.example.com` gets a callback URL on that same host — so **custom domains
-must also be correctly configured and reachable over HTTPS**, or those
-checkouts will break in a way that does not affect the apex domain.
+- The wildcard `*.mypage.ng` certificate must cover every seller subdomain.
+- Custom domains must also be reachable over HTTPS. A custom-domain checkout breaks
+  independently of the apex, so it cannot be deferred.
+
+In-shop links are relative (`StoreUrl::path()` / `homePath()`) on purpose: that is what
+keeps a buyer on the seller's custom domain instead of walking them to the subdomain.
+Platform links use `StoreUrl::platform()`, which always points at the apex.
+
 
 ---
 
@@ -660,6 +982,18 @@ Test card numbers for exercising a real subscription: `4084084084084081`
 <!-- source: escrow_security_plan.md -->
 
 ## Escrow security plan (proposed)
+
+> **WITHDRAWN 2026-10-23. Do not build any of this.**
+>
+> The payment architecture decision at the top of this file removed platform-held
+> money entirely: buyers pay the seller's own Paystack account and mypage.ng never
+> holds, releases or refunds a buyer payment. There is no escrow, so there is no
+> buyer release to authorise, no OTP gate to add, and no dispute to arbitrate.
+>
+> This section is kept because it is a careful piece of thinking and because the
+> code it describes still exists. It is history and a reference for the general
+> shape of two-channel authorisation — not a plan. The next person to find the
+> escrow tables should read the decision section first.
 
 How a buyer proves they are the buyer before money moves.
 
@@ -1042,6 +1376,16 @@ in P2 can ship at any time without changing behaviour.
 <!-- source: docs/escrow.md (current-state buyer authorisation) -->
 
 ## Escrow — current buyer authorisation (what exists today)
+
+> **HISTORICAL 2026-10-23.** `docs/escrow.md` and this section describe a subsystem
+> that is being removed. Buyers now pay the seller directly, through the seller's
+> own gateway account, and the platform holds nothing. The security question this
+> section raises — how a buyer proves they are the buyer before money moves — no
+> longer has an answer on this platform, because the platform does not move the
+> money.
+>
+> What survives from the thinking here is the general principle, not the code: a
+> capability that travels in a URL is a capability that gets forwarded.
 
 ### Proving it is you
 

@@ -13,8 +13,8 @@
 <x-themes.shared.layout :page="$page">
   @php
     $storefront = ['slug' => $page->slug];
-    $home = \App\Shared\Support\StoreUrl::home($page);
-    $action = route('storefront.services', $storefront);
+    $home = \App\Shared\Support\StoreUrl::homePath($page);
+    $action = \App\Shared\Support\StoreUrl::path('storefront.services', $storefront);
     $total = $services->total();
 
     // The design's <h1> only prints when the seller has not written their own.
@@ -46,7 +46,7 @@
       @endunless
 
       <p class="t-body-lg text-[var(--ink-2)] mt-4">
-        Every booking includes the suite to yourselves, full product hygiene guarantees, and escrow protection on any deposit payment.
+        Every booking includes clear availability, service details, and secure payment on any deposit.
       </p>
     </div>
 
@@ -55,16 +55,7 @@
         always had one and a rate card nobody can search is a rate card they scroll.
     --}}
     <form method="GET" action="{{ $action }}"
-          x-data="{
-               term: @js($filters->term() ?? ''),
-               timer: null,
-               search() {
-                 clearTimeout(this.timer);
-                 // 350ms is long enough that a mid-word pause does not cost a
-                 // query, and short enough that it still feels like typing.
-                 this.timer = setTimeout(() => this.$el.submit(), 350);
-               },
-           }"
+          x-data="serviceSearch(@jsExpr(['term' => $filters->term() ?? '']))"
           @input.debounce.350ms="search()"
           class="pb-8 mb-8 border-b border-[var(--rule)]">
 

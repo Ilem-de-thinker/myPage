@@ -2,7 +2,6 @@
 
 namespace App\Domains\Orders\Models;
 
-use App\Domains\Billing\Models\Escrow;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Enums\OrderStatus;
@@ -15,7 +14,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 /**
@@ -68,20 +66,6 @@ class Order extends Model
     public function transactions(): HasMany
     {
         return $this->morphMany(Transaction::class, 'payable');
-    }
-
-    /**
-     * The buyer's money parked until they are satisfied, if this order used it.
-     *
-     * Bypasses the seller scope on purpose: the escrow is about one order, and
-     * "one per payable" is enforced by a unique index rather than by who is
-     * asking.
-     */
-    public function escrow(): HasOne
-    {
-        return $this->hasOne(Escrow::class, 'payable_id')
-            ->where('payable_type', $this->getMorphClass())
-            ->withoutGlobalScopes();
     }
 
     public function customer(): BelongsTo

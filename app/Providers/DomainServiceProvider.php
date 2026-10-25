@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
+use App\Domains\Ai\Contracts\AiManager;
+use App\Domains\Ai\Services\PrismAiManager;
 use App\Domains\Auth\Events\SellerRegistered;
 use App\Domains\Auth\Listeners\SendWelcomeEmail;
-use App\Domains\Billing\Listeners\OpenEscrowAfterPayment;
 use App\Domains\Billing\Models\Subscription;
-use App\Domains\Billing\Services\EscrowRouterService;
 use App\Domains\Booking\Events\BookingStatusChanged;
 use App\Domains\Booking\Listeners\TrackBookingCustomerValue;
 use App\Domains\Booking\Models\Booking;
@@ -18,10 +18,11 @@ use App\Domains\Orders\Events\OrderStatusChanged;
 use App\Domains\Orders\Listeners\NotifyBuyerOfStatusChange;
 use App\Domains\Orders\Listeners\NotifySellerOfNewOrder;
 use App\Domains\Orders\Models\Order;
+use App\Domains\Payments\Data\GatewayCredentials;
 use App\Domains\Payments\Events\PaymentConfirmed;
 use App\Domains\Payments\Listeners\SettleOrderAfterPayment;
-use App\Domains\Payments\Services\Contracts\EscrowRouter;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
+use App\Domains\Payments\Services\GatewayFactory;
 use App\Domains\Payments\Services\Gateways\FlutterwaveGateway;
 use App\Domains\Payments\Services\Gateways\PaystackGateway;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -32,16 +33,28 @@ class DomainServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(AiManager::class, PrismAiManager::class);
         // DNS is asked the same way everywhere, so there is one place to swap in
         // a resolver for a different platform or for tests.
         $this->app->singleton(DnsResolver::class, NativeDnsResolver::class);
 
-        $this->app->bind(PaymentGatewayInterface::class, function (): PaymentGatewayInterface {
-            return match (config('mypage.gateway')) {
-                'flutterwave' => new FlutterwaveGateway,
-                default => new PaystackGateway,
-            };
-        });
+        $this->app->bind(PaymentGatewayInterface::class, fn (): PaymentGatewayInterface => $this->app
+            ->make(GatewayFactory::class)
+            ->platform());
+
+        /*
+         * The concrete gateways are also resolvable on their own: the webhook
+         * controller takes PaystackGateway/FlutterwaveGateway by type for the
+         * platform's subscription endpoint. Seller-money calls go through the
+         * factory and never use these instances.
+         */
+        $this->app->bind(PaystackGateway::class, fn (): PaystackGateway => new PaystackGateway(
+            GatewayCredentials::platform('paystack'),
+        ));
+
+        $this->app->bind(FlutterwaveGateway::class, fn (): FlutterwaveGateway => new FlutterwaveGateway(
+            GatewayCredentials::platform('flutterwave'),
+        ));
     }
 
     public function boot(): void
@@ -59,10 +72,8 @@ class DomainServiceProvider extends ServiceProvider
         Event::listen(OrderStatusChanged::class, NotifyBuyerOfStatusChange::class);
         Event::listen(OrderPlaced::class, NotifySellerOfNewOrder::class);
         Event::listen(BookingStatusChanged::class, TrackBookingCustomerValue::class);
-        Event::listen(PaymentConfirmed::class, OpenEscrowAfterPayment::class);
 
         // Payments asks where a completed sale's money should land; Billing
         // answers, and knows nothing about orders or bookings.
-        $this->app->singleton(EscrowRouter::class, EscrowRouterService::class);
     }
 }

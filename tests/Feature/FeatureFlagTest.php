@@ -29,7 +29,7 @@ function setFlag(int $sellerId, string $feature, bool $enabled): void
 
 beforeEach(function () {
     config([
-        'mypage.features' => ['escrow' => false, 'directory' => false, 'custom_domains' => true],
+        'mypage.features' => ['directory' => false, 'custom_domains' => true],
         'mypage.features_locked' => false,
     ]);
 
@@ -39,24 +39,24 @@ beforeEach(function () {
 it('leaves a feature off when the platform has not turned it on', function () {
     $id = sellerId();
 
-    expect(Feature::enabled('escrow', $id))->toBeFalse();
+    expect(Feature::enabled('directory', $id))->toBeFalse();
 });
 
 it('lets a row opt a single seller into a dark feature', function () {
     $id = sellerId();
 
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
-    expect(Feature::enabled('escrow', $id))->toBeTrue();
+    expect(Feature::enabled('directory', $id))->toBeTrue();
 });
 
 it('leaves every other seller alone when one is opted in', function () {
     $optedIn = sellerId();
     $everyoneElse = sellerId();
 
-    setFlag($optedIn, 'escrow', true);
+    setFlag($optedIn, 'directory', true);
 
-    expect(Feature::enabled('escrow', $everyoneElse))->toBeFalse();
+    expect(Feature::enabled('directory', $everyoneElse))->toBeFalse();
 });
 
 it('lets a row opt a seller out of a feature the platform has on', function () {
@@ -80,34 +80,33 @@ it('ignores a feature that is not in config at all', function () {
 
 it('lets the panic switch override everything', function () {
     $id = sellerId();
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
-    expect(Feature::enabled('escrow', $id))->toBeTrue();
+    expect(Feature::enabled('directory', $id))->toBeTrue();
 
     config(['mypage.features_locked' => true]);
 
     // Including a row that explicitly says on: this is the switch you reach for
     // when a feature is misbehaving in production.
-    expect(Feature::enabled('escrow', $id))->toBeFalse();
+    expect(Feature::enabled('directory', $id))->toBeFalse();
 });
 
 it('tells an explicit opinion apart from following the default', function () {
     $id = sellerId();
 
-    expect(Feature::hasOverride('escrow', $id))->toBeFalse();
+    expect(Feature::hasOverride('directory', $id))->toBeFalse();
 
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
-    expect(Feature::hasOverride('escrow', $id))->toBeTrue();
+    expect(Feature::hasOverride('directory', $id))->toBeTrue();
 });
 
 it('reports every feature for a seller at once', function () {
     $id = sellerId();
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
     expect(Feature::allFor($id))->toBe([
-        'escrow' => true,
-        'directory' => false,
+        'directory' => true,
         'custom_domains' => true,
     ]);
 });
@@ -115,18 +114,18 @@ it('reports every feature for a seller at once', function () {
 it('picks up a change without waiting for the cache to expire', function () {
     $id = sellerId();
 
-    expect(Feature::enabled('escrow', $id))->toBeFalse();
+    expect(Feature::enabled('directory', $id))->toBeFalse();
 
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
     // Cached for five minutes otherwise, which is long enough that an admin
     // toggles a switch and tells the seller it is on when it is not.
-    expect(Feature::enabled('escrow', $id))->toBeTrue();
+    expect(Feature::enabled('directory', $id))->toBeTrue();
 });
 
 it('refuses an unknown feature name from the admin panel', function () {
     $id = sellerId();
-    setFlag($id, 'escrow', true);
+    setFlag($id, 'directory', true);
 
     actingAs(Seller::factory()->admin()->create())
         ->post(route('admin.features.update'), [
@@ -143,12 +142,12 @@ it('lets an admin turn a feature on for one seller', function () {
     actingAs(Seller::factory()->admin()->create())
         ->post(route('admin.features.update'), [
             'seller_id' => $id,
-            'feature' => 'escrow',
+            'feature' => 'directory',
             'enabled' => true,
         ])
         ->assertRedirect();
 
-    expect(Feature::enabled('escrow', $id))->toBeTrue();
+    expect(Feature::enabled('directory', $id))->toBeTrue();
 });
 
 it('records who changed a feature flag', function () {
@@ -157,7 +156,7 @@ it('records who changed a feature flag', function () {
 
     actingAs($admin)->post(route('admin.features.update'), [
         'seller_id' => $id,
-        'feature' => 'escrow',
+        'feature' => 'directory',
         'enabled' => true,
     ]);
 

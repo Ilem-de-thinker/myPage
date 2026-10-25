@@ -26,7 +26,7 @@
             </div>
           @endif
 
-          <a href="{{ route('storefront.about', ['slug' => $page->slug]) }}" class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.about', ['slug' => $page->slug]) }}" class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
             <span>Read Our Full Story</span>
             <span aria-hidden="true">→</span>
           </a>

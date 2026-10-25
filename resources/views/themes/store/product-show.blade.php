@@ -10,54 +10,35 @@
           'price_kobo' => $variant->priceKobo(),
           'stock' => $variant->stock_qty,
       ])->all();
+      $gallery = $images->map(fn ($image) => [
+          'url' => $image->url(),
+          'thumbnail' => $image->thumbnailUrl(),
+          'alt' => $image->alt ?: $product->name,
+      ])->values()->all();
       $whatsapp = filled($page->whatsapp_number)
           ? \App\Shared\Support\WhatsApp::productLink($page, $product)
           : null;
       $soldOut = $product->isSoldOut();
+      $themePreset = $page->settings['theme_preset'] ?? 'catalog';
   @endphp
 
-  <div x-data="{
-        {{-- The reviews tab holds the form *and* the answer to it: the
-             confirmation after a submission and the errors after a rejection.
-             Opening on 'details' every time meant both landed somewhere the
-             shopper was not looking, so a rejected review looked like a
-             submission that had quietly failed. --}}
-        tab: @js($errors->any() || session('review_sent') ? 'reviews' : 'details'),
-        qty: 1,
-        variantId: {{ $variants->isEmpty() ? 'null' : $options[0]['id'] }},
-        options: @js($options),
-        get variant() { return this.options.find((o) => o.id === this.variantId) ?? null; },
-        get unitKobo() { return this.variant ? this.variant.price_kobo : {{ $product->price_kobo }}; },
-        get priceLabel() {
-            return '₦' + (this.unitKobo / 100).toLocaleString(undefined, {
-                minimumFractionDigits: this.unitKobo % 100 ? 2 : 0,
-                maximumFractionDigits: 2,
-            });
-        },
-        get maxQty() {
-            return this.variant ? this.variant.stock : {{ $product->track_stock ? $product->stock_qty : 99 }};
-        },
-        addToCart() {
-            this.qty = 1;
-            $store.cart.add({
-                id: {{ $product->id }},
-                variant_id: this.variantId,
-                variant_name: this.variant ? this.variant.name : null,
-                name: @js($product->name),
-                price_kobo: this.unitKobo,
-            }, this.qty);
-        },
-        inCart() {
-            return $store.cart.items.some((line) => line.id === {{ $product->id }} && line.variant_id === this.variantId);
-        },
-    }">
+  <div x-data="storeProduct(@jsExpr([
+        'tab' => $errors->any() || session('review_sent') ? 'reviews' : 'details',
+        'variantId' => $variants->isEmpty() ? null : $options[0]['id'],
+        'options' => $options,
+        'gallery' => $gallery,
+        'productId' => $product->id,
+        'productName' => $product->name,
+        'priceKobo' => $product->price_kobo,
+        'maxQty' => $product->track_stock ? $product->stock_qty : 99,
+    ]))">
 
-    <article class="shell pt-24 pb-16 md:pt-28">
+    <article data-detail-style="{{ $themePreset }}" class="theme-detail theme-detail-store shell pt-24 pb-16 md:pt-28">
       <nav aria-label="Breadcrumb" class="mb-6">
         <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-          <li><a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
+          <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
           <li aria-hidden="true">/</li>
-          <li><a href="{{ route('storefront.products', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Catalogue</a></li>
+          <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Catalogue</a></li>
           <li aria-hidden="true">/</li>
           <li class="text-[var(--ink)] font-semibold truncate max-w-xs" aria-current="page">{{ $product->name }}</li>
         </ol>
@@ -71,8 +52,10 @@
           <div class="plate aspect-[4/3] rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-[var(--shadow-rest)]">
             <div class="plate-media h-full">
               @if ($images->isNotEmpty())
-                <img src="{{ \Illuminate\Support\Facades\Storage::url($images->first()->path) }}"
+                  <img src="{{ $images->first()->url() }}"
                      alt="{{ $product->images->first()->alt ?: $product->name }}"
+                     x-bind:src="imageUrl"
+                     x-bind:alt="imageAlt"
                      width="800" height="600"
                      class="w-full h-full object-cover"
                      fetchpriority="high" decoding="async">
@@ -83,15 +66,20 @@
 
           {{-- One thumbnail per photograph the seller uploaded, and no more. --}}
           @if ($images->count() > 1)
-            <div class="grid grid-cols-4 gap-3">
-              @foreach ($images as $image)
-                <div class="plate aspect-square rounded-[var(--radius)] border border-[var(--rule)] overflow-hidden">
-                  <img src="{{ \Illuminate\Support\Facades\Storage::url($image->path) }}"
-                       alt="{{ $image->alt ?: $product->name }}"
+            <div class="grid grid-cols-4 gap-3" aria-label="Product images">
+              <template x-for="(image, index) in gallery" :key="image.url">
+                <button type="button"
+                        @click="activeImage = index"
+                        :aria-label="'View image ' + (index + 1)"
+                        :aria-current="activeImage === index ? 'true' : 'false'"
+                        :class="activeImage === index ? 'border-[var(--brand)] ring-2 ring-[var(--brand)]' : 'border-[var(--rule)]'"
+                        class="plate aspect-square rounded-[var(--radius)] border overflow-hidden focus-visible:outline-none">
+                  <img x-bind:src="image.thumbnail"
+                       x-bind:alt="image.alt"
                        width="200" height="200" loading="lazy"
                        class="w-full h-full object-cover">
-                </div>
-              @endforeach
+                </button>
+              </template>
             </div>
           @endif
 
@@ -154,7 +142,7 @@
 
               <div class="mt-6">
                 <x-ui.review-form
-                    :action="route('storefront.product.review', ['slug' => $page->slug, 'productSlug' => $product->slug])"
+                    :action="\App\Shared\Support\StoreUrl::path('storefront.product.review', ['slug' => $page->slug, 'productSlug' => $product->slug])"
                     :reviewable="$product"
                     :subject="$product->name" />
               </div>
@@ -184,7 +172,7 @@
 
             <div class="flex items-center gap-2 mt-2 text-xs text-[var(--ink-3)]">
               @if ($product->hasRating())
-                <span class="text-amber-500 font-bold" aria-label="{{ number_format($product->ratingLabel(), 1) }} out of 5">★★★★★ {{ number_format($product->ratingLabel(), 1) }}</span>
+                <span class="font-bold text-[var(--rating)]" aria-label="{{ number_format($product->ratingLabel(), 1) }} out of 5">★★★★★ {{ number_format($product->ratingLabel(), 1) }}</span>
                 <span aria-hidden="true">·</span>
                 <span>{{ $product->review_count }} verified {{ \Illuminate\Support\Str::plural('review', $product->review_count) }}</span>
               @else
@@ -224,7 +212,7 @@
               </label>
               <div class="inline-flex items-center rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] overflow-hidden">
                 <button type="button"
-                        @click="qty = Math.max(1, qty - 1)"
+                        @click="decrementQty()"
                         :disabled="qty <= 1"
                         aria-label="Decrease quantity"
                         class="w-12 h-12 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] text-base font-bold disabled:opacity-40">
@@ -237,7 +225,7 @@
                        class="w-12 h-12 text-center text-sm font-bold text-[var(--ink)] bg-transparent border-x border-[var(--rule)] tabular-nums"
                        aria-live="polite">
                 <button type="button"
-                        @click="qty = Math.min(maxQty, qty + 1)"
+                        @click="incrementQty()"
                         aria-label="Increase quantity"
                         class="w-12 h-12 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] text-base font-bold">
                   +
@@ -260,7 +248,7 @@
                  x-text="$store.cart.count + ' ' + ($store.cart.count === 1 ? 'item' : 'items') + ' in your cart'"></p>
 
               <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('storefront.cart', ['slug' => $page->slug]) }}"
+                <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.cart', ['slug' => $page->slug]) }}"
                    class="h-11 rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)] font-bold text-xs flex items-center justify-center hover:bg-[var(--paper)] transition-colors">
                   Go to Bag
                 </a>
@@ -269,7 +257,7 @@
                   <a href="{{ $whatsapp }}"
                      target="_blank"
                      rel="noopener noreferrer"
-                     class="h-11 rounded-[var(--radius)] bg-transparent text-[#25D366] border border-[#25D366] font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#25D366]/5 transition-colors">
+                     class="h-11 rounded-[var(--radius)] bg-transparent text-[var(--brand-text)] border border-[var(--brand-edge)] font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[var(--brand-wash)] transition-colors">
                     <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
                     <span>Inquire on WhatsApp</span>
                   </a>
@@ -284,7 +272,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <svg class="w-4 h-4 text-[var(--brand)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                <span>Full escrow protection: funds released only after inspection</span>
+                <span>Secure online payment, straight to the seller</span>
               </div>
             </div>
           </div>
@@ -298,7 +286,7 @@
               <p class="t-meta">Complete the Look</p>
               <h2 class="t-display-2 text-[var(--ink)] mt-1">You may also like</h2>
             </div>
-            <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
                class="text-xs font-bold text-[var(--brand-text)] hover:underline shrink-0">
               View the catalogue →
             </a>

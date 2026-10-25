@@ -2,6 +2,7 @@
 
 namespace App\Domains\Seller\Http\Controllers;
 
+use App\Domains\Analytics\Services\AnalyticsSummary;
 use App\Domains\Seller\Services\DashboardStats;
 use App\Domains\Seller\Services\PublishReadiness;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class DashboardController extends Controller
         Request $request,
         DashboardStats $stats,
         PublishReadiness $readiness,
+        AnalyticsSummary $analytics,
     ): View {
         $page = $request->user()->storePages()->first();
 
@@ -21,6 +23,7 @@ class DashboardController extends Controller
             'page' => $page,
             // Every figure on the card row, so the template holds no logic of its own.
             'stats' => $page ? $stats->for($page) : null,
+            'analytics' => $page ? $analytics->for($page) : null,
             'checks' => $page ? $readiness->checks($page) : [],
         ]);
     }

@@ -1,5 +1,19 @@
 # Escrow
 
+> **WITHDRAWN — 2026-10-23. Historical document.**
+>
+> Escrow no longer exists on this platform. Buyers pay each seller's **own**
+> Paystack account, using credentials the seller enters in their dashboard, and
+> mypage.ng never holds, releases, refunds or pays out buyer money. There is no
+> escrow pool, no release action and no dispute arbitration.
+>
+> The decision, its consequences and what replaces it are recorded at the top of
+> `before lunch.md` under *"Payment architecture — decided 2026-10-23"*.
+>
+> This file is kept because the code it describes still exists and is being
+> removed deliberately rather than forgotten. Read the decision first, then treat
+> everything below as a record of why the code looked the way it did.
+
 Money a buyer has paid that is not the seller's yet.
 
 ## Why it exists

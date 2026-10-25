@@ -60,8 +60,8 @@
       <p class="t-meta mt-1">This page has no services listed yet.</p>
     </div>
   @else
-    <div x-data="{
-           services: @js($services->map(fn ($s) => [
+    <div x-data="bookingWidget(@jsExpr([
+           'services' => $services->map(fn ($s) => [
                'id' => $s->id,
                'name' => $s->name,
                'duration' => $s->durationLabel(),
@@ -69,111 +69,22 @@
                'due' => \App\Shared\Support\Money::format($s->amountDueKobo()),
                'balance' => \App\Shared\Support\Money::format(max(0, $s->price_kobo - $s->depositKobo())),
                'hasDeposit' => $s->hasDeposit(),
-           ])->values()),
-           months: @js($months),
-           staff: @js($staff->map(fn ($m) => ['id' => $m->id, 'name' => $m->name])->values()),
-           serviceId: @js((string) $preselected->id),
-           staffId: '',
-           month: 0,
-           date: @js($firstDay['value']),
-           slots: [],
-           startsAt: '',
-           loading: false,
-           loadedFor: '',
-           whatsappUrl: null,
-           sending: false,
-
-           /**
-            * The free path. No slot is held: the seller confirms by hand, so a
-            * paying customer is never blocked by someone asking on WhatsApp.
-            */
-           async sendWhatsApp() {
-             if (!this.startsAt || this.sending) return;
-             this.sending = true;
-
-             const body = {
-               service: this.serviceId,
-               staff: this.staffId || null,
-               starts_at: this.startsAt,
-               name: document.getElementById('name')?.value?.trim(),
-               phone: document.getElementById('phone')?.value?.trim(),
-               notes: document.getElementById('notes')?.value?.trim() || null,
-             };
-
-             try {
-               const response = await fetch(@js(route('storefront.booking.whatsapp', ['slug' => $page->slug])), {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/json',
-                   'Accept': 'application/json',
-                   'X-CSRF-TOKEN': @js(csrf_token()),
-                 },
-                 body: JSON.stringify(body),
-               });
-               const data = await response.json();
-               this.whatsappUrl = data.url;
-               if (data.url) window.open(data.url, '_blank');
-             } catch (error) {
-               this.whatsappUrl = null;
-             } finally {
-               this.sending = false;
-             }
-           },
-
-           get service() { return this.services.find(s => s.id === Number(this.serviceId)); },
-
-           /**
-            * The label of the slot that is chosen, for the summary panel. Read back
-            * off the fetched list rather than kept in a second variable that could
-            * disagree with it.
-            */
-           get slotLabel() {
-             const slot = this.slots.find(s => s.starts_at === this.startsAt);
-             return slot ? slot.label : '';
-           },
-
-           /**
-            * Slots are fetched rather than baked in, so the list a visitor sees
-            * is computed at the moment they look at it.
-            */
-           async loadSlots() {
-             if (!this.serviceId || !this.date) { this.slots = []; return; }
-
-             const key = this.serviceId + '|' + this.date + '|' + this.staffId;
-             if (this.loadedFor === key) { return; }
-
-             this.loading = true;
-             this.startsAt = '';
-
-             const params = new URLSearchParams({ service: this.serviceId, date: this.date });
-             if (this.staffId) params.set('staff', this.staffId);
-
-             try {
-               const response = await fetch(@js(route('storefront.availability', ['slug' => $page->slug])) + '?' + params, {
-                 headers: { 'Accept': 'application/json' },
-               });
-               const data = await response.json();
-               this.slots = data.slots || [];
-               this.loadedFor = key;
-             } catch (error) {
-               this.slots = [];
-             } finally {
-               this.loading = false;
-             }
-           },
-
-           get dueLabel() {
-             if (!this.service) return '';
-             return this.service.hasDeposit ? this.service.due + ' to book' : this.service.price;
-           },
-         }"
+           ])->values(),
+           'months' => $months,
+           'staff' => $staff->map(fn ($m) => ['id' => $m->id, 'name' => $m->name])->values(),
+           'serviceId' => (string) $preselected->id,
+           'date' => $firstDay['value'],
+           'availabilityUrl' => \App\Shared\Support\StoreUrl::path('storefront.availability', ['slug' => $page->slug]),
+           'whatsappEndpoint' => \App\Shared\Support\StoreUrl::path('storefront.booking.whatsapp', ['slug' => $page->slug]),
+           'csrf' => csrf_token(),
+       ]))"
          x-init="loadSlots()">
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         {{-- Left: package chooser, calendar, client details --}}
         <div class="lg:col-span-8 space-y-8">
-          <form method="POST" action="{{ route('storefront.booking.store', ['slug' => $page->slug]) }}">
+          <form method="POST" action="{{ \App\Shared\Support\StoreUrl::path('storefront.booking.store', ['slug' => $page->slug]) }}">
             @csrf
 
             <input type="hidden" name="service" :value="serviceId">
@@ -181,8 +92,8 @@
             <input type="hidden" name="starts_at" :value="startsAt" required>
 
             @if ($errors->any())
-              <div class="mb-8 p-4 rounded-[var(--radius)] bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800">
-                <ul class="space-y-1 text-xs text-red-700 dark:text-red-200">
+              <div class="mb-8 rounded-[var(--radius)] border border-[var(--danger-edge)] bg-[var(--danger-wash)] p-4">
+                <ul class="space-y-1 text-xs text-[var(--danger-text)]">
                   @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                   @endforeach
@@ -200,7 +111,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach ($services as $service)
                   <button type="button"
-                          @click="serviceId = '{{ $service->id }}'; loadedFor = ''; loadSlots()"
+                          @click="selectService('{{ $service->id }}')"
                           :class="serviceId === '{{ $service->id }}' ? 'border-[var(--brand)] bg-[var(--brand-wash)] ring-1 ring-[var(--brand)]' : 'border-[var(--rule)] bg-[var(--paper)] hover:border-[var(--brand-edge)]'"
                           :aria-pressed="serviceId === '{{ $service->id }}'"
                           class="p-4 rounded-[var(--radius)] border text-left transition-all">
@@ -211,7 +122,7 @@
                     <p class="text-[11px] text-[var(--ink-3)] mt-1">
                       {{ $service->durationLabel() }}
                       @if ($service->hasDeposit())
-                        · {{ \App\Shared\Support\Money::format($service->depositKobo()) }} Escrow Deposit
+                        · {{ \App\Shared\Support\Money::format($service->depositKobo()) }} Deposit
                       @endif
                     </p>
                   </button>
@@ -243,7 +154,7 @@
 
                 <div class="flex items-center gap-2">
                   <button type="button"
-                          @click="month = Math.max(0, month - 1)"
+                          @click="previousMonth()"
                           :disabled="month === 0"
                           class="p-2 rounded-[var(--radius-sm)] border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--surface)] disabled:opacity-30"
                           aria-label="Previous month">
@@ -251,7 +162,7 @@
                   </button>
 
                   <button type="button"
-                          @click="month = Math.min(months.length - 1, month + 1)"
+                          @click="nextMonth()"
                           :disabled="month === months.length - 1"
                           class="p-2 rounded-[var(--radius-sm)] border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--surface)] disabled:opacity-30"
                           aria-label="Next month">
@@ -282,7 +193,7 @@
 
                     <template x-if="cell">
                       <button type="button"
-                              @click="date = cell.value; loadedFor = ''; loadSlots()"
+                              @click="selectDate(cell)"
                               :class="date === cell.value ? 'bg-[var(--brand)] text-[var(--brand-ink)] font-bold' : 'bg-[var(--paper)] text-[var(--ink)] hover:border-[var(--brand-edge)]'"
                               class="w-full h-12 rounded-[var(--radius)] border border-[var(--rule)] text-xs flex flex-col items-center justify-center transition-colors"
                               :aria-pressed="date === cell.value"
@@ -306,7 +217,7 @@
                 <div x-show="! loading && slots.length > 0" style="display: none;" class="flex flex-wrap gap-2.5">
                   <template x-for="slot in slots" :key="slot.starts_at">
                     <button type="button"
-                            @click="startsAt = slot.starts_at"
+                            @click="selectSlot(slot)"
                             :class="startsAt === slot.starts_at ? 'bg-[var(--brand)] text-[var(--brand-ink)] font-bold' : 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] hover:border-[var(--brand-edge)]'"
                             class="px-4 py-2.5 rounded-[var(--radius)] text-xs font-medium tabular-nums transition-colors"
                             :aria-pressed="startsAt === slot.starts_at"
@@ -365,7 +276,7 @@
               </div>
 
               {{--
-                The escrow structure is not a choice here. What a booking owes is the
+                The deposit is not a choice here. What a booking owes is the
                 service's deposit, or the whole price where the seller set none, and
                 that is decided by the server from the row — so the panel beside
                 this form states it rather than offering a second option the
@@ -394,7 +305,7 @@
                 </div>
               </div>
 
-              <p x-show="whatsappUrl" x-cloak class="text-xs text-emerald-700">
+              <p x-show="whatsappUrl" x-cloak class="text-xs text-[var(--ok-text)]">
                 Opening WhatsApp with your message. The seller will confirm your time.
               </p>
             </div>
@@ -440,7 +351,7 @@
 
             <div class="p-3.5 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] flex items-start gap-2.5 text-xs text-[var(--ink-2)]">
               <svg class="w-4 h-4 text-[var(--brand)] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              <span>Escrow protection: any deposit is held securely until the session is completed.</span>
+              <span>Deposit payment: any deposit is paid at booking, straight to the studio.</span>
             </div>
 
             <p class="t-meta text-center mt-4">

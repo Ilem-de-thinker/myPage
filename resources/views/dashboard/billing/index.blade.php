@@ -7,6 +7,11 @@
     />
 
     <div class="max-w-4xl mx-auto space-y-4">
+        @unless ($subscriptionsEnabled)
+            <div class="rounded-2xl border border-warn-edge bg-warn-wash p-5 text-sm text-warn-text">
+                Seller subscriptions are temporarily disabled by mypage.ng. Your storefront and dashboard remain available, and your existing billing record has been kept.
+            </div>
+        @endunless
         @if ($subscription)
             <div class="rounded-2xl border border-rule bg-card p-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -105,13 +110,17 @@
             </div>
         @else
             <div class="rounded-2xl border border-rule bg-card p-6">
-                <p class="text-sm font-semibold text-ink">You are not subscribed yet.</p>
-                <p class="mt-1 text-xs text-ink-3">
-                    Pick a plan below to keep your page and your dashboard open.
-                </p>
+                @if ($subscriptionsEnabled)
+                    <p class="text-sm font-semibold text-ink">You are not subscribed yet.</p>
+                    <p class="mt-1 text-xs text-ink-3">Pick a plan below to keep your page and your dashboard open.</p>
+                @else
+                    <p class="text-sm font-semibold text-ink">No active subscription.</p>
+                    <p class="mt-1 text-xs text-ink-3">Subscription signup is currently paused by the platform. Your storefront remains available.</p>
+                @endif
             </div>
         @endif
 
+        @if ($subscriptionsEnabled)
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             @foreach ($plans as $plan)
                 <div @class([
@@ -150,6 +159,7 @@
                 </div>
             @endforeach
         </div>
+        @endif
 
         @if ($history->isNotEmpty())
             <div class="rounded-2xl border border-rule bg-card overflow-hidden">
@@ -171,6 +181,7 @@
             </div>
         @endif
 
+        @if ($subscriptionsEnabled)
         <div class="rounded-2xl border border-rule bg-card p-6">
             <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">Pay by bank transfer</h2>
             <p class="text-xs text-ink-3 mb-4">{{ $transfers['instructions'] }}</p>
@@ -211,5 +222,6 @@
                 </button>
             </form>
         </div>
+        @endif
     </div>
 @endsection

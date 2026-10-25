@@ -42,22 +42,7 @@
     <form method="POST"
           action="{{ $staff ? route('availability.update', ['staff' => $staff->id]) : route('availability.update', ['staff' => null]) }}"
           class="max-w-3xl mx-auto space-y-4"
-          x-data="{
-              days: {{ Js::from($week) }},
-              copyFrom: null,
-              copy() {
-                  if (! this.copyFrom) return;
-                  const source = this.days[this.copyFrom];
-                  for (const weekday of Object.keys(this.days)) {
-                      if (weekday === String(this.copyFrom)) continue;
-                      this.days[weekday] = {
-                          enabled: source.enabled,
-                          start: source.start,
-                          end: source.end,
-                      };
-                  }
-              },
-          }">
+          x-data="availabilityEditor(@jsExpr(['days' => $week]))">
         @csrf
         {{-- The route is PUT (and DELETE beside it for time off), so the form
              posts with method spoofing. Without this the browser's POST never

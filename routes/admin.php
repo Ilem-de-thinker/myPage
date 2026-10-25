@@ -1,7 +1,10 @@
 <?php
 
+use App\Domains\Admin\Http\Controllers\AdminAnalyticsController;
 use App\Domains\Admin\Http\Controllers\AdminController;
 use App\Domains\Admin\Http\Controllers\AdminDashboardController;
+use App\Domains\Admin\Http\Controllers\PlatformSettingsController;
+use App\Domains\Admin\Http\Controllers\SupportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,13 +14,21 @@ use Illuminate\Support\Facades\Route;
 
 Route::name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('index');
+    Route::get('analytics', AdminAnalyticsController::class)->name('analytics');
     Route::get('badges', [AdminController::class, 'badges'])->name('badges');
-    Route::get('escrows', [AdminController::class, 'escrows'])->name('escrows');
+    Route::get('badges/{application}/document', [AdminController::class, 'badgeDocument'])->name('badges.document');
     Route::get('stores', [AdminController::class, 'stores'])->name('stores');
     Route::get('transactions', [AdminController::class, 'transactions'])->name('transactions');
-    Route::get('payouts', [AdminController::class, 'payouts'])->name('payouts');
+    Route::get('reports', [AdminController::class, 'reports'])->name('reports');
+    Route::post('reports/{report}', [AdminController::class, 'updateReport'])->name('reports.update');
+    Route::get('support', [SupportController::class, 'index'])->name('support');
+    Route::get('support/{supportRequest}', [SupportController::class, 'show'])->name('support.show');
+    Route::post('support/{supportRequest}', [SupportController::class, 'update'])->name('support.update');
+    Route::get('gateway-health', [AdminController::class, 'gatewayHealth'])->name('gateway-health');
     Route::get('features', [AdminController::class, 'features'])->name('features');
     Route::post('features', [AdminController::class, 'updateFeature'])->name('features.update');
+    Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings');
+    Route::post('settings', [PlatformSettingsController::class, 'update'])->name('settings.update');
 
     /*
     | Plans. Config seeds what a plan *is*; this is where its price and its link to
@@ -36,7 +47,7 @@ Route::name('admin.')->group(function () {
      * otherwise 404 an admin looking at the wrong shop.
      */
     Route::post('badges/{application}', [AdminController::class, 'decideBadge'])->name('badges.decide');
-    Route::post('escrows/{escrow}', [AdminController::class, 'resolveDispute'])->name('escrows.resolve');
     Route::post('stores/{storePage}/suspend', [AdminController::class, 'suspend'])->name('stores.suspend');
     Route::post('stores/{storePage}/reinstate', [AdminController::class, 'reinstate'])->name('stores.reinstate');
+    Route::post('stores/{storePage}/directory', [AdminController::class, 'updateDirectory'])->name('stores.directory');
 });

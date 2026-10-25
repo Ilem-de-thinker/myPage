@@ -22,7 +22,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     @foreach ($categories as $category)
       @php $lead = $category->products()->with('images')->active()->orderByDesc('id')->first(); @endphp
-      <a href="{{ route('storefront.products', ['slug' => $page->slug, 'category' => $category->slug]) }}"
+      <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug, 'category' => $category->slug]) }}"
          class="card p-4 group">
         <div class="plate aspect-[4/3] mb-3">
           @if ($lead?->images->isNotEmpty())

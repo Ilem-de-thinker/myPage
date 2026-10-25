@@ -95,7 +95,7 @@ final class PricingPlans
                 'highlight' => $featured && $unlimited,
             ],
             ['label' => 'Direct WhatsApp order forwarding'],
-            ['label' => 'Escrow-protected payments'],
+            ['label' => 'Payments straight to your own Paystack account'],
             [
                 'label' => 'Connect custom domain',
                 'code' => 'yourbrand.ng',

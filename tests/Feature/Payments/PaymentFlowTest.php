@@ -6,13 +6,9 @@ use App\Domains\Orders\Exceptions\InvalidTransition;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Payments\Actions\ConfirmTransaction;
 use App\Domains\Payments\Actions\InitializePayment;
-use App\Domains\Payments\Actions\RequestPayout;
-use App\Domains\Payments\Enums\WalletKind;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
-use App\Domains\Payments\Models\WalletLedger;
 use App\Domains\Payments\Models\WebhookEvent;
-use App\Domains\Payments\Services\CommissionCalculator;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Support\Facades\Http;
 
@@ -52,8 +48,15 @@ function deliverPaystackWebhook(string $reference, int $eventId, bool $validSign
         'data' => ['id' => $eventId, 'reference' => $reference],
     ]);
 
+    // A seller order is charged on the seller's own account, so the delivery is
+    // signed with that seller's key — not the platform's.
+    $sellerId = Transaction::where('reference', $reference)->value('seller_id');
+    $secret = $sellerId
+        ? SellerGateway::where('seller_id', $sellerId)->where('gateway', 'paystack')->first()?->secretKey()
+        : null;
+
     $signature = $validSignature
-        ? hash_hmac('sha512', $payload, (string) config('services.paystack.secret'))
+        ? hash_hmac('sha512', $payload, $secret ?? (string) config('services.paystack.secret'))
         : 'not-the-right-signature';
 
     return test()->call(
@@ -71,8 +74,6 @@ beforeEach(function () {
     config([
         'services.paystack.secret' => 'sk_test_secret',
         'mypage.gateway' => 'paystack',
-        'mypage.commission_bps' => 150,
-        'mypage.payout_minimum_kobo' => 1000,
     ]);
 });
 
@@ -88,93 +89,52 @@ it('records a pending transaction and returns the gateway checkout url', functio
         && $request['amount'] === 250000);
 });
 
-it('credits the seller wallet and the commission account when a payment lands', function () {
-    [$seller, $order, $transaction] = platformOrderPendingPayment(100000);
+it('marks the transaction paid without inventing money movement', function () {
+    [, $order, $transaction] = platformOrderPendingPayment(100000);
 
     app(ConfirmTransaction::class)->handle($transaction->reference);
 
     $transaction->refresh();
 
     expect($transaction->status->value)->toBe('paid')
-        ->and($transaction->commission_kobo)->toBe(1500)
         ->and($transaction->paid_at)->not->toBeNull();
-
-    expect(Wallet::forSeller($seller->id)->balance_kobo)->toBe(98500);
-    expect(Wallet::platform(WalletKind::Commission)->balance_kobo)->toBe(1500);
 
     // The order follows the money: awaiting payment becomes paid.
     expect($order->fresh()->status)->toBe(OrderStatus::Paid);
 });
 
-it('keeps the whole ledger balanced to zero', function () {
-    [, , $first] = platformOrderPendingPayment(100000);
-    app(ConfirmTransaction::class)->handle($first->reference);
-
-    [, , $second] = platformOrderPendingPayment(199900);
-    app(ConfirmTransaction::class)->handle($second->reference);
-
-    expect(Transaction::where('status', 'paid')->count())->toBe(2);
-
-    // Two sales x two legs each x (one debit + one credit).
-    expect(WalletLedger::count())->toBe(8);
-
-    $sum = WalletLedger::get()->sum(fn (WalletLedger $entry) => $entry->signedAmountKobo());
-
-    expect($sum)->toBe(0);
-});
-
-it('rounds commission down so rounding never favours the platform', function () {
-    expect(app(CommissionCalculator::class)->for(1999))->toBe(29)
-        ->and(app(CommissionCalculator::class)->for(100000))->toBe(1500);
-});
-
 it('refuses a payment that does not match the amount charged', function () {
     // The buyer only actually paid half of what the order was for.
-    [$seller, , $transaction] = platformOrderPendingPayment(100000, ['amount_kobo' => 50000]);
+    [, , $transaction] = platformOrderPendingPayment(100000, ['amount_kobo' => 50000]);
 
     expect(app(ConfirmTransaction::class)->handle($transaction->reference))->toBeNull();
 
-    expect($transaction->fresh()->status->value)->toBe('failed')
-        ->and(Wallet::forSeller($seller->id)->balance_kobo)->toBe(0)
-        ->and(WalletLedger::count())->toBe(0);
+    expect($transaction->fresh()->status->value)->toBe('failed');
 });
 
 it('refuses a payment the gateway reports as unsuccessful', function () {
-    [$seller, , $transaction] = platformOrderPendingPayment(100000, ['status' => 'failed']);
+    [, , $transaction] = platformOrderPendingPayment(100000, ['status' => 'failed']);
 
     app(ConfirmTransaction::class)->handle($transaction->reference);
 
-    expect($transaction->fresh()->status->value)->toBe('failed')
-        ->and(Wallet::forSeller($seller->id)->balance_kobo)->toBe(0);
+    expect($transaction->fresh()->status->value)->toBe('failed');
 });
 
 it('is idempotent when the same payment is confirmed twice', function () {
-    [$seller, , $transaction] = platformOrderPendingPayment();
-
-    app(ConfirmTransaction::class)->handle($transaction->reference);
-    app(ConfirmTransaction::class)->handle($transaction->reference);
-
-    // A repeat confirmation must not add a single extra ledger row.
-    expect(WalletLedger::count())->toBe(4)
-        ->and(Wallet::forSeller($seller->id)->balance_kobo)->toBe(98500);
-});
-
-it('refuses to mutate a settled ledger row', function () {
     [, , $transaction] = platformOrderPendingPayment();
 
     app(ConfirmTransaction::class)->handle($transaction->reference);
+    $paidAt = $transaction->fresh()->paid_at;
 
-    $entry = WalletLedger::first();
+    app(ConfirmTransaction::class)->handle($transaction->reference);
 
-    expect(fn () => $entry->update(['amount_kobo' => 1]))
-        ->toThrow(RuntimeException::class, 'immutable');
-
-    expect(fn () => $entry->delete())
-        ->toThrow(RuntimeException::class, 'immutable');
+    // A repeat confirmation must not move the settlement time or the status.
+    expect($transaction->fresh()->status->value)->toBe('paid')
+        ->and($transaction->fresh()->paid_at->equalTo($paidAt))->toBeTrue();
 });
 
 it('accepts a correctly signed webhook and settles the order', function () {
-    [$seller, $order, $transaction] = platformOrderPendingPayment(75000);
+    [, $order, $transaction] = platformOrderPendingPayment(75000);
 
     deliverPaystackWebhook($transaction->reference, 987654)->assertOk();
 
@@ -193,14 +153,13 @@ it('rejects a webhook with a bad signature', function () {
 });
 
 it('ignores a replayed webhook instead of crediting twice', function () {
-    [$seller, , $transaction] = platformOrderPendingPayment();
+    [, , $transaction] = platformOrderPendingPayment();
 
     deliverPaystackWebhook($transaction->reference, 555)->assertOk();
     deliverPaystackWebhook($transaction->reference, 555)->assertOk();
 
     expect(WebhookEvent::count())->toBe(1)
-        ->and(WalletLedger::count())->toBe(4)
-        ->and(Wallet::forSeller($seller->id)->balance_kobo)->toBe(98500);
+        ->and($transaction->fresh()->status->value)->toBe('paid');
 });
 
 it('walks a paid order through the status flow and records history', function () {
@@ -226,48 +185,4 @@ it('blocks an order from skipping states', function () {
 
     expect(fn () => app(UpdateOrderStatus::class)->handle($order, OrderStatus::Delivered))
         ->toThrow(InvalidTransition::class);
-});
-
-it('moves money out of the wallet on a successful payout', function () {
-    [$seller, , $transaction] = platformOrderPendingPayment(200000);
-
-    app(ConfirmTransaction::class)->handle($transaction->reference);
-
-    $payout = app(RequestPayout::class)->handle($seller, 100000, '007', '0123456789')->fresh();
-
-    expect($payout->status->value)->toBe('paid')
-        ->and($payout->account_name)->toBe('Test Seller');
-
-    $wallet = Wallet::forSeller($seller->id);
-
-    expect($wallet->balance_kobo)->toBe(97000) // 197000 - 100000
-        ->and($wallet->pending_kobo)->toBe(0);
-});
-
-it('gives the money back when a payout fails', function () {
-    [$seller, , $transaction] = platformOrderPendingPayment(200000, ['transfer_success' => false]);
-
-    app(ConfirmTransaction::class)->handle($transaction->reference);
-
-    $payout = app(RequestPayout::class)->handle($seller, 100000, '007', '0123456789');
-
-    expect($payout->fresh()->status->value)->toBe('failed');
-
-    $wallet = Wallet::forSeller($seller->id);
-
-    expect($wallet->balance_kobo)->toBe(197000)
-        ->and($wallet->pending_kobo)->toBe(0);
-
-    $sum = WalletLedger::get()->sum(fn (WalletLedger $entry) => $entry->signedAmountKobo());
-
-    expect($sum)->toBe(0);
-});
-
-it('refuses a payout below the minimum', function () {
-    config(['mypage.payout_minimum_kobo' => 500000]);
-
-    [$seller] = sellerWithPage();
-
-    expect(fn () => app(RequestPayout::class)->handle($seller, 1000, '007', '0123456789'))
-        ->toThrow(RuntimeException::class);
 });

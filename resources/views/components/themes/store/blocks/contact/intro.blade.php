@@ -7,7 +7,7 @@
 
 <section class="shell pt-24 pb-10 md:pt-28">
   <nav class="flex items-center gap-2 text-xs text-[var(--ink-3)] mb-6" aria-label="Breadcrumb">
-    <a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
+    <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
     <span aria-hidden="true">/</span>
     <span class="text-[var(--ink)] font-semibold" aria-current="page">Contact</span>
   </nav>

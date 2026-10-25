@@ -1,6 +1,0 @@
-{
-  "name": "mypage.ng",
-  "description": "Multi-tenant storefront platform for Nigerian businesses — products, services, bookings, and verified commerce.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

@@ -2,12 +2,18 @@
 
 namespace App\Domains\Payments\Services\Gateways;
 
+use App\Domains\Payments\Data\GatewayCredentials;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class PaystackGateway implements PaymentGatewayInterface
 {
+    public function __construct(private readonly GatewayCredentials $credentials) {}
+
     public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = [], array $options = []): array
     {
         $data = $this->http()->post('/transaction/initialize', [
@@ -242,7 +248,7 @@ class PaystackGateway implements PaymentGatewayInterface
      */
     public function sign(string $payload): string
     {
-        return hash_hmac('sha512', $payload, (string) config('services.paystack.secret'));
+        return hash_hmac('sha512', $payload, $this->credentials->webhookSecret ?? $this->credentials->secretKey);
     }
 
     /**
@@ -260,11 +266,16 @@ class PaystackGateway implements PaymentGatewayInterface
      */
     private function http(): PendingRequest
     {
-        return Http::withToken((string) config('services.paystack.secret'))
+        return Http::withToken($this->credentials->secretKey)
             ->baseUrl('https://api.paystack.co')
             ->acceptJson()
             ->connectTimeout(5)
             ->timeout(20)
-            ->retry(3, fn (int $attempt) => 250 * (2 ** ($attempt - 1)));
+            ->retry(3, fn (int $attempt) => 250 * (2 ** ($attempt - 1)))
+            ->throw(function (Response $response, RequestException $exception): void {
+                if (in_array($response->status(), [401, 403], true) && $this->credentials->sellerId !== null) {
+                    SellerGateway::markCredentialsBroken($this->credentials->sellerId, $this->credentials->gateway);
+                }
+            });
     }
 }

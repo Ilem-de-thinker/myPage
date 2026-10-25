@@ -8,17 +8,15 @@ use App\Domains\Admin\Actions\SuspendStorePage;
 use App\Domains\Admin\Models\AdminAuditLog;
 use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Admin\Models\BadgeStatus;
-use App\Domains\Billing\Actions\EscrowService;
-use App\Domains\Billing\Models\Escrow;
+use App\Domains\Admin\Models\StoreReport;
+use App\Domains\Admin\Models\StoreReportStatus;
 use App\Domains\Billing\Models\FeatureFlag;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Services\Feature;
-use App\Domains\Payments\Enums\PayoutStatus;
+use App\Domains\Directory\Services\DirectoryPlacement;
 use App\Domains\Payments\Enums\TransactionStatus;
-use App\Domains\Payments\Enums\WalletKind;
-use App\Domains\Payments\Models\Payout;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
@@ -26,8 +24,10 @@ use App\Shared\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -76,6 +76,26 @@ class AdminController extends Controller
         return back()->with('status', 'Badge application '.$data['decision'].'d.');
     }
 
+    public function badgeDocument(BadgeApplication $application, RecordAdminAction $audit): Response
+    {
+        abort_unless($application->hasDocument(), 404);
+
+        $audit->handle(
+            request()->user(),
+            'badge.document.viewed',
+            $application,
+            'KYC document viewed by admin.',
+        );
+
+        $disk = Storage::disk('local');
+
+        return response()->file($disk->path($application->document_path), [
+            'Content-Type' => $disk->mimeType($application->document_path) ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="kyc-'.$application->getKey().'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function suspend(Request $request, StorePage $storePage, SuspendStorePage $suspend): RedirectResponse
     {
         $data = $request->validate([
@@ -101,49 +121,25 @@ class AdminController extends Controller
         return back()->with('status', "{$storePage->name} is back to draft. The seller must publish it again.");
     }
 
-    public function escrows(Request $request): View
+    public function updateDirectory(Request $request, StorePage $storePage, RecordAdminAction $audit, DirectoryPlacement $placement): RedirectResponse
     {
-        $status = $request->query('status');
-
-        return view('admin.escrows', [
-            'escrows' => Escrow::withoutGlobalScopes()
-                ->with(['seller'])
-                ->when($status, fn ($query) => $query->where('status', $status))
-                ->orderByDesc('held_at')
-                ->paginate(20),
-            'counts' => Escrow::withoutGlobalScopes()
-                ->selectRaw('status, count(*) as total')
-                ->groupBy('status')
-                ->pluck('total', 'status'),
-            'activeStatus' => $status,
-        ]);
-    }
-
-    public function resolveDispute(
-        Request $request,
-        Escrow $escrow,
-        EscrowService $escrows,
-        RecordAdminAction $audit,
-    ): RedirectResponse {
         $data = $request->validate([
-            'decision' => ['required', 'in:release_to_seller,refund_buyer'],
-            'note' => ['required', 'string', 'max:1000'],
+            'directory_action' => ['required', 'in:approve,suspend,feature,unfeature'],
         ]);
 
-        $releaseToSeller = $data['decision'] === 'release_to_seller';
-
-        if (! $escrows->resolve($escrow, $releaseToSeller)) {
-            return back()->withErrors(['decision' => 'That escrow has already been settled.']);
+        if ($data['directory_action'] === 'feature' && ! $placement->canFeature($storePage)) {
+            return back()->withErrors(['directory_action' => 'Featured placement requires an active Growth or Pro subscription.']);
         }
 
-        $audit->handle(
-            $request->user(),
-            $releaseToSeller ? 'escrow.dispute_released' : 'escrow.dispute_refunded',
-            $escrow,
-            $data['note'],
-        );
+        match ($data['directory_action']) {
+            'approve' => $storePage->update(['is_directory_opted_in' => true]),
+            'suspend' => $storePage->update(['is_directory_opted_in' => false, 'is_featured' => false]),
+            'feature' => $storePage->update(['is_directory_opted_in' => true, 'is_featured' => true]),
+            'unfeature' => $storePage->update(['is_featured' => false]),
+        };
+        $audit->handle($request->user(), 'directory.'.$data['directory_action'], $storePage, 'Directory listing moderation.');
 
-        return back()->with('status', 'Dispute resolved: '.str_replace('_', ' ', $data['decision']).'.');
+        return back()->with('status', 'Directory listing updated.');
     }
 
     public function stores(Request $request): View
@@ -190,7 +186,6 @@ class AdminController extends Controller
                 ->pluck('total', 'status'),
             'totals' => [
                 'paid_kobo' => (int) Transaction::withoutGlobalScopes()->where('status', TransactionStatus::Paid->value)->sum('amount_kobo'),
-                'commission_kobo' => (int) Transaction::withoutGlobalScopes()->sum('commission_kobo'),
                 'gateway' => $gateway,
                 'status' => $status,
             ],
@@ -200,22 +195,49 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * Payouts that failed need a person, because the money is stranded in the
-     * payouts pool until someone retries it. Successful payouts are nobody's
-     * problem and are not shown here.
-     */
-    public function payouts(Request $request): View
+    public function reports(Request $request): View
     {
-        return view('admin.payouts', [
-            'payouts' => Payout::withoutGlobalScopes()
-                ->with('seller')
-                ->whereIn('status', [PayoutStatus::Failed->value, PayoutStatus::Pending->value])
-                ->orderByDesc('id')
-                ->paginate(30),
-            'stranded' => (int) Wallet::platform(WalletKind::Payouts)->balance_kobo,
-            'failedCount' => Payout::withoutGlobalScopes()->where('status', PayoutStatus::Failed->value)->count(),
+        $status = $request->query('status', StoreReportStatus::Open->value);
+
+        return view('admin.reports', [
+            'reports' => StoreReport::query()
+                ->with('storePage')
+                ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+                ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
+                ->latest()
+                ->paginate(25)
+                ->withQueryString(),
+            'counts' => StoreReport::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
+            'activeStatus' => $status,
+            'activeCategory' => $request->query('category'),
         ]);
+    }
+
+    public function gatewayHealth(): View
+    {
+        return view('admin.gateway-health', [
+            'gateways' => SellerGateway::withoutGlobalScopes()
+                ->with(['seller', 'seller.storePages'])
+                ->latest('updated_at')
+                ->paginate(30),
+        ]);
+    }
+
+    public function updateReport(Request $request, StoreReport $report): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::enum(StoreReportStatus::class)],
+            'admin_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $report->update([
+            'status' => $data['status'],
+            'admin_note' => $data['admin_note'] ?? null,
+            'resolved_at' => $data['status'] === StoreReportStatus::Open->value ? null : now(),
+            'resolved_by_seller_id' => $data['status'] === StoreReportStatus::Open->value ? null : $request->user()->getKey(),
+        ]);
+
+        return back()->with('status', 'Store report updated.');
     }
 
     /**

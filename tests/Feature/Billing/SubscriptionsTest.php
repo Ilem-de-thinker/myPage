@@ -10,8 +10,6 @@ use App\Domains\Billing\Models\Subscription;
 use App\Domains\Billing\Services\Feature;
 use App\Domains\Payments\Enums\TransactionStatus;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
-use App\Domains\Payments\Models\WalletLedger;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -176,10 +174,9 @@ it('never credits a subscribing seller from their own payment', function () {
 
     app(ConfirmSubscriptionPayment::class)->handle($transaction->reference);
 
-    // A subscription is the seller paying us, so no sale is settled into their
-    // wallet the way a customer order would be.
-    expect(WalletLedger::withoutGlobalScopes()->count())->toBe(0)
-        ->and(Wallet::withoutGlobalScopes()->count())->toBe(0);
+    // A subscription is the seller paying us. It is not an order, so nothing is
+    // created or settled on the seller's side.
+    expect(Transaction::where('payable_type', 'order')->count())->toBe(0);
 });
 
 it('rejects an underpaid subscription charge', function () {
@@ -238,7 +235,7 @@ it('explains a failed payment without taking the page offline', function () {
     app(SubscriptionManager::class)->markPastDue($subscription);
 
     // The storefront is never gated on billing.
-    get('/openstill')->assertOk();
+    get(storeUrl('openstill'))->assertOk();
 
     actingAs($seller)->get(route('billing.index'))
         ->assertOk()
@@ -276,23 +273,23 @@ it('never shows one seller another seller\'s subscription', function () {
 });
 
 it('ships features dark and lets a database row switch one on for a seller', function () {
-    config(['mypage.features.escrow' => false]);
+    config(['mypage.features.directory' => false]);
     Feature::flush();
 
     [$seller] = sellerWithPage();
 
-    expect(Feature::enabled('escrow', $seller->id))->toBeFalse();
+    expect(Feature::enabled('directory', $seller->id))->toBeFalse();
 
-    config(['mypage.features.escrow' => true]);
+    config(['mypage.features.directory' => true]);
     Feature::flush();
 
-    expect(Feature::enabled('escrow', $seller->id))->toBeTrue();
+    expect(Feature::enabled('directory', $seller->id))->toBeTrue();
 
     // A row narrows it for one seller without touching anybody else.
-    FeatureFlag::create(['seller_id' => $seller->id, 'feature' => 'escrow', 'enabled' => false]);
+    FeatureFlag::create(['seller_id' => $seller->id, 'feature' => 'directory', 'enabled' => false]);
     Feature::flush();
 
-    expect(Feature::enabled('escrow', $seller->id))->toBeFalse();
+    expect(Feature::enabled('directory', $seller->id))->toBeFalse();
 });
 
 it('treats a feature missing from config as off', function () {

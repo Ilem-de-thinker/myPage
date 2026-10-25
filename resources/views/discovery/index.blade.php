@@ -29,48 +29,7 @@
 
 @section('content')
 
-<div x-data="{
-        loading: false,
-        marqueePaused: false,
-        searchQuery: @js($term ?? ''),
-        hubPath: @js($hubPath),
-        async apply(link) {
-            const url = new URL(link.href, window.location.origin);
-            this.loading = true;
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-Partial': 'results',
-                        'Accept': 'text/html',
-                    },
-                });
-                if (!response.ok) throw new Error(response.status);
-                this.$refs.content.innerHTML = await response.text();
-                window.history.pushState({}, '', url);
-            } catch (error) {
-                window.location.href = url.toString();
-            } finally {
-                this.loading = false;
-            }
-        },
-        intercept(event) {
-            // A modified click means the visitor wants a new tab, and a new
-            // tab is the correct outcome for a modified click.
-            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-            const link = event.target.closest('a[href]');
-            if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
-
-            const url = new URL(link.href, window.location.origin);
-            if (url.origin !== window.location.origin) return;
-            if (url.pathname.replace(/\/$/, '') !== this.hubPath) return;
-            // Same URL: there is nothing to swap, so let the browser do nothing.
-            if (url.href === window.location.href) return;
-
-            event.preventDefault();
-            this.apply(link);
-        },
-    }"
+<div x-data="discoveryHub(@jsExpr(['term' => $term ?? '', 'hubPath' => $hubPath]))"
      x-on:click="intercept($event)">
 
     {{-- DISCOVERY HERO WITH OFFSET RADIAL WASHES --}}
@@ -86,7 +45,7 @@
                     Discover verified Nigerian commerce.
                 </h1>
                 <p class="t-body-lg text-[var(--ink-2)] t-measure mt-3">
-                    Search artisanal craft, high fashion, bespoke bakeries, and appointment studios. Every merchant is verified with direct WhatsApp ordering and escrow guarantee.
+                    Search artisanal craft, high fashion, bespoke bakeries, and appointment studios. Every merchant is verified with direct WhatsApp ordering and secure online payment.
                 </p>
             </div>
 

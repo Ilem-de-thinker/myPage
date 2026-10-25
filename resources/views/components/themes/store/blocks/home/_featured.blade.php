@@ -10,6 +10,7 @@
 
     // One product is a feature, not a four-across grid with three holes in it.
     $count = $items->count();
+    $preset = $page->settings['theme_preset'] ?? 'catalog';
 @endphp
 
 @if ($count > 0)
@@ -18,7 +19,7 @@
     promoted a piece here sees it exactly as a shopper would meet it on the
     products page.
   --}}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  <div data-collection-style="{{ $preset }}" class="theme-grid theme-grid-featured grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     @foreach ($items as $item)
       @include('themes.store.partials.product-card', ['product' => $item, 'page' => $page])
     @endforeach

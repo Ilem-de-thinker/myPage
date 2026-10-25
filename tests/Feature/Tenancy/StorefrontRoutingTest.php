@@ -5,6 +5,7 @@ use App\Domains\Seller\Models\PageBlock;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
 use App\Domains\Seller\Services\SlugResolver;
+use App\Shared\Support\StoreUrl;
 use App\Shared\Traits\BelongsToSeller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
@@ -26,57 +27,57 @@ function publishedPage(string $slug, string $theme = 'store'): StorePage
 it('serves a published store page for its slug', function () {
     publishedPage('demohome');
 
-    get('/demohome')->assertOk()->assertSee('Demohome Shop');
+    get(storeUrl('demohome', ''))->assertOk()->assertSee('Demohome Shop');
 });
 
 it('404s for unknown slugs', function () {
     publishedPage('knownexisting');
 
-    get('/definitely-not-a-store')->assertNotFound();
+    get(storeUrl('definitely-not-a-store', ''))->assertNotFound();
 });
 
 it('404s for draft store pages', function () {
     StorePage::factory()->create(['slug' => 'draftshop', 'status' => 'draft']);
 
-    get('/draftshop')->assertNotFound();
-    get('/draftshop/products')->assertNotFound();
+    get(storeUrl('draftshop', ''))->assertNotFound();
+    get(storeUrl('draftshop', '/products'))->assertNotFound();
 });
 
 it('404s for suspended store pages', function () {
     StorePage::factory()->create(['slug' => 'suspendedshop', 'status' => 'suspended']);
 
-    get('/suspendedshop')->assertNotFound();
-    get('/suspendedshop/contact')->assertNotFound();
+    get(storeUrl('suspendedshop', ''))->assertNotFound();
+    get(storeUrl('suspendedshop', '/contact'))->assertNotFound();
 });
 
 it('404s store routes that do not belong to the page theme', function () {
     publishedPage('service-shop', 'service');
 
-    get('/service-shop/services')->assertOk();
-    get('/service-shop/products')->assertNotFound();
+    get(storeUrl('service-shop', '/services'))->assertOk();
+    get(storeUrl('service-shop', '/products'))->assertNotFound();
 });
 
 it('points the service storefront nav at the service pages it owns', function () {
     publishedPage('nav-service', 'service');
 
-    get('/nav-service')
+    get(storeUrl('nav-service', ''))
         ->assertOk()
-        ->assertSee(route('storefront.services', 'nav-service'))
-        ->assertSee(route('storefront.book', 'nav-service'))
-        ->assertSee(route('storefront.contact', 'nav-service'))
+        ->assertSee(StoreUrl::path('storefront.services', 'nav-service'))
+        ->assertSee(StoreUrl::path('storefront.book', 'nav-service'))
+        ->assertSee(StoreUrl::path('storefront.contact', 'nav-service'))
         // A service page has no cart, and a cart link would 404 anyway.
-        ->assertDontSee(route('storefront.cart', 'nav-service'));
+        ->assertDontSee(StoreUrl::path('storefront.cart', 'nav-service'));
 });
 
 it('points the store storefront nav at the store pages it owns', function () {
     publishedPage('nav-store');
 
-    get('/nav-store')
+    get(storeUrl('nav-store', ''))
         ->assertOk()
-        ->assertSee(route('storefront.products', 'nav-store'))
-        ->assertSee(route('storefront.cart', 'nav-store'))
+        ->assertSee(StoreUrl::path('storefront.products', 'nav-store'))
+        ->assertSee(StoreUrl::path('storefront.cart', 'nav-store'))
         // The service nav would offer a booking form a store cannot take.
-        ->assertDontSee(route('storefront.services', 'nav-store'));
+        ->assertDontSee(StoreUrl::path('storefront.services', 'nav-store'));
 });
 
 it('hides draft and archived products from the storefront', function () {
@@ -85,10 +86,10 @@ it('hides draft and archived products from the storefront', function () {
     Product::factory()->create(['store_page_id' => $page->id, 'seller_id' => $page->seller_id, 'slug' => 'archived-item', 'name' => 'Archived Item', 'status' => 'archived']);
     Product::factory()->create(['store_page_id' => $page->id, 'seller_id' => $page->seller_id, 'slug' => 'live-item', 'name' => 'Live Item']);
 
-    get('/catalogshop/products/draft-item')->assertNotFound();
-    get('/catalogshop/products/archived-item')->assertNotFound();
-    get('/catalogshop/products/live-item')->assertOk()->assertSee('Live Item');
-    get('/catalogshop/products')->assertOk()->assertSee('Live Item')->assertDontSee('Draft Item');
+    get(storeUrl('catalogshop', '/products/draft-item'))->assertNotFound();
+    get(storeUrl('catalogshop', '/products/archived-item'))->assertNotFound();
+    get(storeUrl('catalogshop', '/products/live-item'))->assertOk()->assertSee('Live Item');
+    get(storeUrl('catalogshop', '/products'))->assertOk()->assertSee('Live Item')->assertDontSee('Draft Item');
 });
 
 it('lets the owner preview a draft via a signed URL', function () {
@@ -116,8 +117,8 @@ it('carries the preview grant to deep links via a cookie', function () {
 
     $this->withUnencryptedCookie('preview_previewdeep', $sent->getValue());
 
-    get('/previewdeep/about')->assertOk();
-    get('/previewdeep/contact')->assertOk();
+    get(storeUrl('previewdeep', '/about'))->assertOk();
+    get(storeUrl('previewdeep', '/contact'))->assertOk();
 });
 
 it('issues the preview cookie only for an unpublished page', function () {
@@ -134,8 +135,8 @@ it('issues the preview cookie only for an unpublished page', function () {
 it('does not grant preview access without a signed url', function () {
     StorePage::factory()->create(['slug' => 'previewother', 'status' => 'draft', 'theme' => 'store']);
 
-    get('/previewother')->assertNotFound();
-    get('/previewother/about')->assertNotFound();
+    get(storeUrl('previewother', ''))->assertNotFound();
+    get(storeUrl('previewother', '/about'))->assertNotFound();
 });
 
 it('does not honour a preview cookie minted for another visitor', function () {
@@ -143,7 +144,7 @@ it('does not honour a preview cookie minted for another visitor', function () {
 
     $this->withCookie('preview_previewip', '203.0.113.9');
 
-    get('/previewip')->assertNotFound();
+    get(storeUrl('previewip', ''))->assertNotFound();
 });
 
 it('rejects a tampered or expired preview signature', function () {
@@ -156,22 +157,20 @@ it('rejects a tampered or expired preview signature', function () {
     get($url.'&expires=1')->assertNotFound();
 });
 
-it('generates storefront urls as slug paths on the apex domain', function () {
-    expect(config('mypage.path_routes'))->toBeTrue();
-
+it('generates storefront urls on the shop subdomain', function () {
     $url = route('storefront.show', 'anyslug');
     $productsUrl = route('storefront.products', 'anyslug');
 
-    expect($url)->toContain('/anyslug');
-    expect($url)->not->toContain(config('mypage.domain'));
-    expect($productsUrl)->toContain('/anyslug/products');
+    expect($url)->toContain('//anyslug.'.config('mypage.domain'))
+        ->and($productsUrl)->toContain('//anyslug.'.config('mypage.domain'))
+        ->and($productsUrl)->toEndWith('/products');
 });
 
 it('resolves the store page and shares it with the view', function () {
     publishedPage('sharedpage');
 
     // ResolveStorePage binds the page and shares it with the view.
-    $response = get('/sharedpage')->assertOk();
+    $response = get(storeUrl('sharedpage', ''))->assertOk();
 
     expect($response->viewData('page'))->toBeInstanceOf(StorePage::class);
     expect($response->viewData('page')->slug)->toBe('sharedpage');
@@ -208,7 +207,7 @@ it('recovers from a stale cached store page', function () {
 
     expect(app(SlugResolver::class)->resolveBySlug('staleslug'))->toBeInstanceOf(StorePage::class);
 
-    get('/staleslug')->assertOk()->assertSee('Staleslug Shop');
+    get(storeUrl('staleslug', ''))->assertOk()->assertSee('Staleslug Shop');
 });
 
 it('caches a resolved page and flushes it on demand', function () {
@@ -220,13 +219,13 @@ it('caches a resolved page and flushes it on demand', function () {
     app(SlugResolver::class)->flush('cachedpage');
     expect(Cache::has('store:slug:cachedpage'))->toBeFalse();
 
-    get('/cachedpage')->assertOk();
+    get(storeUrl('cachedpage', ''))->assertOk();
 });
 
 it('invalidates the cached page when the seller edits it', function () {
     $page = publishedPage('refreshpage');
 
-    get('/refreshpage')->assertOk()->assertSee('Refreshpage Shop');
+    get(storeUrl('refreshpage', ''))->assertOk()->assertSee('Refreshpage Shop');
 
     // The resolved page is cached, so repeat storefront hits skip the query.
     expect(Cache::has('store:slug:refreshpage'))->toBeTrue();
@@ -237,7 +236,7 @@ it('invalidates the cached page when the seller edits it', function () {
     // cache TTL to see their own edit.
     expect(Cache::has('store:slug:refreshpage'))->toBeFalse();
 
-    get('/refreshpage')->assertOk()->assertSee('Renamed Shop');
+    get(storeUrl('refreshpage', ''))->assertOk()->assertSee('Renamed Shop');
 });
 
 it('stops resolving a page once it is deleted', function () {
@@ -249,7 +248,7 @@ it('stops resolving a page once it is deleted', function () {
 
     // The observer must invalidate the cache or the deleted page stays online.
     expect(app(SlugResolver::class)->resolveBySlug('vanishing'))->toBeNull();
-    get('/vanishing')->assertNotFound();
+    get(storeUrl('vanishing', ''))->assertNotFound();
 });
 
 it('does not cache a missing page indefinitely', function () {
@@ -267,7 +266,7 @@ it('serves a page created after an earlier miss', function () {
 
     expect(app(SlugResolver::class)->resolveBySlug('latecomer'))->toBeInstanceOf(StorePage::class);
 
-    get('/latecomer')->assertOk()->assertSee('Late Shop');
+    get(storeUrl('latecomer', ''))->assertOk()->assertSee('Late Shop');
 });
 
 it('has the BelongsToSeller trait on StorePage', function () {

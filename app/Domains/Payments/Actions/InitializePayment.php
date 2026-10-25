@@ -2,9 +2,12 @@
 
 namespace App\Domains\Payments\Actions;
 
+use App\Domains\Billing\Models\Subscription;
 use App\Domains\Payments\Enums\TransactionStatus;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
+use App\Domains\Payments\Services\GatewayFactory;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -12,7 +15,7 @@ use Throwable;
 
 class InitializePayment
 {
-    public function __construct(private readonly PaymentGatewayInterface $gateway) {}
+    public function __construct(private readonly GatewayFactory $gateways) {}
 
     /**
      * Create the pending transaction and hand back the gateway checkout URL.
@@ -41,7 +44,7 @@ class InitializePayment
         ]));
 
         try {
-            $response = $this->gateway->initialize(
+            $response = $this->gatewayFor($payable)->initialize(
                 $transaction->reference,
                 $transaction->amount_kobo,
                 $email,
@@ -78,12 +81,36 @@ class InitializePayment
         }
     }
 
+    /**
+     * Which account this charge belongs to.
+     *
+     * A subscription is the platform's own money and uses the platform account.
+     * Everything else is an order or a booking, and the buyer pays the seller
+     * directly through the seller's own key. There is no fallback between them:
+     * a shop with no key cannot quietly start collecting on our account.
+     */
+    private function gatewayFor(Model $payable): PaymentGatewayInterface
+    {
+        if ($payable instanceof Subscription) {
+            return $this->gateways->platform();
+        }
+
+        return $this->gateways->forSeller((int) $payable->seller_id);
+    }
+
     private function defaultCallbackUrl(Model $payable, Transaction $transaction): string
     {
-        return route('checkout.callback', [
-            'slug' => $payable->storePage?->slug,
+        $page = $payable->storePage;
+
+        $parameters = [
+            'slug' => $page?->slug,
             'reference' => $transaction->reference,
-        ]);
+        ];
+
+        // No store page means a subscription: the callback belongs to the platform.
+        return $page
+            ? StoreUrl::onCurrentHost($page, 'checkout.callback', $parameters)
+            : route('checkout.callback', $parameters);
     }
 
     /**

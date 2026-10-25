@@ -24,6 +24,8 @@ return [
      */
     'custom_domain_plans' => ['pro'],
 
+    'directory_featured_plans' => ['growth', 'pro'],
+
     'plans' => [
         'starter' => [
             'name' => 'Starter',
@@ -49,7 +51,7 @@ return [
             'interval' => 'monthly',
             'trial_days' => 14,
             'max_products' => 200,
-            'description' => 'More products, escrow and priority support.',
+            'description' => 'More products and priority support.',
             'is_default' => true,
             'is_featured' => true,
             'gateway_plan_code' => env('PAYSTACK_PLAN_GROWTH'),

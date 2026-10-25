@@ -24,6 +24,12 @@ class CreateStorePage
                 'city' => $data['city'] ?? null,
                 'state' => $data['state'] ?? null,
                 'bio' => $data['bio'] ?? null,
+                'settings' => [
+                    'ai_enabled' => (bool) ($data['ai_enabled'] ?? true),
+                    'ai_goal' => $data['ai_goal'] ?? null,
+                    'business_type' => $data['business_type'] ?? $theme->value,
+                    'accent_color' => $data['accent_color'] ?? null,
+                ],
             ]);
 
             /*

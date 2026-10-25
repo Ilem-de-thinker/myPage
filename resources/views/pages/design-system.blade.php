@@ -4,40 +4,7 @@
 @section('description', 'Every token, type step, card and button the mypage.ng platform and its storefronts are built from.')
 
 @section('content')
-<div class="pb-24" x-data="{ 
-        themeMode: 'light',
-        activeBrand: 'emerald',
-        cartCount: 2,
-        marqueePaused: false,
-        activeTab: 'details',
-        activeVariant: 'M',
-        activeColor: 'charcoal',
-        qty: 1,
-        selectedBookingDate: '2026-10-22',
-        selectedSlot: '11:30 AM',
-        paymentType: 'deposit',
-        reviewModalOpen: false,
-        searchQuery: '',
-        selectedCity: '',
-        setTheme(mode) {
-          this.themeMode = mode;
-          if (mode === 'system') {
-            document.documentElement.removeAttribute('data-theme');
-          } else {
-            document.documentElement.setAttribute('data-theme', mode);
-          }
-        },
-        setBrand(palette) {
-          this.activeBrand = palette;
-          const colors = {
-            emerald: '#15803d',
-            purple: '#7e22ce',
-            rust: '#c2410c',
-            cobalt: '#1d4ed8'
-          };
-          document.documentElement.style.setProperty('--brand', colors[palette]);
-        }
-      }">
+<div class="pb-24" x-data="designSystemPreview">
     <!-- Hero / Architecture Overview -->
     <section class="section-y border-b border-[var(--rule)] bg-gradient-to-b from-[var(--surface)] to-[var(--paper)]">
       <div class="shell">
@@ -291,7 +258,7 @@
             <span class="t-meta block mb-2 font-mono text-xs">.t-body-lg · 1.0625rem / 1.7</span>
             <p class="t-body-lg text-[var(--ink)] t-measure">
               Every storefront on mypage connects directly to WhatsApp and Nigerian instant bank transfers.
-              Buyers complete transactions with zero login barriers, protected by buyer escrow verification.
+              Buyers complete transactions with zero login barriers, with payment collected by the seller's own gateway.
             </p>
           </div>
 
@@ -352,7 +319,7 @@
             <article class="card p-3 group">
               <div class="plate aspect-square mb-3">
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/fashion-studio.svg') }}" 
                        alt="Heavyweight cotton graphic streetwear tee in washed obsidian black" 
                        width="400" 
                        height="400" 
@@ -401,7 +368,7 @@
                   -24%
                 </div>
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/makers-table.svg') }}" 
                        alt="Hand-loomed indigenous Akwete open-front structured kimono" 
                        width="400" 
                        height="400" 
@@ -451,7 +418,7 @@
                   </span>
                 </div>
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/fashion-studio.svg') }}" 
                        alt="Tailored Nigerian wedding agbada embroidery in emerald silk" 
                        width="400" 
                        height="400" 
@@ -489,7 +456,7 @@
             <article class="card p-3 group border-[var(--brand-edge)] ring-1 ring-[var(--brand-edge)]">
               <div class="plate aspect-square mb-3">
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/food-home.svg') }}" 
                        alt="Top-grain Nigerian leather minimal daily tote bag in dark chestnut" 
                        width="400" 
                        height="400" 
@@ -539,7 +506,7 @@
             <article class="card p-4 group">
               <div class="plate aspect-[4/3] mb-4">
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/beauty-studio.svg') }}" 
                        alt="Professional bridal makeup and gele tying studio session in Lagos" 
                        width="600" 
                        height="450" 
@@ -616,7 +583,7 @@
 
               <div class="plate aspect-[4/3] mb-4">
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/food-home.svg') }}" 
                        alt="Commercial fashion studio photo setup with medium format camera" 
                        width="600" 
                        height="450" 
@@ -689,7 +656,7 @@
                   </span>
                 </div>
                 <div class="plate-media h-full">
-                  <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/makers-table.svg') }}" 
                        alt="Traditional Nigerian wedding ceremony with documentary photography" 
                        width="600" 
                        height="450" 
@@ -765,7 +732,7 @@
             <article class="card p-5 group">
               <div class="flex items-start gap-4">
                 <div class="w-16 h-16 rounded-[var(--radius)] overflow-hidden shrink-0 border border-[var(--rule)] bg-[var(--surface)]">
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80&auto=format" 
+                  <img src="{{ asset('images/landing/beauty-studio.svg') }}" 
                        alt="Founder avatar for Adeola Couture Lagos" 
                        width="64" 
                        height="64" 
@@ -793,7 +760,7 @@
               </div>
 
               <p class="text-xs text-[var(--ink-2)] mt-4 line-clamp-2 leading-relaxed">
-                Specializing in bespoke Yoruba wedding agbada, auto-gele sets, and custom bridal beadwork. Direct WhatsApp fulfillment with escrow support.
+                Specializing in bespoke Yoruba wedding agbada, auto-gele sets, and custom bridal beadwork. Direct WhatsApp fulfilment with secure online payment.
               </p>
 
               <div class="mt-4 pt-3 border-t border-[var(--rule)] flex items-center justify-between text-xs">
@@ -812,7 +779,7 @@
               <article class="card card-glass p-5 group border border-white/40 dark:border-white/10 shadow-lg">
                 <div class="flex items-start gap-4">
                   <div class="w-16 h-16 rounded-[var(--radius)] overflow-hidden shrink-0 border border-[var(--rule)] bg-[var(--surface)]">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format" 
+                    <img src="{{ asset('images/landing/beauty-studio.svg') }}" 
                          alt="Founder avatar for Kano Tannery Craftsmen" 
                          width="64" 
                          height="64" 
@@ -884,7 +851,7 @@
                      value="Chinedu Okonkwo"
                      placeholder="e.g. Babatunde Adeleke"
                      class="w-full h-11 px-3.5 text-sm rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)] transition-colors">
-              <p class="t-meta mt-1.5">Used for delivery dispatch verification and escrow confirmation.</p>
+              <p class="t-meta mt-1.5">Used for delivery dispatch and order updates.</p>
             </div>
 
             <!-- Phone Number with +234 Nigerian Prefix -->
@@ -1071,7 +1038,7 @@
             <!-- Radio Payment Selection Cards -->
             <div>
               <fieldset>
-                <legend class="text-xs font-bold text-[var(--ink)] mb-2">Escrow Payment Structure</legend>
+                <legend class="text-xs font-bold text-[var(--ink)] mb-2">Payment Structure</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label :class="paymentType === 'deposit' ? 'border-[var(--brand)] ring-1 ring-[var(--brand)] bg-[var(--brand-wash)]' : 'border-[var(--rule)] bg-[var(--paper)]'"
                          class="flex items-start gap-3 p-3.5 rounded-[var(--radius)] border cursor-pointer transition-all">
@@ -1081,7 +1048,7 @@
                            x-model="paymentType"
                            class="mt-1 text-[var(--brand)] focus:ring-[var(--focus-ring)]">
                     <div>
-                      <span class="block text-xs font-bold text-[var(--ink)]">30% Escrow Deposit</span>
+                      <span class="block text-xs font-bold text-[var(--ink)]">30% Deposit</span>
                       <span class="t-meta mt-0.5">Pay ₦13,500 now. Balance released after dispatch confirmation.</span>
                     </div>
                   </label>
@@ -1095,7 +1062,7 @@
                            class="mt-1 text-[var(--brand)] focus:ring-[var(--focus-ring)]">
                     <div>
                       <span class="block text-xs font-bold text-[var(--ink)]">Full Payment</span>
-                      <span class="t-meta mt-0.5">Pay ₦45,000 into locked escrow. Instant dispatch priority.</span>
+                      <span class="t-meta mt-0.5">Pay ₦45,000 at booking. Instant dispatch priority.</span>
                     </div>
                   </label>
                 </div>
@@ -1290,15 +1257,15 @@
       </div>
     </section>
 
-    <!-- SECTION 6: Cart Receipt & Escrow States -->
+    <!-- SECTION 6: Cart Receipt & Payment States -->
     <section id="receipt" class="section-y border-b border-[var(--rule)]">
       <div class="shell">
         <div class="mb-10">
-          <p class="t-meta">06. Order Receipt & Escrow Engine</p>
-          <h2 class="t-display-2 text-[var(--ink)] mt-2">Tabular receipts & escrow transparency</h2>
+          <p class="t-meta">06. Order Receipt & Checkout Engine</p>
+          <h2 class="t-display-2 text-[var(--ink)] mt-2">Tabular receipts & payment transparency</h2>
           <p class="t-body text-[var(--ink-2)] t-measure mt-2">
             Nigerian buyers demand certainty. Clean tabular breakdowns with zero hidden kobo fees, explicit delivery dispatch estimates,
-            and 3-state escrow assurance.
+            and a clear 3-state payment status.
           </p>
         </div>
 
@@ -1312,7 +1279,7 @@
                 <h3 class="text-base font-bold text-[var(--ink)] mt-0.5">Order Receipt</h3>
               </div>
               <span class="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] text-xs font-bold">
-                Escrow Protected
+                Secure Payment
               </span>
             </div>
 
@@ -1321,7 +1288,7 @@
               <div class="py-3.5 flex items-center justify-between text-xs">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-[var(--radius-sm)] overflow-hidden bg-[var(--surface)] border border-[var(--rule)] shrink-0">
-                    <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=100&q=80&auto=format" alt="Thumbnail Alte Heavyweight Graphic Tee" width="40" height="40" loading="lazy" class="w-full h-full object-cover">
+                    <img src="{{ asset('images/landing/fashion-studio.svg') }}" alt="Thumbnail Alte Heavyweight Graphic Tee" width="40" height="40" loading="lazy" class="w-full h-full object-cover">
                   </div>
                   <div>
                     <p class="font-bold text-[var(--ink)]">Alte Heavyweight Graphic Tee</p>
@@ -1334,7 +1301,7 @@
               <div class="py-3.5 flex items-center justify-between text-xs">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-[var(--radius-sm)] overflow-hidden bg-[var(--surface)] border border-[var(--rule)] shrink-0">
-                    <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=100&q=80&auto=format" alt="Thumbnail Minimalist Calfskin Daily Tote" width="40" height="40" loading="lazy" class="w-full h-full object-cover">
+                    <img src="{{ asset('images/landing/food-home.svg') }}" alt="Thumbnail Minimalist Calfskin Daily Tote" width="40" height="40" loading="lazy" class="w-full h-full object-cover">
                   </div>
                   <div>
                     <p class="font-bold text-[var(--ink)]">Minimalist Calfskin Daily Tote</p>
@@ -1356,8 +1323,8 @@
                 <span class="font-medium text-[var(--ink)] tabular-nums">₦3,500</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-[var(--ink-2)]">Escrow Buyer Protection Fee</span>
-                <span class="font-medium text-[var(--brand-text)] tabular-nums">₦0 (Covered by mypage)</span>
+                <span class="text-[var(--ink-2)]">Processing Fee</span>
+                <span class="font-medium text-[var(--brand-text)] tabular-nums">₦0</span>
               </div>
               <div class="flex items-center justify-between pt-3 border-t border-[var(--rule)]">
                 <span class="text-sm font-bold text-[var(--ink)]">Total Amount</span>
@@ -1368,7 +1335,7 @@
             <!-- Action Buttons -->
             <div class="mt-6 pt-4 border-t border-[var(--rule)] flex flex-col sm:flex-row gap-3">
               <button type="button" class="flex-1 h-11 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs hover:opacity-90 transition-opacity">
-                Proceed to Escrow Checkout
+                Proceed to Checkout
               </button>
               <button type="button" class="h-11 px-4 rounded-[var(--radius)] bg-[var(--surface)] text-[var(--ink)] border border-[var(--rule)] font-bold text-xs hover:bg-[var(--paper)] transition-colors">
                 Order via WhatsApp Direct
@@ -1376,20 +1343,19 @@
             </div>
           </div>
 
-          <!-- Escrow Status States (5 Columns) -->
+          <!-- Payment Status States (5 Columns) -->
           <div class="lg:col-span-5 space-y-4">
-            <h3 class="text-sm font-bold text-[var(--ink)] mb-3">Escrow Life-cycle States</h3>
+            <h3 class="text-sm font-bold text-[var(--ink)] mb-3">Payment Life-cycle States</h3>
 
-            <!-- State 1: Active / Held in Escrow (Amber) -->
+            <!-- State 1: Active / Paid at Booking (Amber) -->
             <div class="p-4 rounded-[var(--radius-lg)] border border-amber-500/30 bg-amber-500/5">
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-                <h4 class="text-xs font-bold text-[var(--ink)]">Payment Secured in Escrow</h4>
+                <h4 class="text-xs font-bold text-[var(--ink)]">Payment Awaiting Confirmation</h4>
                 <span class="t-meta ml-auto font-mono text-[11px]">₦74,000</span>
               </div>
               <p class="text-xs text-[var(--ink-2)] leading-relaxed">
-                Merchant has dispatched the parcel via GIG Logistics (Waybill: <code class="font-mono text-[11px] bg-[var(--paper)] px-1 rounded">GIG-894120</code>).
-                Funds will only be released after you inspect and accept the items.
+                Payment is collected by the seller's own Paystack or Flutterwave account. mypage.ng does not hold it.
               </p>
             </div>
 
@@ -1397,11 +1363,11 @@
             <div class="p-4 rounded-[var(--radius-lg)] border border-[var(--brand-edge)] bg-[var(--brand-wash)]">
               <div class="flex items-center gap-2 mb-1.5">
                 <svg class="w-4 h-4 text-[var(--brand-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                <h4 class="text-xs font-bold text-[var(--ink)]">Funds Released to Merchant</h4>
+                <h4 class="text-xs font-bold text-[var(--ink)]">Payment Received</h4>
                 <span class="t-meta ml-auto font-mono text-[11px]">Completed</span>
               </div>
               <p class="text-xs text-[var(--ink-2)] leading-relaxed">
-                Delivery accepted by recipient on 15 Oct 2026. Escrow payout settled to seller's GTBank corporate account.
+                Paid on 15 Oct 2026. Settlement lands directly in the seller's own gateway account.
               </p>
             </div>
 
@@ -1410,13 +1376,13 @@
               <summary class="flex items-center justify-between cursor-pointer list-none">
                 <div class="flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-full bg-red-500" aria-hidden="true"></span>
-                  <h4 class="text-xs font-bold text-[var(--ink)]">Dispute Mediation Chamber</h4>
+                  <h4 class="text-xs font-bold text-[var(--ink)]">Payment Failed</h4>
                 </div>
                 <span class="text-xs text-[var(--ink-3)] group-open:rotate-180 transition-transform">▼</span>
               </summary>
               <div class="mt-3 pt-3 border-t border-red-500/20 text-xs text-[var(--ink-2)] space-y-2">
-                <p>Buyer reported: Incorrect size delivered (Received S instead of L). Payout is locked.</p>
-                <p class="t-meta">Resolution window: 24 hours. Merchant must arrange exchange dispatch or authorize automatic refund.</p>
+                <p>The buyer's card was declined. Nothing moved and the order stays unpaid.</p>
+                <p class="t-meta">The buyer can retry with another card or bank transfer at any time.</p>
               </div>
             </details>
           </div>
@@ -1525,7 +1491,7 @@
               </div>
 
               <p class="text-xs text-[var(--ink-2)] leading-relaxed">
-                "The fabric quality exceeded my expectations. Delivered exactly 24 hours after WhatsApp confirmation. The Aso-Oke weaving has rich weight and didn't fade after the dry cleaners. I was nervous about paying upfront so the escrow feature gave me complete peace of mind."
+                "The fabric quality exceeded my expectations. Delivered exactly 24 hours after WhatsApp confirmation. The Aso-Oke weaving has rich weight and didn't fade after the dry cleaners. I was nervous about paying upfront, but checkout was straightforward and the order arrived exactly as shown."
               </p>
             </article>
 

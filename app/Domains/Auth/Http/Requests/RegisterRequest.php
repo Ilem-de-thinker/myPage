@@ -28,6 +28,10 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:sellers,email'],
             'phone' => ['required', new NigerianPhone, 'unique:sellers,phone'],
             'password' => ['required', 'confirmed', Password::min(8)],
+            'terms_accepted' => ['accepted'],
+            'privacy_accepted' => ['accepted'],
+            'ai_enabled' => ['sometimes', 'boolean'],
+            'ai_goal' => ['nullable', 'string', 'in:sell_more,write_faster,answer_buyers'],
         ];
     }
 }

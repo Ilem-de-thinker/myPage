@@ -70,7 +70,7 @@ class DomainBinding extends Model
      */
     public function cnameTarget(): string
     {
-        return (string) config('mypage.custom_domain.cname_target', 'domains.mypage.test');
+        return (string) config('mypage.custom_domain.cname_target');
     }
 
     public function isServed(): bool

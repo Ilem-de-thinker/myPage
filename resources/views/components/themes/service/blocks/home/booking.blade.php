@@ -53,43 +53,12 @@
 --}}
 @if ($services->isNotEmpty())
   <section class="section-y bg-[var(--surface)] border-b border-[var(--rule)]"
-           x-data="{
-               serviceId: @js((string) $services->first()->id),
-               months: @js($months),
-               month: 0,
-               date: @js($firstDay['value']),
-               slots: [],
-               loading: false,
-               loadedFor: '',
-
-               /**
-                * The same endpoint the booking form uses, so the preview cannot
-                * show a day the form would then refuse.
-                */
-               async loadSlots() {
-                 if (!this.serviceId || !this.date) { this.slots = []; return; }
-
-                 const key = this.serviceId + '|' + this.date;
-
-                 if (this.loadedFor === key) { return; }
-
-                 this.loading = true;
-
-                 try {
-                   const params = new URLSearchParams({ service: this.serviceId, date: this.date });
-                   const response = await fetch(@js(route('storefront.availability', ['slug' => $page->slug])) + '?' + params, {
-                     headers: { 'Accept': 'application/json' },
-                   });
-                   const data = await response.json();
-                   this.slots = data.slots || [];
-                   this.loadedFor = key;
-                 } catch (error) {
-                   this.slots = [];
-                 } finally {
-                   this.loading = false;
-                 }
-               },
-           }"
+           x-data="bookingPreview(@jsExpr([
+               'serviceId' => (string) $services->first()->id,
+               'months' => $months,
+               'date' => $firstDay['value'],
+               'availabilityUrl' => \App\Shared\Support\StoreUrl::path('storefront.availability', ['slug' => $page->slug]),
+           ]))"
            x-init="loadSlots()">
 
     <div class="shell">
@@ -104,14 +73,14 @@
           <div class="p-4 rounded-[var(--radius)] bg-[var(--paper)] border border-[var(--rule)] space-y-2 text-xs">
             <div class="flex items-center gap-2 text-[var(--brand-text)] font-bold">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Sovereign Escrow Deposit</span>
+              <span>Secure Deposit</span>
             </div>
             <p class="text-[var(--ink-3)]">
-              Where a service carries a deposit, it is held in secure escrow to hold your date. The balance is settled at the studio.
+              Where a service carries a deposit, it is paid at booking to hold your date. The balance is settled at the studio.
             </p>
           </div>
 
-          <a href="{{ route('storefront.book', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug]) }}"
              class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline pt-2">
             <span>See available times</span>
             <span aria-hidden="true">&rarr;</span>
@@ -144,7 +113,7 @@
 
                 <template x-if="cell">
                   <button type="button"
-                          @click="date = cell.value; loadedFor = ''; loadSlots()"
+                          @click="selectDate(cell)"
                           :class="date === cell.value
                               ? 'h-9 rounded bg-[var(--brand)] text-[var(--brand-ink)] font-bold ring-1 ring-[var(--brand)]'
                               : 'h-9 rounded border border-[var(--rule)] hover:border-[var(--brand-edge)] text-[var(--ink)]'"
@@ -161,14 +130,14 @@
             <span>Checked live against {{ $services->first()->name }}</span>
 
             <span class="flex items-center gap-2">
-              <button type="button" @click="month = Math.max(0, month - 1)"
+              <button type="button" @click="previousMonth()"
                       :disabled="month === 0"
                       class="p-1 rounded-[var(--radius-sm)] border border-[var(--rule)] disabled:opacity-30"
                       aria-label="Previous month">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
               </button>
 
-              <button type="button" @click="month = Math.min(months.length - 1, month + 1)"
+              <button type="button" @click="nextMonth()"
                       :disabled="month === months.length - 1"
                       class="p-1 rounded-[var(--radius-sm)] border border-[var(--rule)] disabled:opacity-30"
                       aria-label="Next month">

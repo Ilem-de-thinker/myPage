@@ -83,9 +83,9 @@
       </div>
 
       <div class="flex flex-wrap justify-center gap-3 mt-7">
-        <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
            class="px-6 py-3 rounded-[var(--radius)] bg-[var(--card)] border border-[var(--rule)] text-[var(--ink)] font-semibold text-sm hover:border-[var(--brand-edge)] transition-colors">Keep shopping</a>
-        <a href="{{ route('storefront.show', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}"
            class="px-6 py-3 rounded-[var(--radius)] text-[var(--brand-ink)] font-semibold text-sm" style="background: var(--brand)">Back to {{ $page->name }}</a>
       </div>
     </div>

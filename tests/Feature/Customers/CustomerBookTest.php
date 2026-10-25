@@ -118,7 +118,7 @@ it('records whatsapp orders in the customer book too', function () {
         ['theme' => 'store', 'status' => 'published'],
     );
 
-    postJson("/{$page->slug}/checkout/whatsapp", [
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 1]],
         'name' => 'Ada Buyer',
         'phone' => '08031234567',

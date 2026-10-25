@@ -3,6 +3,7 @@
 namespace App\Domains\Shared\Middleware;
 
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Services\SubscriptionAvailability;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,11 +17,17 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureSubscriptionValid
 {
+    public function __construct(private readonly SubscriptionAvailability $availability) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $seller = $request->user();
 
         if ($seller === null) {
+            return $next($request);
+        }
+
+        if (! $this->availability->enabled()) {
             return $next($request);
         }
 

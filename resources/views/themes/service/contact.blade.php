@@ -16,18 +16,7 @@
           : '';
   @endphp
 
-  <div x-data="{
-        name: '',
-        phone: '',
-        date: '',
-        msg: '',
-        submitted: false,
-        submitInquiry() {
-          this.submitted = true;
-          const text = encodeURIComponent(`Hello {{ $page->name }},\nName: ${this.name}\nPhone: ${this.phone}\nEvent Date: ${this.date}\nInquiry: ${this.msg}`);
-          window.open(@js($desk) + text, '_blank');
-        }
-      }">
+  <div x-data="serviceInquiry(@jsExpr(['desk' => $desk, 'pageName' => $page->name]))">
 
     @foreach ($blocks as $block)
       @if ($block->key === 'intro')

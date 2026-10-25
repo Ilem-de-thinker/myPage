@@ -20,13 +20,18 @@ class BadgeApplication extends Model
         'store_page_id',
         'status',
         'business_name',
+        'registered_legal_name',
         'document_type',
+        'registration_number',
         'document_path',
+        'document_expires_at',
         'note',
         'reviewed_by_seller_id',
         'rejection_reason',
         'reviewed_at',
         'submitted_at',
+        'retention_until',
+        'document_deleted_at',
     ];
 
     protected function casts(): array
@@ -35,6 +40,9 @@ class BadgeApplication extends Model
             'status' => BadgeStatus::class,
             'reviewed_at' => 'datetime',
             'submitted_at' => 'datetime',
+            'document_expires_at' => 'date',
+            'retention_until' => 'datetime',
+            'document_deleted_at' => 'datetime',
         ];
     }
 
@@ -60,6 +68,13 @@ class BadgeApplication extends Model
      */
     public function documentUrl(): string
     {
-        return Storage::url($this->document_path);
+        return route('admin.badges.document', $this);
+    }
+
+    public function hasDocument(): bool
+    {
+        return $this->document_deleted_at === null
+            && filled($this->document_path)
+            && Storage::disk('local')->exists($this->document_path);
     }
 }

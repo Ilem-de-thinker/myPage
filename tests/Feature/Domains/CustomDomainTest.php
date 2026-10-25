@@ -23,7 +23,7 @@ use function Pest\Laravel\get;
 beforeEach(function (): void {
     config([
         'mypage.features.custom_domains' => true,
-        'mypage.custom_domain.cname_target' => 'domains.mypage.test',
+        'mypage.custom_domain.cname_target' => 'domains.'.config('mypage.domain'),
     ]);
 });
 
@@ -89,7 +89,7 @@ function apexRequest(string $method, string $path, array $data = []): TestRespon
 
 function dnsPointingAtUs(string ...$hosts): FakeDnsResolver
 {
-    return FakeDnsResolver::for(array_fill_keys($hosts, 'domains.mypage.test'));
+    return FakeDnsResolver::for(array_fill_keys($hosts, config('mypage.custom_domain.cname_target')));
 }
 
 describe('hostname normalisation', function () {
@@ -120,18 +120,16 @@ describe('hostname normalisation', function () {
 });
 
 describe('reserved hostnames', function () {
-    it('refuses the platform apex and anything under it', function (string $host) {
-        expect(ReservedHostnames::isReserved($host))->toBeTrue();
-    })->with([
-        'apex' => ['mypage.test'],
-        'www' => ['www.mypage.test'],
-        'subdomain' => ['login.mypage.test'],
-        'deep subdomain' => ['a.b.mypage.test'],
-    ]);
+    it('refuses the platform apex and anything under it', function () {
+        $domain = config('mypage.domain');
+
+        foreach ([$domain, 'www.'.$domain, 'login.'.$domain, 'a.b.'.$domain] as $host) {
+            expect(ReservedHostnames::isReserved($host))->toBeTrue();
+        }
+    });
 
     it('allows a domain that merely ends with the same letters', function () {
-        // "notmypage.test" is not "mypage.test" and must not be refused with it.
-        expect(ReservedHostnames::isReserved('notmypage.test'))->toBeFalse();
+        expect(ReservedHostnames::isReserved('not-'.config('mypage.domain')))->toBeFalse();
         expect(ReservedHostnames::isReserved('shop.com'))->toBeFalse();
     });
 });
@@ -157,7 +155,7 @@ describe('dns verification', function () {
         $status = app(DomainVerifier::class, ['dns' => $resolver])->verify($binding);
 
         expect($status)->toBe(DomainStatus::Pending)
-            ->and($binding->refresh()->last_error)->toContain('domains.mypage.test');
+            ->and($binding->refresh()->last_error)->toContain(config('mypage.custom_domain.cname_target'));
     });
 
     it('leaves a domain pending when it has no CNAME at all', function () {
@@ -206,6 +204,19 @@ describe('serving a custom domain', function () {
         bindingFor($page, 'shop.com', DomainStatus::Active);
 
         shopRequest('/', 'www.shop.com')->assertOk()->assertSee($page->name);
+    });
+
+    it('keeps in-shop navigation on the seller\'s own domain', function () {
+        [$seller, $page] = proSeller();
+        bindingFor($page, 'shop.com', DomainStatus::Active);
+
+        $html = shopRequest('/products')->assertOk()->getContent();
+
+        // A seller who paid for a domain must not have every product click walk
+        // the buyer back to the platform subdomain.
+        expect($html)
+            ->toContain('href="/cart"')
+            ->not->toContain('href="http://'.$page->slug.'.');
     });
 
     it('does not serve a domain that has not been verified', function () {
@@ -268,11 +279,11 @@ describe('serving a custom domain', function () {
         shopRequest($path)->assertNotFound();
     })->with(['/login', '/dashboard', '/orders', '/register']);
 
-    it('still serves the mypage.ng slug after a domain is added', function () {
+    it('still serves the shop on its subdomain after a domain is added', function () {
         [$seller, $page] = proSeller();
         bindingFor($page, 'shop.com', DomainStatus::Active);
 
-        get('/ada-textiles')->assertOk()->assertSee($page->name);
+        get(storeUrl('ada-textiles'))->assertOk()->assertSee($page->name);
     });
 });
 
@@ -315,8 +326,8 @@ describe('seller dashboard', function () {
         Queue::fake();
         [$seller] = proSeller();
 
-        actingAs($seller)->post('http://localhost/domains', ['domain' => 'mypage.test'])->assertSessionHasErrors('domain');
-        actingAs($seller)->post('http://localhost/domains', ['domain' => 'login.mypage.test'])->assertSessionHasErrors('domain');
+        actingAs($seller)->post('http://localhost/domains', ['domain' => config('mypage.domain')])->assertSessionHasErrors('domain');
+        actingAs($seller)->post('http://localhost/domains', ['domain' => 'login.'.config('mypage.domain')])->assertSessionHasErrors('domain');
     });
 
     it('refuses a domain another seller already holds', function () {
@@ -405,7 +416,7 @@ describe('seller dashboard', function () {
         actingAs($seller)->get('http://localhost/domains')
             ->assertOk()
             ->assertSee('CNAME')
-            ->assertSee('domains.mypage.test')
+            ->assertSee(config('mypage.custom_domain.cname_target'))
             ->assertSee('Check again');
     });
 

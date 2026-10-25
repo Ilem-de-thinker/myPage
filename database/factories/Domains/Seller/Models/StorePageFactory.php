@@ -26,7 +26,30 @@ class StorePageFactory extends Factory
             'city' => 'Lagos',
             'state' => 'Lagos',
             'brand_color' => '#16a34a',
+            // A store page in a test is a working shop, and a working shop has
+            // been through verification — the dashboard gate refuses everything
+            // else. The column is deliberately not fillable, so it is written
+            // after construction rather than through create().
+            'verified_at' => now(),
         ];
+    }
+
+    /**
+     * The default, named so a test can be explicit about needing it.
+     */
+    public function verified(): static
+    {
+        return $this->state(fn () => ['verified_at' => now()]);
+    }
+
+    /**
+     * A page an admin has not looked at yet: no dashboard, no writes, no
+     * dashboard. This is the state a seller is in between registering and their
+     * badge application being decided.
+     */
+    public function unverified(): static
+    {
+        return $this->state(fn () => ['verified_at' => null]);
     }
 
     public function storeTheme(): static

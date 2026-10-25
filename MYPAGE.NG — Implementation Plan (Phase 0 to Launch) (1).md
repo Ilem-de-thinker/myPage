@@ -4,6 +4,30 @@ Laravel 13 · Blade-first · Two themes: **Store** (products) and **Service** (b
 
 > **Revision — read first:** Part 9 replaces the section-toggle, section-reorder and font-pair customisation described in Parts 1–8. Each theme is a **fixed, complete multi-page website**; the only thing a seller customises in the design is **brand colour** (plus their own content: text, images, products or services). Where Part 9 disagrees with an earlier part, **Part 9 wins**.
 
+> **Revision 2 — payment architecture, decided 2026-10-23.** This reverses Phase 7's
+> wallet/ledger/commission/payout design and withdraws the escrow in Phase 9. Two
+> money flows now, never meeting:
+>
+> 1. **Seller → mypage.ng** for the subscription, on the platform's own Paystack
+>    account. The only money the platform holds.
+> 2. **Buyer → seller** on the **seller's own** Paystack account, using keys the
+>    seller enters in settings. The platform never holds, escrows, refunds or pays
+>    out buyer money.
+>
+> Bank transfer is refused as a buyer payment method so every payment is trackable.
+> Storefronts move to enforced subdomains (`{store}.mypage.ng`). Verification
+> becomes a buyer-facing trust marker and the switch for a seller's checkout, not a
+> dashboard gate. Reports and store support are added.
+>
+> **Where this revision disagrees with Phases 7, 9 and 10 below, this revision
+> wins.** The full decision, consequences and deletion list are at the top of
+> `before lunch.md`; build tracking is Phase 17 of `todo.md`.
+>
+> A second correction, 2026-10-23: the "BLOCKER 1" claim that `verified` middleware
+> was unregistered is wrong. `verified` is Laravel's own alias for
+> `EnsureEmailIsVerified` and always worked. The real gap was that *business*
+> verification gated nothing.
+
 ## 0. Decisions that shape everything
 
 1. **Two themes only.** `store` for product sellers, `service` for businesses that take bookings. A store page has exactly one theme, chosen at onboarding. No theme marketplace, no per-section drag-and-drop in v1. Customisation = brand colour, logo, cover image, font pair, section toggles and ordering.
@@ -248,25 +272,34 @@ Store every timestamp in UTC and display in `Africa/Lagos`. Keep each store page
 
 ## Phase 7 — Payments (Week 7–9)
 
-**Goal:** first real ₦ collected for both themes, using one payment flow.
+> **Rewritten 2026-10-23.** Points 6 and 7 are withdrawn: there is no platform
+> wallet, ledger, commission or payout, because buyer money never reaches the
+> platform. Points 1–5 and 8–9 survive, with the gateway credentials coming from
+> the seller rather than from platform config. Refunds are point 5's callback
+> check, not a platform action.
 
-1. **Contracts first:** `PaymentGatewayInterface` (`initialize`, `verify`, `refund`, `transfer`) and implementations `PaystackGateway`, `FlutterwaveGateway`. Bind in `DomainServiceProvider`; active gateway chosen by config.
-2. **Polymorphic payable:** `transactions` has `payable_type/payable_id`, so one table pays for an `Order` or a `Booking`. Fields: `reference` (unique), `amount_kobo`, `fee_kobo`, `commission_kobo`, `gateway`, `status`, `gateway_payload JSON`.
-3. **Actions:** `InitializePayment` (creates a pending transaction, returns hosted checkout URL), `VerifyPaymentWebhook`.
-4. **Webhooks (`routes/webhooks.php`):**
-   - Verify signature (HMAC) before anything else; reject on mismatch.
+**Goal:** first real ₦ collected for both themes, paid into the **seller's** account.
+
+1. **Contracts first:** `PaymentGatewayInterface` (`initialize`, `verify`, `refund`) and implementations `PaystackGateway`, `FlutterwaveGateway`. Unlike the original design, the active gateway and its credentials are **per seller**, resolved from `seller_gateways`; the platform's own config is used only for subscription billing.
+2. **Polymorphic payable:** `transactions` has `payable_type/payable_id`, so one table pays for an `Order` or a `Booking`. Fields: `reference` (unique), `amount_kobo`, `fee_kobo`, `gateway`, `status`, `gateway_payload JSON`. `commission_kobo` goes — the platform takes nothing from a buyer payment.
+3. **Actions:** `InitializePayment` (creates a pending transaction against the seller's credentials, returns hosted checkout URL), `VerifyPaymentWebhook`.
+4. **Webhooks, per tenant:**
+   - The URL is `https://{store}.mypage.ng/webhooks/paystack`; the tenant is resolved from the host **before** verification, because the signature key is the seller's.
+   - Verify signature (HMAC) with that seller's secret before anything else; reject on mismatch.
    - Store `webhook_events(event_id unique, gateway, payload, processed_at)`; duplicate event id = no-op.
    - Dispatch a queued job; return 200 quickly.
    - On success: mark transaction paid, fire `PaymentConfirmed`. Listeners move the order to `paid` or the booking to `confirmed`, decrement stock, upsert the customer.
+   - The seller must register the URL in their own Paystack dashboard; nothing in the API can do it. Show the exact URL in their settings and warn while it is unconfirmed.
 5. **Callback page** after the gateway redirect always re-verifies server-side; never trust the query string.
-6. **Wallet + ledger:** `wallets`, `wallet_ledger` with double-entry rows written in one transaction; `CommissionCalculator` (basis points from `PLATFORM_COMMISSION_BPS`). Ledger rows are immutable (no update/delete; enforce with a model guard and DB permissions where possible).
-7. **Payouts:** `RequestPayout` → `ProcessPayout` job → gateway transfer; seller bank-account verification via the gateway's resolve-account endpoint; minimum payout and a payout history screen.
-8. **Store checkout:** `CreateOrderFromCheckout` re-prices every line from the database (never trust cart prices), reserves stock, creates the order and payment.
+6. **~~Wallet + ledger~~** — withdrawn. No platform-held balance exists to ledger.
+7. **~~Payouts~~** — withdrawn. The seller's money is already in their own gateway balance. The platform pays out nothing.
+8. **Store checkout:** `CreateOrderFromCheckout` re-prices every line from the database (never trust cart prices), reserves stock, creates the order and payment. **Bank transfer is not an accepted payment method**, and an order cannot be marked paid by hand.
 9. **Service checkout:** `CreateBooking` + deposit/full payment via the same `InitializePayment`.
+10. **Seller gateway settings:** a screen to add, verify, replace and remove the seller's key. The key is stored encrypted, never echoed back, and proven against the gateway before it is saved.
 
-**Tests (Pest, mandatory):** init, verify, duplicate webhook, bad signature, underpayment, commission math, ledger balances to zero, payout success/failure.
+**Tests (Pest, mandatory):** init, verify, duplicate webhook, bad signature, underpayment, a seller without credentials cannot take payment, a webhook for one tenant cannot be verified with another's secret, a test key is refused in production.
 
-**Exit:** a real ₦ payment goes end-to-end on sandbox, then live with a small amount, in both themes.
+**Exit:** a real ₦ payment goes end-to-end on sandbox, then live with a small amount, in both themes, into the seller's own account.
 
 ---
 
@@ -283,22 +316,31 @@ Store every timestamp in UTC and display in `Africa/Lagos`. Keep each store page
 
 ---
 
-## Phase 9 — Billing, plans and escrow (Week 11–13)
+## Phase 9 — Billing, plans and verification (Week 11–13)
 
-1. **Plans and subscriptions:** `plans`, `subscriptions`; `SubscriptionManager` using Paystack plans or manual bank transfer approval. `EnsureSubscriptionValid` middleware gates dashboard writes (never the public storefront; do not take a paying seller's store offline silently, add a grace period). `ExpireSubscriptions` scheduled daily.
-2. **Feature gating:** a single `Feature::enabled('escrow', $seller)` helper reading `config/mypage.php` plus DB flags, so each feature ships dark.
-3. **Escrow (Store theme first, optional for Service):** funds credited to an escrow ledger account on payment; `ReleaseEscrow` on delivery confirmation (buyer link) or auto after `ESCROW_AUTO_RELEASE_DAYS` via `ReleaseAutoEscrow`; dispute flow freezes release and routes to the admin `DisputeResolver`. For bookings, release on `completed` status.
-4. **Verified badge:** `BadgeApplication` (document upload: CAC/ID), admin review queue, `VerificationBadge` displayed in both themes.
+> **Rescoped 2026-10-23.** Escrow (point 3) is withdrawn entirely. Billing and the
+> verified badge survive, with verification demoted from "gates the dashboard" to
+> "a buyer-facing trust signal and the switch for a seller's checkout".
 
-**Exit:** subscriptions billing, escrow holds and releases, badges approved by admin.
+1. **Plans and subscriptions:** `plans`, `subscriptions`; `SubscriptionManager` using Paystack plans or manual bank transfer approval. `EnsureSubscriptionValid` middleware gates dashboard writes (never the public storefront; do not take a paying seller's store offline silently, add a grace period). `ExpireSubscriptions` scheduled daily. This is the one flow where the platform holds money.
+2. **Feature gating:** a single `Feature::enabled()` helper reading `config/mypage.php` plus DB flags, so each feature ships dark.
+3. **~~Escrow~~ — withdrawn.** The platform never holds a buyer payment, so there is nothing to hold, release, freeze or arbitrate. No buyer release link, no `ReleaseAutoEscrow`, no dispute resolver. A buyer's recourse is to report the store; the platform moderates, it does not adjudicate money.
+4. **Verified badge:** `BadgeApplication` (document upload: CAC/ID), admin review queue. Strengthen it: registered legal name, CAC/RC or ID number stored separately from the file, retention rule, re-verification or expiry. `VerificationBadge` displays in both themes, and **an explicit "Not verified by mypage.ng" state** rather than nothing. An unverified seller keeps their dashboard and **can still take payment**; the buyer is warned beside the pay button.
+
+**Exit:** subscription billing works; badges are approved by an admin; an unverified seller's checkout still works and shows the "not verified" warning on the page, on cards and beside the pay button.
 
 ---
 
 ## Phase 10 — Admin panel (Week 12–14, parallel with Phase 9)
 
+> **Rescoped 2026-10-23.** Escrow resolution and payout approvals are withdrawn.
+> A **store reports queue** replaces them, and the metrics change accordingly.
+
 Blade-based internal panel on `admin.mypage.ng` or `/admin`, separate guard and layout.
 
-- Seller moderation (suspend/unsuspend a store page, with reason), transaction browser, dispute resolver, badge review, payout approvals (manual approval toggle for early days), feature-flag toggles, platform metrics (GMV, commission, active stores by theme).
+- Seller moderation (suspend/unsuspend a store page, with reason), transaction browser, badge review, feature-flag toggles, platform metrics (GMV, active subscriptions, active stores by theme).
+- **Store reports queue:** every report across sellers, filtered by category and state, with a count per store. Resolve or dismiss with a note. Suspension is the only outcome — there is no money to move.
+- **Per-seller gateway health:** which sellers have credentials, whether the key still verifies, and whether their webhook URL is configured. A seller with a working checkout and no webhook is a silent unpaid-order factory.
 - Every admin action writes to the activity log.
 
 ---
@@ -1156,6 +1198,13 @@ Alpine.data('bookingWidget', (cfg) => ({
 
 ## P7 — Payments, step by step
 
+> **Partially superseded, 2026-10-23.** The gateway credentials in the code below
+> come from platform config. They must now come from the **seller's** own
+> credentials, resolved per tenant, and the wallet/ledger/payout code that follows
+> is withdrawn. Keep the interface, `InitializePayment`, the webhook idempotency
+> and the callback re-verification. Read the Phase 7 rewrite above and the decision
+> at the top of `before lunch.md` before following this section.
+
 **Interface**
 
 ```php
@@ -1346,7 +1395,11 @@ Define `canMoveTo()` in the enum with a transition map. Do the same for `Booking
 
 ---
 
-## P9 — Billing and escrow, step by step
+## P9 — Billing and verification, step by step
+
+> **Escrow withdrawn, 2026-10-23.** Everything below about `escrow_accounts`,
+> `ReleaseEscrow`, `ReleaseAutoEscrow` and `DisputeResolver` is history. Plans,
+> subscriptions, `EnsureSubscriptionValid` and `ExpireSubscriptions` still apply.
 
 **Plans seeder:** e.g. `starter` (₦3,500/mo), `pro`, with limits in a JSON `features` column (product limit, staff limit, custom domain flag).
 

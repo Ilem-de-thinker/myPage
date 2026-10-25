@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" role="img" aria-labelledby="title desc">
+  <title id="title">Makers table illustration</title><desc id="desc">Editorial illustration of local makers around a work table.</desc>
+  <rect width="1000" height="1250" fill="#d9e0d3"/><rect x="105" y="410" width="790" height="420" rx="36" fill="#f7f2e9"/>
+  <path d="M130 780h740l-80 190H210z" fill="#ad5941"/><circle cx="260" cy="320" r="110" fill="#d0a675"/><circle cx="725" cy="310" r="108" fill="#c97d68"/>
+  <path d="M150 330c70-150 205-120 240-35-80-24-135 5-240 35zM620 326c55-130 190-120 240-24-89-22-140 10-240 24z" fill="#2f4a3b"/>
+  <path d="M245 550 390 470l110 120-150 100zM550 550l130-70 100 110-150 100z" fill="#d0a675"/>
+</svg>

@@ -6,6 +6,7 @@ use App\Domains\Catalog\Models\Review;
 use App\Domains\Seller\Enums\ReviewStatus;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -38,7 +39,7 @@ function reviewedProduct(): array
 it('does not publish a review on submission', function () {
     [$seller, $page, $product] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'The cloth is exactly as pictured and it arrived fast.',
@@ -61,7 +62,7 @@ it('does not publish a review on submission', function () {
 it('tells the person their review is waiting, rather than silently dropping it', function () {
     [$seller, $page] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 4,
         'body' => 'Good quality, would buy again.',
@@ -71,7 +72,7 @@ it('tells the person their review is waiting, rather than silently dropping it',
 it('refuses a rating outside one to five', function () {
     [$seller, $page] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 6,
         'body' => 'Six stars would be even better.',
@@ -85,7 +86,7 @@ it('refuses a review with nothing in it', function () {
 
     // "Great" is a rating, not a review. A wall of one-word rows makes the list
     // worthless to the next reader.
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'Great',
@@ -103,7 +104,7 @@ it('will not let a review be attached to another seller\'s product', function ()
     ]);
 
     // A crafted request cannot reach a product that is not on this page.
-    post("/{$page->slug}/reviews/product/does-not-exist", [
+    post(storeUrl($page->slug, '/reviews/product/does-not-exist'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'A review of something I have never seen.',
@@ -115,7 +116,7 @@ it('will not let a review be attached to another seller\'s product', function ()
 it('sanitises the body before it is stored', function () {
     [$seller, $page] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'Lovely cloth. <script>alert(1)</script>',
@@ -129,7 +130,7 @@ it('sanitises the body before it is stored', function () {
 it('recalculates the score when the seller approves', function () {
     [$seller, $page, $product] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'The cloth is exactly as pictured.',
@@ -147,7 +148,7 @@ it('recalculates the score when the seller approves', function () {
 it('takes the score back down when a review is declined', function () {
     [$seller, $page, $product] = reviewedProduct();
 
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 1,
         'body' => 'Arrived damaged and nobody answered me.',
@@ -241,7 +242,7 @@ it('renders a published review on the product page', function () {
 
     $product->recalculateRating();
 
-    get("/{$page->slug}/products/ankara-print")
+    get(storeUrl($page->slug, '/products/ankara-print'))
         ->assertOk()
         ->assertSee('The cloth is exactly as pictured.')
         ->assertSee('Chidi Okeke');
@@ -261,7 +262,7 @@ it('does not render a pending review on the product page', function () {
         'status' => ReviewStatus::Pending,
     ]);
 
-    get("/{$page->slug}/products/ankara-print")
+    get(storeUrl($page->slug, '/products/ankara-print'))
         ->assertOk()
         ->assertDontSee('Something the seller has not read yet.');
 });
@@ -269,9 +270,9 @@ it('does not render a pending review on the product page', function () {
 it('offers the review form on the product page', function () {
     [$seller, $page] = reviewedProduct();
 
-    $html = get("/{$page->slug}/products/ankara-print")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products/ankara-print'))->assertOk()->getContent();
 
-    expect($html)->toContain(route('storefront.product.review', ['slug' => $page->slug, 'productSlug' => 'ankara-print']), escape: false)
+    expect($html)->toContain(StoreUrl::path('storefront.product.review', ['slug' => $page->slug, 'productSlug' => 'ankara-print']), escape: false)
         ->and($html)->toContain('Leave a review');
 });
 
@@ -281,13 +282,13 @@ it('opens the product page on the reviews tab after a submission', function () {
     // The confirmation is printed inside the reviews tab. Landing back on the
     // details tab put it somewhere the shopper was not looking, so a
     // successful submission looked like one that had quietly failed.
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'Chidi Okeke',
         'rating' => 5,
         'body' => 'The cloth is exactly as pictured.',
     ])->assertRedirect();
 
-    $html = get("/{$page->slug}/products/ankara-print")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products/ankara-print'))->assertOk()->getContent();
 
     expect($html)->toContain("tab: 'reviews'")
         ->and($html)->toContain('Thank you. Your review will appear once the seller has read it.');
@@ -298,13 +299,13 @@ it('opens the product page on the reviews tab when the submission was rejected',
 
     // No assertSessionHasErrors here: it reads the flashed bag off the session
     // to check it, which leaves nothing for the page under test to find.
-    post("/{$page->slug}/reviews/product/ankara-print", [
+    post(storeUrl($page->slug, '/reviews/product/ankara-print'), [
         'author_name' => 'C',
         'rating' => 5,
         'body' => 'too short',
     ])->assertRedirect();
 
-    $html = get("/{$page->slug}/products/ankara-print")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products/ankara-print'))->assertOk()->getContent();
 
     expect($html)->toContain("tab: 'reviews'")
         ->and($html)->toContain('role="alert"');
@@ -329,7 +330,7 @@ it('lets the buyer reach the review dialog from the home page', function () {
 
     $page->recalculateRating();
 
-    $html = get("/{$page->slug}")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
     // Alpine scopes cascade downwards. A button that sets `reviewModalOpen`
     // can only reach a state declared above it, and one declared below it
@@ -368,7 +369,7 @@ it('accepts and shows a review on a service', function () {
         'is_active' => true,
     ]);
 
-    post("/{$page->slug}/reviews/service/knotless-braids", [
+    post(storeUrl($page->slug, '/reviews/service/knotless-braids'), [
         'author_name' => 'Ngozi James',
         'rating' => 5,
         'body' => 'Lasted three weeks through a wedding.',
@@ -405,7 +406,7 @@ it('shows an anonymous review as a customer, never as an empty name', function (
     // honest and is not a name anyone can dox.
     expect($review->authorLabel())->toBe('A customer');
 
-    get("/{$page->slug}/products/ankara-print")
+    get(storeUrl($page->slug, '/products/ankara-print'))
         ->assertOk()
         ->assertSee('A customer')
         ->assertDontSee('Ngozi James');

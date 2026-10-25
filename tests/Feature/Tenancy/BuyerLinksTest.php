@@ -83,14 +83,14 @@ it('refuses a link whose signature is not ours', function () {
         'reference' => 'NG-7788',
     ]);
 
-    get("/{$page->slug}/o/NG-7788")->assertForbidden();
+    get(storeUrl($page->slug, '/o/NG-7788'))->assertForbidden();
 
     $signed = BuyerLinks::order($page, Order::withoutGlobalScopes()->where('reference', 'NG-7788')->first());
 
     // Same reference, another studio's slug: the link must not be replayable.
     $other = buyerLinkStore()[1];
 
-    get(str_replace("/{$page->slug}/", "/{$other->slug}/", $signed))->assertForbidden();
+    get(str_replace("//{$page->slug}.", "//{$other->slug}.", $signed))->assertForbidden();
 });
 
 it('refuses a booking link that is not signed', function () {
@@ -102,7 +102,7 @@ it('refuses a booking link that is not signed', function () {
         'reference' => 'BK-7788',
     ]);
 
-    get("/{$page->slug}/b/BK-7788")->assertForbidden();
+    get(storeUrl($page->slug, '/b/BK-7788'))->assertForbidden();
 });
 
 it('stops working once it expires', function () {
@@ -154,5 +154,5 @@ it('will not serve a store order link to a service page', function () {
 
     $link = BuyerLinks::order($store, $order);
 
-    get(str_replace("/{$store->slug}/", "/{$service->slug}/", $link))->assertForbidden();
+    get(str_replace("//{$store->slug}.", "//{$service->slug}.", $link))->assertForbidden();
 });

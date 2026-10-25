@@ -3,13 +3,8 @@
 use App\Domains\Admin\Models\AdminAuditLog;
 use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Admin\Models\BadgeStatus;
-use App\Domains\Billing\Models\Escrow;
-use App\Domains\Billing\Models\EscrowStatus;
 use App\Domains\Orders\Models\Order;
-use App\Domains\Payments\Enums\PayoutStatus;
-use App\Domains\Payments\Models\Payout;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Models\Wallet;
 use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
@@ -31,7 +26,7 @@ function pendingApplication(): BadgeApplication
 it('hides the whole panel from anyone who is not an admin', function () {
     [$seller] = sellerWithPage();
 
-    foreach (['/admin', '/admin/stores', '/admin/badges', '/admin/escrows', '/admin/transactions', '/admin/payouts', '/admin/audit'] as $url) {
+    foreach (['/admin', '/admin/stores', '/admin/badges', '/admin/transactions', '/admin/audit'] as $url) {
         // 404 rather than 403: an internal panel should not advertise itself.
         actingAs($seller)->get($url)->assertNotFound();
     }
@@ -48,10 +43,8 @@ it('lets an admin into the panel', function () {
         ->assertSee('Gross sales');
 
     actingAs(adminUser())->get('/admin/transactions')->assertOk();
-    actingAs(adminUser())->get('/admin/payouts')->assertOk();
     actingAs(adminUser())->get('/admin/stores')->assertOk();
     actingAs(adminUser())->get('/admin/badges')->assertOk();
-    actingAs(adminUser())->get('/admin/escrows')->assertOk();
     actingAs(adminUser())->get('/admin/audit')->assertOk();
 });
 
@@ -108,7 +101,7 @@ it('shows the badge on the storefront once an admin approves it', function () {
         'store_page_id' => $page->id,
     ]);
 
-    actingAs($seller)->get('/badge-seller')->assertOk()->assertDontSee('Verified');
+    actingAs($seller)->get(storeUrl('badge-seller'))->assertOk()->assertDontSee('Verified');
 
     actingAs($admin)->post(route('admin.badges.decide', $application), [
         'decision' => 'approve',
@@ -118,7 +111,7 @@ it('shows the badge on the storefront once an admin approves it', function () {
     expect($application->fresh()->status)->toBe(BadgeStatus::Approved);
 
     // And the buyer's page now carries the tick.
-    actingAs($seller)->get('/badge-seller')->assertOk()->assertSee('Verified');
+    actingAs($seller)->get(storeUrl('badge-seller'))->assertOk()->assertSee('Verified');
 });
 
 it('never badges a page whose application was rejected', function () {
@@ -129,7 +122,7 @@ it('never badges a page whose application was rejected', function () {
         'store_page_id' => $page->id,
     ]);
 
-    actingAs($seller)->get('/rejected-badge')->assertOk()->assertDontSee('Verified');
+    actingAs($seller)->get(storeUrl('rejected-badge'))->assertOk()->assertDontSee('Verified');
 });
 
 it('records who approved a badge and why', function () {
@@ -297,57 +290,6 @@ it('treats the audit log as append only', function () {
         ->toThrow(LogicException::class, 'immutable');
 });
 
-it('resolves a frozen escrow and refuses to settle it twice', function () {
-    $admin = adminUser();
-
-    $escrow = Escrow::factory()->frozen()->create([
-        'seller_id' => Seller::factory()->create()->id,
-        'amount_kobo' => 500000,
-    ]);
-
-    actingAs($admin)->post(route('admin.escrows.resolve', $escrow), [
-        'decision' => 'release_to_seller',
-        'note' => 'Order arrived as described',
-    ])->assertRedirect();
-
-    expect($escrow->fresh()->status)->toBe(EscrowStatus::Released);
-
-    // A second decision must not move the money again.
-    actingAs($admin)->post(route('admin.escrows.resolve', $escrow), [
-        'decision' => 'refund_buyer',
-        'note' => 'changed my mind',
-    ])->assertSessionHasErrors('decision');
-
-    expect($escrow->fresh()->status)->toBe(EscrowStatus::Released);
-});
-
-it('refunds the buyer when an admin decides against the seller', function () {
-    $admin = adminUser();
-    $seller = Seller::factory()->create();
-
-    $escrow = Escrow::factory()->frozen()->create(['seller_id' => $seller->id, 'amount_kobo' => 300000]);
-
-    actingAs($admin)->post(route('admin.escrows.resolve', $escrow), [
-        'decision' => 'refund_buyer',
-        'note' => 'Nothing ever arrived',
-    ]);
-
-    expect($escrow->fresh()->status)->toBe(EscrowStatus::Refunded)
-        ->and(Wallet::forSeller($seller->id)->balance_kobo)->toBe(0);
-});
-
-it('requires a written reason for every dispute decision', function () {
-    $admin = adminUser();
-    $escrow = Escrow::factory()->frozen()->create();
-
-    actingAs($admin)->post(route('admin.escrows.resolve', $escrow), [
-        'decision' => 'release_to_seller',
-        'note' => '',
-    ])->assertSessionHasErrors('note');
-
-    expect($escrow->fresh()->status)->toBe(EscrowStatus::Frozen);
-});
-
 it('lets an admin see a transaction belonging to another seller', function () {
     $admin = adminUser();
 
@@ -379,25 +321,6 @@ it('filters the transaction browser by status and reference', function () {
     actingAs($admin)->get('/admin/transactions?q=MPPAIDONE')
         ->assertOk()
         ->assertSee($paid->reference);
-});
-
-it('shows an admin only the payouts that need a person', function () {
-    $admin = adminUser();
-    $seller = Seller::factory()->create();
-
-    $paid = Payout::factory()->create([
-        'seller_id' => $seller->id, 'status' => PayoutStatus::Paid,
-    ]);
-    $failed = Payout::factory()->create([
-        'seller_id' => $seller->id, 'status' => PayoutStatus::Failed,
-        'failure_reason' => 'The bank rejected the transfer.',
-    ]);
-
-    actingAs($admin)->get('/admin/payouts')
-        ->assertOk()
-        // A successful payout is nobody's problem.
-        ->assertDontSee($paid->reference)
-        ->assertSee($failed->reference);
 });
 
 it('keeps the admin panel out of search engines', function () {

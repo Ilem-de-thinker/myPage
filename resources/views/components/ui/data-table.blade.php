@@ -17,16 +17,10 @@
     $visibleColumns = collect($columns)->reject(fn ($col) => ($col['type'] ?? 'text') === 'image');
 @endphp
 
-<div x-data="{
-    selected: [],
-    hidden: [],
-    selectAll: false,
-    toggleAll() { this.selectAll = !this.selectAll; this.selected = this.selectAll ? @js($rows->pluck('id')->all()) : []; },
-    toggleCol(key) { this.hidden = this.hidden.includes(key) ? this.hidden.filter(k => k !== key) : [...this.hidden, key]; },
-    stock: { open: false, busy: false, id: null, name: '', qty: 0, delta: 1, reason: 'quick adjust' },
-    openStock(id, name, qty) { this.stock = { open: true, busy: false, id, name, qty, delta: 1, reason: 'quick adjust' }; },
-    get stockUrl() { return @js($stockUrlTemplate).replace('__ID__', this.stock.id); },
-}">
+<div x-data="dataTable(@jsExpr([
+    'ids' => $rows->pluck('id')->all(),
+    'stockUrlTemplate' => $stockUrlTemplate,
+]))">
     <div class="flex flex-wrap items-center gap-3 mb-4">
         <form method="GET" class="flex flex-wrap items-center gap-2">
             <input type="text" name="q" value="{{ request('q') }}" placeholder="{{ $searchPlaceholder }}" class="px-4 py-2 rounded-xl border border-rule-strong text-sm w-56">
@@ -102,7 +96,7 @@
                                     <a href="{{ route($extraRoute, $row) }}" class="text-xs font-semibold text-ink-3">{{ $extraLabel }}</a>
                                 @endif
                                 @if ($stockRoute)
-                                    <button type="button" class="text-xs font-semibold text-ink-3" @click="openStock({{ $row->id }}, @js($row->name ?? 'Product'), {{ (int) data_get($row, 'stock_qty') }})">Stock</button>
+                                    <button type="button" class="text-xs font-semibold text-ink-3" @click="openStock({{ $row->id }}, @jsExpr($row->name ?? 'Product'), {{ (int) data_get($row, 'stock_qty') }})">Stock</button>
                                 @endif
                                 @if ($destroyRoute)
                                     <form method="POST" action="{{ route($destroyRoute, $row) }}" class="inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')
@@ -155,7 +149,7 @@
                             <a href="{{ route($extraRoute, $row) }}" class="text-xs font-semibold text-ink-3">{{ $extraLabel }}</a>
                         @endif
                         @if ($stockRoute)
-                            <button type="button" class="text-xs font-semibold text-ink-3" @click="openStock({{ $row->id }}, @js($row->name ?? 'Product'), {{ (int) data_get($row, 'stock_qty') }})">Stock</button>
+                            <button type="button" class="text-xs font-semibold text-ink-3" @click="openStock({{ $row->id }}, @jsExpr($row->name ?? 'Product'), {{ (int) data_get($row, 'stock_qty') }})">Stock</button>
                         @endif
                         @if ($destroyRoute)
                             <form method="POST" action="{{ route($destroyRoute, $row) }}" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')
@@ -185,9 +179,9 @@
                     @method('PATCH')
 
                     <div class="flex items-center gap-2 mb-3">
-                        <button type="button" @click="stock.delta = Math.max(-1000, stock.delta - 1)" class="w-9 h-9 rounded-lg border border-rule-strong text-ink-2">−</button>
+                        <button type="button" @click="decrementStock()" class="w-9 h-9 rounded-lg border border-rule-strong text-ink-2">−</button>
                         <input type="number" name="delta" x-model.number="stock.delta" class="flex-1 text-center px-3 py-2 rounded-lg border border-rule-strong text-sm" required>
-                        <button type="button" @click="stock.delta = stock.delta + 1" class="w-9 h-9 rounded-lg border border-rule-strong text-ink-2">+</button>
+                        <button type="button" @click="incrementStock()" class="w-9 h-9 rounded-lg border border-rule-strong text-ink-2">+</button>
                     </div>
 
                     <input type="text" name="reason" x-model="stock.reason" class="w-full px-3 py-2 rounded-lg border border-rule-strong text-sm mb-4" required>

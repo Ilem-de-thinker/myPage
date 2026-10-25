@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\RequiredIf;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -41,8 +42,11 @@ class BadgeController extends Controller
 
         $data = $request->validate([
             'business_name' => ['required', 'string', 'max:190'],
+            'registered_legal_name' => ['required', 'string', 'max:190'],
             'document_type' => ['required', Rule::in(['cac', 'national_id'])],
-            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+            'registration_number' => ['required', 'string', 'max:120'],
+            'document_expires_at' => [new RequiredIf($request->input('document_type') === 'national_id'), 'nullable', 'date', 'after:today'],
+            'document' => ['required', 'file', 'mimetypes:application/pdf,image/jpeg,image/png', 'max:8192'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 

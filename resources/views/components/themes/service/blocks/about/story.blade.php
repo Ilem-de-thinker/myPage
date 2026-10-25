@@ -45,13 +45,13 @@
         @endif
 
         <div class="flex flex-wrap items-center gap-4 pt-2">
-          <a href="{{ route('storefront.book', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug]) }}"
              class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-sm font-bold shadow-[var(--shadow-lift)] hover:opacity-95 transition-opacity">
             <span>Reserve Appointment</span>
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
 
-          <a href="{{ route('storefront.services', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.services', ['slug' => $page->slug]) }}"
              class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] text-sm font-bold hover:bg-[var(--surface)] transition-colors">
             <span>Explore Rate Card</span>
           </a>
@@ -118,9 +118,9 @@
 
       <div class="card p-6 rounded-[var(--radius-lg)] space-y-4">
         <div class="w-10 h-10 rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] flex items-center justify-center font-bold">03</div>
-        <h3 class="t-title text-[var(--ink)]">Escrow Protection</h3>
+        <h3 class="t-title text-[var(--ink)]">Secure Payment</h3>
         <p class="text-xs text-[var(--ink-2)] leading-relaxed">
-          Every deposit is locked in escrow on the platform. You have financial peace of mind from the moment you reserve to the day you are finished.
+          Your deposit is paid at booking through the studio's own payment account. mypage.ng never holds your money.
         </p>
       </div>
     </div>

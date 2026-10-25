@@ -9,6 +9,7 @@ use App\Domains\Booking\Models\TimeOff;
 use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Directory\Jobs\SyncDirectorySearchIndex;
 use App\Domains\Seller\Enums\PriceTier;
 use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Enums\Theme;
@@ -26,6 +27,12 @@ class StorePage extends Model
 {
     use BelongsToSeller, HasFactory, HasRating;
 
+    protected static function booted(): void
+    {
+        static::saved(fn (StorePage $page): mixed => SyncDirectorySearchIndex::dispatch(self::class, $page->getKey()));
+        static::deleted(fn (StorePage $page): mixed => SyncDirectorySearchIndex::dispatch(self::class, $page->getKey()));
+    }
+
     protected $fillable = [
         'seller_id',
         'slug',
@@ -36,11 +43,14 @@ class StorePage extends Model
         'bio',
         'logo_path',
         'cover_path',
+        'og_image_path',
         'whatsapp_number',
         'public_email',
         'address',
         'city',
         'state',
+        'latitude',
+        'longitude',
         'brand_color',
         'social_links',
         'settings',
@@ -61,12 +71,17 @@ class StorePage extends Model
             'settings' => 'array',
             'social_links' => 'array',
             'published_at' => 'datetime',
+            // Not fillable, and never will be: only an admin decision sets it,
+            // and EnsureSellerIsVerified reads it on every dashboard request.
+            'verified_at' => 'datetime',
             'price_tier' => PriceTier::class,
             'rating' => 'float',
             'review_count' => 'integer',
             'is_directory_opted_in' => 'boolean',
             'is_featured' => 'boolean',
             'view_count' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
@@ -82,6 +97,11 @@ class StorePage extends Model
     public function blocks(): HasMany
     {
         return $this->hasMany(PageBlock::class);
+    }
+
+    public function carouselSlides(): HasMany
+    {
+        return $this->hasMany(CarouselSlide::class)->orderBy('position');
     }
 
     public function block(string $page, string $key): ?PageBlock
@@ -139,6 +159,11 @@ class StorePage extends Model
         return $this->status === StoreStatus::Published;
     }
 
+    public function businessType(): string
+    {
+        return strtolower((string) ($this->settings['business_type'] ?? $this->theme->value));
+    }
+
     /**
      * Products for this page.
      *
@@ -193,7 +218,11 @@ class StorePage extends Model
      */
     public function scopeFeaturedOnly(Builder $query): Builder
     {
-        return $query->where('is_featured', true);
+        return $query->where('is_featured', true)
+            ->whereHas('seller.subscriptions', function (Builder $subscription): void {
+                $subscription->whereIn('status', ['active', 'trialing', 'past_due'])
+                    ->whereHas('plan', fn (Builder $plan) => $plan->whereIn('slug', config('billing.directory_featured_plans', [])));
+            });
     }
 
     /**

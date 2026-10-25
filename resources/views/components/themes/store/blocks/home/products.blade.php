@@ -17,7 +17,7 @@
         <h2 class="t-display-2 text-[var(--ink)] mt-1">{{ $block->field('heading') ?: 'The full catalogue' }}</h2>
       </div>
 
-      <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+      <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
          class="text-xs font-bold text-[var(--brand-text)] hover:underline shrink-0">
         View full catalogue ({{ $total }} {{ \Illuminate\Support\Str::plural('piece', $total) }}) →
       </a>

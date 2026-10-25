@@ -65,12 +65,12 @@ it('makes the published page reachable on the storefront right away', function (
     $page = makePublishable($page);
 
     // A draft page 404s for ordinary visitors.
-    get("/{$page->slug}")->assertNotFound();
+    get(storeUrl($page->slug, ''))->assertNotFound();
 
     actingAs($seller)->post(route('page.publish'))->assertRedirect();
 
     // Publishing must bust the cached lookup, or the page stays dark.
-    get("/{$page->slug}")->assertOk();
+    get(storeUrl($page->slug, ''))->assertOk();
 });
 
 it('refuses to publish a page with nothing to sell', function () {

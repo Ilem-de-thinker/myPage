@@ -1,357 +1,390 @@
-@php
-    use App\Shared\Support\DemoStorefronts;
-    use App\Shared\Support\PricingPlans;
-
-    $serviceDemo = DemoStorefronts::service();
-    $storeDemo = DemoStorefronts::store();
-@endphp
-
 @extends('layouts.platform')
 
-@section('title', 'mypage.ng — Sovereign Storefronts for Nigerian Enterprise')
-@section('description', 'Multi-tenant storefront platform for Nigerian businesses — products, services, bookings, and verified commerce.')
-@section('body-state', '{ annualPricing: false, mobileNavOpen: false }')
+@section('title', 'MyPage.ng — Sovereign Storefronts & Discovery for Nigerian Commerce')
+@section('description', 'Discover independent Nigerian stores, products, and services, then connect directly with the merchant. No marketplace cuts.')
+@section('body-state', '{ mobileNavOpen: false }')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'WebSite',
+    'name' => 'mypage.ng',
+    'url' => route('home'),
+    'potentialAction' => [
+        '@type' => 'SearchAction',
+        'target' => route('directory.products').'?q={search_term_string}',
+        'query-input' => 'required name=search_term_string'
+    ]
+], JSON_UNESCAPED_SLASHES) !!}</script>
+@endpush
 
 @section('content')
+<div class="relative text-[var(--platform-ink)]">
+  
+  {{-- ==========================================
+       SECTION 1: HERO
+       ========================================== --}}
+  <section class="relative min-h-[90vh] border-b border-[var(--platform-line)] pt-12 pb-20 sm:pt-20 sm:pb-32 lg:pt-28">
+    <div class="mx-auto max-w-7xl px-4 sm:px-8 relative z-10">
+      <div class="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+        
+        {{-- Hero Left: Headlines & Dominant Elevated Search --}}
+        <div>
+          <div data-reveal class="inline-flex items-center gap-2 rounded-full border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[var(--platform-accent)]">
+            <span>The Nigerian Discovery Desk</span>
+          </div>
 
-    <!-- HERO SECTION -->
-    <section class="section-y relative overflow-hidden bg-gradient-to-b from-[var(--surface)] via-[var(--paper)] to-[var(--paper)]">
-      <!-- Ambient Wash Accents -->
-      <div class="absolute -top-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-[var(--brand-wash-2)] blur-3xl pointer-events-none -z-10" aria-hidden="true"></div>
-      <div class="absolute top-20 right-10 w-[28rem] h-[28rem] rounded-full bg-amber-500/5 blur-3xl pointer-events-none -z-10" aria-hidden="true"></div>
-
-      <div class="shell">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-
-          <!-- Hero Copy (7 Columns) -->
-          <div class="lg:col-span-7 space-y-6">
-
-            <h1 class="t-display-1 text-[var(--ink)]">
-              Storefronts for businesses worth ₦1.5 billion.
+          {{-- Masked Line Reveal Headline --}}
+          <div class="mt-6" data-reveal="mask-line">
+            <h1 class="font-display text-[clamp(2.75rem,7vw,5.8rem)] font-extrabold leading-[0.92] tracking-[-0.055em] text-[var(--platform-ink)]">
+              Find the place <br>
+              <em class="font-normal italic text-[var(--platform-brand)]">that gets it.</em>
             </h1>
+          </div>
 
-            <p class="t-body-lg text-[var(--ink-2)] t-measure">
-              Convert high-intent Instagram and TikTok attention into verified orders. Direct WhatsApp checkout, automated Nigerian bank transfers, and built-in escrow protection — without platform lock-in.
-            </p>
+          <p data-reveal style="--stagger-index: 1" class="mt-6 max-w-xl text-base leading-relaxed text-[var(--platform-ink-muted)] sm:text-lg">
+            A considered way to discover independent Nigerian stores, makers, and studios. Search the network, examine real details, then continue straight to the seller's sovereign store.
+          </p>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-              <a href="{{ route('register') }}" class="h-12 px-6 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-opacity">
-                <span>Claim Your Storefront Handle</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              @if (\App\Domains\Billing\Services\Feature::enabled('discovery'))
-                <a href="{{ route('discovery.index') }}" class="h-12 px-5 rounded-[var(--radius)] bg-[var(--card)] text-[var(--ink)] border border-[var(--rule)] font-semibold text-sm flex items-center justify-center hover:border-[var(--brand-edge)] transition-colors">
-                  Browse Verified Merchants
-                </a>
-              @endif
-            </div>
-
-            <!-- PROMINENT DEMO ACCESS CARD -->
-            @if ($serviceDemo || $storeDemo)
-              <div class="p-4 rounded-[var(--radius)] bg-[var(--card)] border border-[var(--rule)] shadow-sm space-y-3">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-bold text-[var(--ink)] flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Experience Both Production Engines:
-                  </span>
-                  <span class="t-meta">Live &amp; Fully Interactive</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  @if ($serviceDemo)
-                    <a href="{{ $serviceDemo['href'] }}" class="p-3 rounded-[var(--radius-sm)] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-between group">
-                      <div>
-                        <span class="font-extrabold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
-                          <span>📅 Service Booking Demo</span>
-                        </span>
-                        <span class="t-meta block mt-0.5">{{ $serviceDemo['name'] }} · {{ $serviceDemo['location'] }} (Appointments &amp; Escrow)</span>
-                      </div>
-                      <span class="font-bold text-amber-700 dark:text-amber-300 group-hover:translate-x-1 transition-transform ml-2">&rarr;</span>
-                    </a>
-                  @endif
-
-                  @if ($storeDemo)
-                    <a href="{{ $storeDemo['href'] }}" class="p-3 rounded-[var(--radius-sm)] bg-[var(--surface)] hover:bg-[var(--brand-wash)] border border-[var(--rule)] hover:border-[var(--brand-edge)] transition-all flex items-center justify-between group">
-                      <div>
-                        <span class="font-extrabold text-[var(--ink)] flex items-center gap-1.5">
-                          <span>🛍️ Retail Store Demo</span>
-                        </span>
-                        <span class="t-meta block mt-0.5">{{ $storeDemo['name'] }} · {{ $storeDemo['location'] }} (Bag &amp; Escrow)</span>
-                      </div>
-                      <span class="font-bold text-[var(--brand-text)] group-hover:translate-x-1 transition-transform ml-2">&rarr;</span>
-                    </a>
-                  @endif
-                </div>
+          {{-- Dominant Search Bar elevating on focus --}}
+          <div data-reveal style="--stagger-index: 2" class="mt-10 max-w-2xl">
+            <form action="{{ route('directory.products') }}" method="GET" class="platform-hero-search flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
+              <div class="flex flex-1 items-center gap-3 px-3">
+                <x-ui.icon name="search" class="size-5 shrink-0 text-[var(--platform-brand)]" />
+                <input
+                  type="text"
+                  name="q"
+                  data-rotating-search
+                  placeholder="“birthday cake in Abuja”"
+                  class="w-full border-0 bg-transparent py-2.5 text-sm font-medium text-[var(--platform-ink)] outline-none placeholder:text-[var(--platform-ink-faint)] focus:ring-0"
+                >
               </div>
-            @endif
 
-            <!-- Reassurance Note -->
-            <div class="pt-2 flex items-center gap-3 text-xs text-[var(--ink-3)]">
-              <svg class="w-4 h-4 text-[var(--brand)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              <span>Buyers never need an account · 0% transaction fee on direct bank transfers · Instant WhatsApp handoff</span>
+              <div class="flex items-center gap-2">
+                <button type="button" @click="$dispatch('marketplace-open')" class="btn-magnetic inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--platform-line)] bg-[var(--platform-surface)] px-4 text-xs font-bold text-[var(--platform-ink)] hover:bg-[var(--platform-surface-hover)] transition-colors">
+                  <x-ui.icon name="spark" class="size-3.5 text-[var(--platform-accent)]" />
+                  <span>Help me buy</span>
+                </button>
+                <button type="submit" class="btn-magnetic inline-flex h-11 items-center justify-center rounded-xl bg-[var(--platform-brand)] px-6 text-xs font-extrabold text-white hover:bg-[var(--platform-brand-hover)] transition-all">
+                  <span>Search</span>
+                </button>
+              </div>
+            </form>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--platform-ink-muted)]">
+              <span class="font-semibold text-[var(--platform-ink)]">Trending:</span>
+              <a href="{{ route('directory.products', ['q' => 'Akwete']) }}" class="link-draw hover:text-[var(--platform-brand)]">Akwete fabrics</a>
+              <span>·</span>
+              <a href="{{ route('directory.products', ['q' => 'Ceramics']) }}" class="link-draw hover:text-[var(--platform-brand)]">Ceramics</a>
+              <span>·</span>
+              <a href="{{ route('directory.services', ['q' => 'Bridal']) }}" class="link-draw hover:text-[var(--platform-brand)]">Bridal styling</a>
+              <span>·</span>
+              <a href="{{ route('directory.products', ['q' => 'Leather']) }}" class="link-draw hover:text-[var(--platform-brand)]">Leather goods</a>
             </div>
           </div>
 
-          <!-- Composed Product Visual with Live Interactive Switcher (5 Columns) -->
-          @if ($serviceDemo || $storeDemo)
-            <x-platform.demo-frame :service="$serviceDemo" :store="$storeDemo" />
+          <div data-reveal style="--stagger-index: 3" class="mt-8 flex items-center gap-6 border-t border-[var(--platform-line)] pt-6 text-xs text-[var(--platform-ink-muted)]">
+            <span class="flex items-center gap-2">
+              <svg class="size-4 text-[var(--platform-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Zero buyer accounts</span>
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="size-4 text-[var(--platform-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Zero marketplace commission</span>
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="size-4 text-[var(--platform-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Direct seller payment</span>
+            </span>
+          </div>
+        </div>
+
+        {{-- Hero Right: Floating Layered Store & Product Cards with Parallax & Slow Drift --}}
+        <div class="relative min-h-[380px] sm:min-h-[480px] lg:min-h-[560px]" aria-label="Curated Nigerian store preview cards">
+          <div class="platform-hero-image-stack" data-pause-motion aria-hidden="true">
+            <img src="{{ asset('images/landing/fashion-studio.svg') }}" width="900" height="1125" alt="" class="platform-hero-image platform-hero-image-primary">
+            <img src="{{ asset('images/landing/beauty-studio.svg') }}" width="700" height="875" alt="" class="platform-hero-image platform-hero-image-secondary">
+            <span class="platform-hero-image-label">{{ $cities->take(3)->join(' / ') ?: 'Nigeria' }}</span>
+          </div>
+          @php
+            $firstStore = $stores->first();
+            $firstProduct = $products->first();
+          @endphp
+
+          {{-- Floating Card 1: Store profile preview. Real data only. --}}
+          @if ($firstStore)
+            <div data-parallax="0.03" class="platform-hero-card drift-slow-1 left-2 top-4 w-[280px] sm:w-[320px] p-5 z-20">
+              <div class="flex items-center justify-between gap-2">
+                @if ($firstStore->verified_at)
+                  <span class="rounded-full bg-[var(--platform-brand-wash)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-brand)]">Verified Merchant</span>
+                @else
+                  <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-ink-muted)]">Published Merchant</span>
+                @endif
+                <span class="truncate text-[11px] font-medium text-[var(--platform-ink-muted)]">{{ $firstStore->locationLabel() ?? 'Nigeria' }}</span>
+              </div>
+              <div class="mt-4 flex items-center gap-3">
+                <span class="flex size-12 items-center justify-center rounded-xl bg-[var(--platform-brand)] font-display text-lg font-bold text-white">
+                  {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($firstStore->name, 0, 2)) }}
+                </span>
+                <div class="min-w-0">
+                  <h3 class="truncate font-display text-base font-bold text-[var(--platform-ink)]">{{ $firstStore->name }}</h3>
+                  <span class="block truncate text-xs font-medium text-[var(--platform-brand)]">{{ $firstStore->slug }}.mypage.ng</span>
+                </div>
+              </div>
+              <p class="mt-3 line-clamp-2 text-xs leading-relaxed text-[var(--platform-ink-muted)]">
+                {{ $firstStore->tagline ?: $firstStore->bio ?: 'A published storefront on the Nigerian directory.' }}
+              </p>
+              <div class="mt-4 flex items-center justify-between border-t border-[var(--platform-line)] pt-3 text-xs">
+                <span class="font-bold text-[var(--platform-ink)]">Published seller</span>
+                <a href="{{ route('directory.store', $firstStore) }}" class="flex items-center gap-1 font-semibold text-[var(--platform-accent)] hover:underline">
+                  Visit store <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+              </div>
+            </div>
+          @else
+            <div data-parallax="0.03" class="platform-hero-card drift-slow-1 left-2 top-4 w-[280px] p-5 z-20">
+              <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-ink-muted)]">New directory</span>
+              <h3 class="mt-4 font-display text-lg font-bold text-[var(--platform-ink)]">Published stores appear here.</h3>
+              <p class="mt-2 text-xs leading-relaxed text-[var(--platform-ink-muted)]">When a merchant publishes and opts in, their storefront becomes part of the public directory.</p>
+              <a href="{{ route('register') }}" class="mt-4 inline-flex items-center gap-1 border-t border-[var(--platform-line)] pt-3 text-xs font-bold text-[var(--platform-support)]">Publish the first one ↗</a>
+            </div>
           @endif
 
+          {{-- Floating Card 2: Product preview. Real data only. --}}
+          @if ($firstProduct)
+            <div data-parallax="0.06" class="platform-hero-card drift-slow-2 right-2 top-24 w-[260px] sm:w-[300px] overflow-hidden p-0 z-30">
+              @if (!empty($firstProduct->primaryImageUrl))
+                <img src="{{ $firstProduct->primaryImageUrl }}" alt="{{ $firstProduct->name }}" class="aspect-[4/3] w-full object-cover">
+              @else
+                <x-platform.visual.placeholder silhouette="vase" :label="$firstProduct->name" sublabel="Published listing" class="aspect-[4/3] w-full" />
+              @endif
+              <div class="flex items-center justify-between bg-[var(--platform-card)] p-4">
+                <div class="min-w-0 pr-2">
+                  <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">{{ $firstProduct->name }}</span>
+                  <span class="block font-display text-sm font-extrabold text-[var(--platform-ink)]">{{ $firstProduct->priceLabel }}</span>
+                </div>
+                <a href="{{ route('directory.go', ['type' => 'product', 'id' => $firstProduct->id, 'source' => 'landing']) }}" class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--platform-surface)] text-[var(--platform-brand)]" aria-label="View {{ $firstProduct->name }}">
+                  <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+              </div>
+            </div>
+          @else
+            <div data-parallax="0.06" class="platform-hero-card drift-slow-2 right-2 top-24 w-[260px] p-5 z-30">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">Published listings</span>
+              <p class="mt-2 font-display text-base font-bold text-[var(--platform-ink)]">Products and services will surface here.</p>
+              <a href="{{ route('directory.products') }}" class="mt-4 inline-flex text-xs font-bold text-[var(--platform-support)]">Browse the directory ↗</a>
+            </div>
+          @endif
+
+          {{-- Floating Card 3: Help Me Buy prompt --}}
+          <div data-parallax="0.04" class="platform-hero-card drift-slow-3 left-10 bottom-6 w-[270px] sm:w-[310px] p-5 z-25 bg-[var(--platform-ink)] text-white border-0 shadow-2xl">
+            <div class="flex items-center gap-2">
+              <x-ui.icon name="spark" class="size-3.5 text-[var(--platform-accent)]" />
+              <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--platform-accent)]">Help Me Buy</span>
+            </div>
+            <p class="mt-2.5 font-display text-sm font-medium leading-snug text-neutral-100">
+              “A birthday gift under my budget, from a published Nigerian store.”
+            </p>
+            <div class="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-[11px] text-neutral-300">
+              <span class="font-bold text-[var(--platform-support)]">Grounded in listings</span>
+              <button type="button" @click="$dispatch('marketplace-open')" class="underline text-neutral-200 hover:text-white">Ask ↗</button>
+            </div>
+          </div>
+
         </div>
+
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- TWO-THEME EXPLAINER: STORE VS SERVICE -->
-    <section id="themes" class="section-y border-t border-[var(--rule)] bg-[var(--surface)]">
-      <div class="shell">
-        <div class="text-center max-w-2xl mx-auto mb-16">
-          <p class="t-meta">Two Dedicated Engines</p>
-          <h2 class="t-display-2 text-[var(--ink)] mt-2">Tailored for physical goods or appointments</h2>
-          <p class="t-body text-[var(--ink-2)] mt-3">
-            Never force a service business into a retail shopping cart, or a fashion brand into an appointment form.
-            Pick the architecture engineered for your exact business model.
-          </p>
+  {{-- Slow Marquee Ticker (Categories, Cities, Merchant Names) --}}
+  <div class="platform-marquee-wrap border-b border-[var(--platform-line)] bg-[var(--platform-surface)] py-3.5" data-pause-motion aria-label="Directory highlights">
+    <div class="platform-marquee-inner text-xs font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">
+      @foreach ($cities as $c)
+        <span class="flex items-center gap-4 px-6 whitespace-nowrap">
+          <span>{{ is_object($c) ? $c->city : $c }}</span>
+          <span class="size-1.5 rounded-full bg-[var(--platform-accent)]"></span>
+        </span>
+      @endforeach
+      @foreach ($categories as $cat)
+        @php
+          $catName = is_array($cat) ? $cat['name'] : $cat->name;
+        @endphp
+        <span class="flex items-center gap-4 px-6 whitespace-nowrap">
+          <span>{{ $catName }}</span>
+          <span class="size-1.5 rounded-full bg-[var(--platform-brand)]"></span>
+        </span>
+      @endforeach
+      <span class="flex items-center gap-4 px-6 whitespace-nowrap">
+        <span>Direct WhatsApp Orders</span>
+        <span class="size-1.5 rounded-full bg-[var(--platform-accent)]"></span>
+      </span>
+      <span class="flex items-center gap-4 px-6 whitespace-nowrap">
+        <span>Zero Marketplace Cuts</span>
+        <span class="size-1.5 rounded-full bg-[var(--platform-brand)]"></span>
+      </span>
+    </div>
+  </div>
+
+  {{-- ==========================================
+       SECTION 2: CATEGORY STRIP / RAIL
+       ========================================== --}}
+  @if ($categories->isNotEmpty())
+    <section class="border-b border-[var(--platform-line)] bg-[var(--platform-paper)] py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-4 sm:px-8">
+        <div data-reveal class="flex flex-wrap items-end justify-between gap-4 mb-8">
+          <div>
+            <span class="platform-kicker">Curated Domains</span>
+            <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Browse by Nigerian Discipline</h2>
+          </div>
+          <a href="{{ route('directory.products') }}" class="link-draw text-xs font-bold text-[var(--platform-brand)]">View all directory categories ↗</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {{-- Mobile: Swipeable snap rail / Desktop: Hover-expanding strip --}}
+        <div class="category-rail-container lg:category-strip gap-3 pb-4">
+          @foreach ($categories->take(6) as $cat)
+            @php
+              $catName = is_array($cat) ? $cat['name'] : $cat->name;
+              $catCount = is_array($cat) ? ($cat['count'].' items') : (($cat->live_products_count ?? '').' items');
+            @endphp
+            <a href="{{ route('directory.category', $catName) }}" class="category-rail-item category-strip-tile w-[260px] sm:w-[280px] lg:w-auto rounded-2xl border border-[var(--platform-line)] bg-[var(--platform-card)] p-5 transition-all hover:border-[var(--platform-brand)] hover:shadow-md flex flex-col justify-between min-h-[200px] group">
+              <div class="flex items-start justify-between">
+                <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-1 text-[10px] font-bold text-[var(--platform-ink-muted)]">
+                  {{ $catCount }}
+                </span>
+                <svg class="size-4 text-[var(--platform-ink-muted)] group-hover:text-[var(--platform-brand)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </div>
 
-          {{--
-              Theme 1: Retail Storefront.
-
-              The card always renders — it is how a visitor chooses a theme, and a
-              choice that disappears when the demo data is missing is not a
-              choice. Only the sample inside it needs a live storefront to read
-              from.
-          --}}
-          @php $storeLive = \App\Shared\Support\PlatformNetwork::publishedCount(\App\Domains\Seller\Enums\Theme::Store); @endphp
-              <x-platform.theme-card
-                  variant="store"
-                  title="Physical Goods, Fashion &amp; Artisanal Craft"
-                  body="Engineered for fashion designers, bakeries, leathercraft guilds, and electronics merchants. Supports size variants, inventory counters, live cart drawers, and direct WhatsApp invoice payloads."
-                  :demo-href="$storeDemo['href'] ?? route('register')"
-                  :demo-label="$storeDemo ? 'Explore Demo Store' : 'Start a Store'"
-                  :features="[
-                      'Automated inventory decrement with out-of-stock guards',
-                      'Integrated courier zones (Lagos Island, Mainland, Interstate)',
-                      'Escrow release trigger on customer delivery confirmation',
-                  ]">
-                <x-slot:preview>
-                  <div class="p-4 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] space-y-3">
-                    @if ($storeDemo)
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-[var(--ink)] truncate">{{ $storeDemo['listing'] }}</span>
-                        <span class="t-price-sm">{{ $storeDemo['price'] }}</span>
-                      </div>
-                      <div class="flex gap-2">
-                        <span class="px-2.5 py-1 rounded bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-semibold">{{ $storeDemo['name'] }}</span>
-                        <span class="px-2.5 py-1 rounded bg-[var(--brand-wash)] border border-[var(--brand-edge)] text-[var(--brand-text)] text-[11px] font-bold">{{ $storeDemo['meta'] }}</span>
-                      </div>
-                      <div class="pt-2 border-t border-[var(--rule)] flex items-center justify-between text-[11px]">
-                        <span class="text-[var(--ink-3)]">WhatsApp Order Cart with Waybill</span>
-                        <span class="font-bold text-[var(--brand-text)]">{{ $storeDemo['location'] }}</span>
-                      </div>
-                    @else
-                      {{-- No seeded demo: the same panel, showing the platform's own
-                           count rather than an invented product. --}}
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-[var(--ink)]">Physical goods, sold one by one</span>
-                        <span class="t-price-sm">{{ number_format($storeLive) }} {{ $storeLive === 1 ? 'store' : 'stores' }}</span>
-                      </div>
-                      <div class="flex gap-2">
-                        <span class="px-2.5 py-1 rounded bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-semibold">Inventory &amp; variants</span>
-                        <span class="px-2.5 py-1 rounded bg-[var(--brand-wash)] border border-[var(--brand-edge)] text-[var(--brand-text)] text-[11px] font-bold">Escrow checkout</span>
-                      </div>
-                      <div class="pt-2 border-t border-[var(--rule)] flex items-center justify-between text-[11px]">
-                        <span class="text-[var(--ink-3)]">WhatsApp Order Cart with Waybill</span>
-                        <span class="font-bold text-[var(--brand-text)]">Direct bank transfer</span>
-                      </div>
-                    @endif
-                  </div>
-                </x-slot:preview>
-              </x-platform.theme-card>
-
-          {{-- Theme 2: Service Booking --}}
-          @php $serviceLive = \App\Shared\Support\PlatformNetwork::publishedCount(\App\Domains\Seller\Enums\Theme::Service); @endphp
-              <x-platform.theme-card
-                  variant="service"
-                  title="Studios, Photographers, Salons &amp; Consultants"
-                  body="Engineered for creative directors, makeup artists, bridal gele specialists, and commercial studios. Direct month-grid calendar slots, custom deposit rules, and automated reminders."
-                  :demo-href="$serviceDemo['href'] ?? route('register')"
-                  :demo-label="$serviceDemo ? 'Explore Demo Service' : 'Start a Booking Page'"
-                  :features="[
-                      'Configurable deposit percentages (30% or 50% upfront)',
-                      'Automated WhatsApp reminder 24 hours prior to appointment',
-                      'Buffer times and weekly client intake caps',
-                  ]">
-                <x-slot:preview>
-                  <div class="p-4 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] space-y-3">
-                    @if ($serviceDemo)
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-[var(--ink)] truncate">{{ $serviceDemo['listing'] }}</span>
-                        <span class="t-price-sm">{{ $serviceDemo['price'] }}</span>
-                      </div>
-                      <div class="flex gap-2">
-                        <span class="px-2.5 py-1 rounded bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-semibold">{{ $serviceDemo['meta'] }}</span>
-                        @if ($serviceDemo['detail'])
-                          <span class="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold">{{ $serviceDemo['detail'] }}</span>
-                        @endif
-                      </div>
-                      <div class="pt-2 border-t border-[var(--rule)] flex items-center justify-between text-[11px]">
-                        <span class="text-[var(--ink-3)]">No ghost bookings · Upfront commitment</span>
-                        <span class="font-bold text-[var(--brand-text)]">{{ $serviceDemo['location'] }}</span>
-                      </div>
-                    @else
-                      {{-- Same panel without a seeded studio to quote. --}}
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-[var(--ink)]">Appointments, held to the minute</span>
-                        <span class="t-price-sm">{{ number_format($serviceLive) }} {{ $serviceLive === 1 ? 'studio' : 'studios' }}</span>
-                      </div>
-                      <div class="flex gap-2">
-                        <span class="px-2.5 py-1 rounded bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-semibold">Month-grid calendar</span>
-                        <span class="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold">Upfront deposit</span>
-                      </div>
-                      <div class="pt-2 border-t border-[var(--rule)] flex items-center justify-between text-[11px]">
-                        <span class="text-[var(--ink-3)]">No ghost bookings · Upfront commitment</span>
-                        <span class="font-bold text-[var(--brand-text)]">Calendar synced</span>
-                      </div>
-                    @endif
-                  </div>
-                </x-slot:preview>
-              </x-platform.theme-card>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS (3 NUMBERED STEPS IN AN <ol>) -->
-    <section id="how-it-works" class="section-y border-t border-[var(--rule)]">
-      <div class="shell">
-        <div class="text-center max-w-2xl mx-auto mb-16">
-          <p class="t-meta">Simple Sovereign Architecture</p>
-          <h2 class="t-display-2 text-[var(--ink)] mt-2">How mypage works in three steps</h2>
-          <p class="t-body text-[var(--ink-2)] mt-3">
-            Designed for the Nigerian reality: low bandwidth friction, zero forced sign-ups for buyers, and ironclad payment assurance.
-          </p>
-        </div>
-
-        <ol class="grid grid-cols-1 md:grid-cols-3 gap-8 list-none p-0">
-
-          <x-platform.how-step number="01" title="Claim your handle in 60 seconds">
-            Register <code class="font-mono bg-[var(--paper)] px-1.5 py-0.5 rounded border border-[var(--rule)]">mypage.ng/yourbrand</code>. No credit card required. Upload your logo, specify your WhatsApp dispatch number, and select your signature brand tint.
-          </x-platform.how-step>
-
-          <x-platform.how-step number="02" title="Publish products or booking calendar">
-            List inventory with size variants and high-res photography, or activate your appointment calendar with custom time slots and required upfront commitment deposits in Nigerian Naira (₦).
-          </x-platform.how-step>
-
-          <x-platform.how-step number="03" title="Get paid with instant escrow security">
-            Buyers purchase via direct bank transfer or WhatsApp with zero password friction. Payments are locked in sovereign escrow until goods are dispatched, eliminating fraud for both buyer and seller.
-          </x-platform.how-step>
-
-        </ol>
-      </div>
-    </section>
-
-    {{-- SOCIAL PROOF STRIP: real merchants, read from the database --}}
-    <x-platform.logo-strip :merchants="\App\Shared\Support\PlatformNetwork::merchants()" />
-
-    <!-- PRICING SECTION (3 PLANS; FEATURED = BRAND BORDER + MOST POPULAR BADGE) -->
-    <section id="pricing" class="section-y border-b border-[var(--rule)]">
-      <div class="shell">
-        <div class="text-center max-w-2xl mx-auto mb-16">
-          <p class="t-meta">Predictable Merchant Pricing</p>
-          <h2 class="t-display-2 text-[var(--ink)] mt-2">Transparent fees, zero surprise cuts</h2>
-          <p class="t-body text-[var(--ink-2)] mt-3">
-            Keep your hard-earned margins. No percentage gouging on direct WhatsApp transactions.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-
-            {{--
-                The figures are the platform's, not the design's: they come from
-                the same Plan rows the checkout reads, so a price edited in admin
-                shows here. Only the card around them is the design's.
-            --}}
-            @foreach (PricingPlans::cards() as $plan)
-                <x-platform.pricing-plan
-                    :name="$plan['name']"
-                    :tagline="$plan['tagline']"
-                    :price="$plan['price']"
-                    :description="$plan['description']"
-                    :features="$plan['features']"
-                    :featured="$plan['featured']"
-                    :badge="$plan['featured'] ? 'Most Popular' : null"
-                    :cta-label="$plan['featured'] ? 'Activate '.$plan['name'].' →' : 'Start with '.$plan['name']"
-                    :cta-href="route('register')" />
-            @endforeach
-
-        </div>
-
-        @unless (PricingPlans::fromDatabase())
-            {{--
-                Says where the numbers came from. A price a visitor cannot
-                actually buy from is worse than no price at all.
-            --}}
-            <p class="t-meta text-center mt-8">Showing the configured prices</p>
-        @endunless
-      </div>
-    </section>
-
-    <!-- FAQ ACCORDION (NATIVE <details>) -->
-    <section class="section-y border-b border-[var(--rule)] bg-[var(--surface)]">
-      <div class="shell max-w-3xl">
-        <div class="text-center mb-12">
-          <p class="t-meta">Everything You Need to Know</p>
-          <h2 class="t-display-2 text-[var(--ink)] mt-2">Frequently asked questions</h2>
-        </div>
-
-        <div class="space-y-4">
-
-          <x-platform.faq-item question="Do my buyers need to download an app or register an account?">
-            Never. Nigerian consumers abandon checkouts when forced to create passwords or download separate apps. Your mypage storefront opens instantly in mobile web browsers, and checkouts route seamlessly via direct WhatsApp message or instant bank transfer.
-          </x-platform.faq-item>
-
-          <x-platform.faq-item question="How does payment escrow protect both me and my customers?">
-            When a buyer places an order, their payment is locked in a secure institutional escrow account. You receive verified dispatch notice. Once your dispatch partner confirms delivery or the customer accepts the order, funds are instantly settled to your Nigerian commercial bank account.
-          </x-platform.faq-item>
-
-          <x-platform.faq-item question="Can I connect my own custom domain (e.g. adebayocouture.ng)?">
-            Yes. On the Merchant Pro plan, you can connect your existing <code class="font-mono bg-[var(--surface)] px-1 rounded">.ng</code>, <code class="font-mono bg-[var(--surface)] px-1 rounded">.com</code>, or <code class="font-mono bg-[var(--surface)] px-1 rounded">.com.ng</code> domain with free automatic SSL certificates.
-          </x-platform.faq-item>
-
-          <x-platform.faq-item question="What happens if a customer opens a dispute regarding an order?">
-            Our automated dispute mediation timeline gives both parties 24 hours to reconcile with courier waybill tracking. If an incorrect item was dispatched, an exchange is scheduled. Escrow guarantees neither party loses funds arbitrarily.
-          </x-platform.faq-item>
-
-          <x-platform.faq-item question="Can I manage bookings and appointment deposits on WhatsApp?">
-            Yes. With our Service theme, clients select literal appointment dates and time slots on your page, pay the required 30% or 50% commitment deposit, and your calendar immediately generates a pre-formatted WhatsApp appointment ticket.
-          </x-platform.faq-item>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- DARK CLOSING CTA -->
-    <section class="section-y bg-[#090d16] text-white relative overflow-hidden">
-      <div class="shell text-center max-w-3xl relative z-10">
-        <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-3">Instant Onboarding</p>
-        <h2 class="t-display-1 text-white mb-6">
-          Build a storefront your customers trust.
-        </h2>
-        <p class="t-body-lg text-slate-300 mb-8 t-measure mx-auto">
-          Join over 1,400 Nigerian merchants selling fashion, artisanal craftsmanship, beauty, and creative services without friction.
-        </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a href="#pricing" class="h-12 px-8 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity">
-            Start Your Sovereign Storefront →
-          </a>
-          @if (\App\Domains\Billing\Services\Feature::enabled('discovery'))
-            <a href="{{ route('discovery.index') }}" class="h-12 px-6 rounded-[var(--radius)] bg-white/10 text-white border border-white/20 font-semibold text-sm flex items-center justify-center hover:bg-white/15 transition-colors">
-              Discover Verified Merchants
+              <div>
+                <x-platform.visual.placeholder silhouette="garment" class="aspect-[16/9] w-full rounded-xl my-3" />
+                <h3 class="font-display text-lg font-bold text-[var(--platform-ink)] group-hover:text-[var(--platform-brand)] transition-colors line-clamp-1">
+                  {{ $catName }}
+                </h3>
+                <p class="mt-1 text-[11px] text-[var(--platform-ink-muted)] truncate">Direct merchant catalogue</p>
+              </div>
             </a>
-          @endif
+          @endforeach
         </div>
       </div>
     </section>
+  @endif
 
+  {{-- ==========================================
+       SECTION 3: HELP ME BUY SHOWCASE
+       ========================================== --}}
+  <x-platform.sections.help-me-buy-showcase :products="$products" :services="$services" />
+
+  {{-- ==========================================
+       SECTION 4: TRENDING PRODUCTS & TOP SERVICES (Mixed Grid)
+       ========================================== --}}
+  <section class="border-b border-[var(--platform-line)] bg-[var(--platform-paper)] py-20 lg:py-32">
+    <div class="mx-auto max-w-7xl px-4 sm:px-8">
+      
+      <div data-reveal class="flex flex-wrap items-end justify-between gap-6 mb-12">
+        <div class="max-w-2xl">
+          <span class="platform-kicker">Published Listings</span>
+          <h2 class="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
+            Trending creations &amp; studio services.
+          </h2>
+          <p class="mt-3 text-sm text-[var(--platform-ink-muted)] sm:text-base">
+            Every item links straight to the merchant's dedicated shop. Confirm availability, book dates, or order through WhatsApp.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a href="{{ route('directory.products') }}" class="btn-magnetic rounded-xl border border-[var(--platform-line)] bg-[var(--platform-card)] px-4 py-2 text-xs font-bold text-[var(--platform-ink)] hover:bg-[var(--platform-surface)] transition-colors">
+            All Products ↗
+          </a>
+          <a href="{{ route('directory.services') }}" class="btn-magnetic rounded-xl border border-[var(--platform-line)] bg-[var(--platform-card)] px-4 py-2 text-xs font-bold text-[var(--platform-ink)] hover:bg-[var(--platform-surface)] transition-colors">
+            All Services ↗
+          </a>
+        </div>
+      </div>
+
+      {{-- Designed Mixed-Size Grid --}}
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach ($products->take(3) as $idx => $prod)
+          <x-platform.cards.product-card :product="$prod" :index="$idx" />
+        @endforeach
+
+        @foreach ($services->take(2) as $idx => $svc)
+          <x-platform.cards.service-card :service="$svc" :index="$idx + 3" />
+        @endforeach
+
+        {{-- Special Editorial Callout Tile inside Grid --}}
+        <div data-reveal style="--stagger-index: 5" class="rounded-3xl border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] p-8 flex flex-col justify-between">
+          <div>
+            <span class="rounded-full bg-[var(--platform-accent)] text-white px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider">
+              Network Standard
+            </span>
+            <h3 class="mt-4 font-display text-2xl font-bold text-[var(--platform-ink)]">
+              Direct-to-Seller Commerce
+            </h3>
+            <p class="mt-3 text-xs leading-relaxed text-[var(--platform-ink-muted)] sm:text-sm">
+              We never mask merchant phone numbers, withhold funds, or push buyer fees. You always deal directly with the hands that make your goods.
+            </p>
+          </div>
+
+          <div class="mt-8 pt-6 border-t border-[var(--platform-accent-border)] flex items-center justify-between">
+            <span class="text-xs font-bold text-[var(--platform-accent)]">Need assistance?</span>
+            <button type="button" @click="$dispatch('marketplace-open')" class="btn-magnetic inline-flex items-center gap-1.5 text-xs font-extrabold text-[var(--platform-ink)] hover:underline">
+              <span>Ask Help me buy</span>
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  {{-- ==========================================
+       SECTION 5: FEATURED & VERIFIED STORES (Oversized Cards)
+       ========================================== --}}
+  @if ($stores->isNotEmpty())
+    <section class="border-b border-[var(--platform-line)] bg-[var(--platform-surface)] py-20 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-8">
+        
+        <div data-reveal class="flex flex-wrap items-end justify-between gap-6 mb-12">
+          <div class="max-w-2xl">
+            <span class="platform-kicker">Featured storefronts</span>
+            <h2 class="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
+              Independent storefronts worth visiting.
+            </h2>
+            <p class="mt-3 text-sm text-[var(--platform-ink-muted)] sm:text-base">
+              Nigerian makers, ateliers, studios and workshops with a published store you can explore directly.
+            </p>
+          </div>
+
+          <a href="{{ route('directory.stores') }}" class="btn-magnetic rounded-xl bg-[var(--platform-ink)] px-5 py-2.5 text-xs font-bold text-white hover:bg-black transition-colors">
+            See all storefronts ↗
+          </a>
+        </div>
+
+        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          @foreach ($stores->take(3) as $idx => $store)
+            <x-platform.cards.store-card :store="$store" :index="$idx" source="landing" />
+          @endforeach
+        </div>
+
+      </div>
+    </section>
+  @endif
+
+  {{-- ==========================================
+       SECTION 6: HOW IT WORKS (Sticky Storytelling)
+       ========================================== --}}
+  <x-platform.sections.how-it-works-sticky :product="$products->first()" :store="$stores->first()" />
+
+  {{-- ==========================================
+       SECTION 7: FOR MERCHANTS (Dark Contrasting Band)
+       ========================================== --}}
+  <x-platform.sections.for-merchants :store="$stores->first()" />
+
+  {{-- ==========================================
+       SECTION 8: TRUST, TESTIMONIALS & FAQ & FINAL CTA
+       ========================================== --}}
+  <x-platform.sections.testimonials-and-faq :reviews="$reviews" />
+
+</div>
 @endsection

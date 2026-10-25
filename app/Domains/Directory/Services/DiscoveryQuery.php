@@ -2,6 +2,7 @@
 
 namespace App\Domains\Directory\Services;
 
+use App\Domains\Ai\Services\EmbeddingService;
 use App\Domains\Directory\Http\Requests\DiscoveryRequest;
 use App\Domains\Seller\Enums\PriceTier;
 use App\Domains\Seller\Enums\Theme;
@@ -22,6 +23,8 @@ use Illuminate\Support\Collection;
  */
 class DiscoveryQuery
 {
+    public function __construct(private readonly EmbeddingService $embeddings) {}
+
     /**
      * How many businesses the marquee shows per column.
      *
@@ -243,10 +246,12 @@ class DiscoveryQuery
             // seller's own words than in their name.
             $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
 
-            $query->where(function (Builder $inner) use ($like): void {
+            $semanticIds = $this->embeddings->searchPages($query->clone()->get(), $term);
+            $query->where(function (Builder $inner) use ($like, $semanticIds): void {
                 $inner->where('name', 'like', $like)
                     ->orWhere('tagline', 'like', $like)
-                    ->orWhere('bio', 'like', $like);
+                    ->orWhere('bio', 'like', $like)
+                    ->when($semanticIds !== [], fn (Builder $semantic) => $semantic->orWhereIn('store_pages.id', $semanticIds));
             });
         }
 

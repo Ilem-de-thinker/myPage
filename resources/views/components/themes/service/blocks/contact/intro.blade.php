@@ -11,7 +11,7 @@
 
   {{-- Breadcrumbs --}}
   <nav class="flex items-center gap-2 text-xs text-[var(--ink-3)] mb-6" aria-label="Breadcrumb">
-    <a href="{{ \App\Shared\Support\StoreUrl::home($page) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
+    <a href="{{ \App\Shared\Support\StoreUrl::homePath($page) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
     <span aria-hidden="true">/</span>
     <span class="hover:text-[var(--ink)] transition-colors">Contact</span>
     <span aria-hidden="true">/</span>

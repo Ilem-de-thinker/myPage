@@ -5,10 +5,9 @@ namespace App\Shared\Support;
 /**
  * The baseline Content Security Policy.
  *
- * Report-only for now. It allows the resources the application already loads
- * while reporting anything unexpected to the CSP endpoint. Inline scripts and
- * Alpine expression evaluation are still permitted because removing them is a
- * separate, breaking change; the policy is observability, not enforcement yet.
+ * Alpine runs through its CSP build, so expression evaluation does not require
+ * unsafe-eval. Inline Blade registrations remain temporarily permitted until
+ * those registrations are moved into the bundled component registry.
  */
 final class ContentSecurityPolicy
 {
@@ -17,7 +16,7 @@ final class ContentSecurityPolicy
      */
     public static function directives(): array
     {
-        $scriptSources = ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
+        $scriptSources = ["'self'", "'unsafe-inline'"];
         $styleSources = ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'];
         $fontSources = ["'self'", 'data:', 'https://fonts.gstatic.com'];
         $connectSources = ["'self'"];
@@ -60,7 +59,7 @@ final class ContentSecurityPolicy
         ];
     }
 
-    public static function reportOnlyHeader(): string
+    public static function header(): string
     {
         $directives = [];
 
@@ -69,5 +68,10 @@ final class ContentSecurityPolicy
         }
 
         return implode('; ', $directives);
+    }
+
+    public static function reportOnlyHeader(): string
+    {
+        return self::header();
     }
 }

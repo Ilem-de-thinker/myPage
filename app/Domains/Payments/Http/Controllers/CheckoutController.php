@@ -9,6 +9,7 @@ use App\Domains\Orders\Exceptions\InvalidCart;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Payments\Actions\ConfirmTransaction;
 use App\Domains\Payments\Actions\InitializePayment;
+use App\Domains\Payments\Exceptions\GatewayNotConfigured;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,12 @@ class CheckoutController
          */
         try {
             $checkoutUrl = $initializePayment->handle($order, $data['email']);
+        } catch (GatewayNotConfigured) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'email' => 'This shop has not connected a payment provider yet, so it cannot take card payments. Your order is saved.',
+                ]);
         } catch (Throwable $exception) {
             report($exception);
 

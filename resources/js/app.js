@@ -1,6 +1,70 @@
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Alpine from 'alpinejs';
+import Alpine from '@alpinejs/csp';
+import './animations.js';
+import './alpine-components.js';
+
+document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-confirm]');
+
+    if (trigger && !window.confirm(trigger.dataset.confirm)) {
+        event.preventDefault();
+    }
+});
+
+const themeStorageKey = 'theme-mode';
+
+function activeTheme() {
+    const explicit = document.documentElement.getAttribute('data-theme');
+
+    if (explicit === 'light' || explicit === 'dark') {
+        return explicit;
+    }
+
+    const defaultTheme = document.documentElement.dataset.themeDefault;
+
+    if (defaultTheme === 'light' || defaultTheme === 'dark') {
+        return defaultTheme;
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function syncThemeControls() {
+    const current = activeTheme();
+    const next = current === 'dark' ? 'light' : 'dark';
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+        toggle.title = `Switch to ${next}`;
+        toggle.setAttribute('aria-label', `Switch to ${next}`);
+        toggle.setAttribute('aria-pressed', current === 'dark' ? 'true' : 'false');
+        toggle.querySelectorAll('[data-theme-icon]').forEach((icon) => {
+            icon.hidden = icon.dataset.themeIcon !== current;
+        });
+    });
+}
+
+document.addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-theme-toggle]');
+
+    if (! toggle) {
+        return;
+    }
+
+    const next = activeTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+
+    try {
+        localStorage.setItem(themeStorageKey, next);
+    } catch (error) {
+        // The visual switch still works when storage is unavailable.
+    }
+
+    syncThemeControls();
+});
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeControls);
+syncThemeControls();
 
 function initRichText() {
     document.querySelectorAll('textarea[data-richtext]').forEach((textarea) => {
@@ -139,5 +203,264 @@ Alpine.store('cart', {
         localStorage.setItem(cartKey(), JSON.stringify(this.items));
     },
 });
+
+Alpine.data('pwaInstallPrompt', () => ({
+    deferredPrompt: null,
+    showInstall: false,
+    showIos: false,
+    updateReady: false,
+
+    init() {
+        const standalone = window.matchMedia('(display-mode: standalone)').matches
+            || window.navigator.standalone === true;
+        let dismissed = false;
+
+        try {
+            dismissed = localStorage.getItem('mypage-pwa-dismissed') !== null;
+        } catch (error) {
+            dismissed = false;
+        }
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            this.deferredPrompt = event;
+
+            if (! standalone && ! dismissed) {
+                setTimeout(() => {
+                    this.showInstall = true;
+                }, 2500);
+            }
+        });
+
+        this.showIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && ! standalone && ! dismissed;
+
+        if (this.showIos) {
+            setTimeout(() => {
+                this.showInstall = true;
+            }, 2500);
+        }
+
+        navigator.serviceWorker?.register(this.$el.dataset.worker, { scope: '/' }).then((registration) => {
+            registration.addEventListener('updatefound', () => {
+                const next = registration.installing;
+
+                next?.addEventListener('statechange', () => {
+                    if (next.state === 'installed' && navigator.serviceWorker.controller) {
+                        this.updateReady = true;
+                    }
+                });
+            });
+        });
+    },
+
+    install() {
+        this.deferredPrompt?.prompt();
+        this.showInstall = false;
+    },
+
+    dismiss() {
+        this.showInstall = false;
+
+        try {
+            localStorage.setItem('mypage-pwa-dismissed', '1');
+        } catch (error) {
+            // Dismissal still works when storage is unavailable.
+        }
+    },
+}));
+
+Alpine.data('chatInbox', (config = {}) => ({
+    unread: Number(config.unread || 0),
+    timer: null,
+
+    init() {
+        this.timer = window.setInterval(async () => {
+            if (document.hidden) {
+                return;
+            }
+
+            try {
+                const response = await fetch(config.refresh, { headers: { Accept: 'application/json' } });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.unread = Number(data.unread_count || 0);
+                }
+            } catch (error) {
+                // The next poll will retry; a dropped refresh is not worth a banner.
+            }
+        }, 15000);
+    },
+
+    destroy() {
+        window.clearInterval(this.timer);
+    },
+}));
+
+Alpine.data('chatThread', (config = {}) => ({
+    body: '',
+    sending: false,
+    aiEnabled: Boolean(config.aiEnabled),
+    suggestion: null,
+    summary: config.initialSummary,
+    translation: null,
+
+    async json(response) {
+        return response.json();
+    },
+
+    async send() {
+        if (! this.body.trim() || this.sending) {
+            return;
+        }
+
+        this.sending = true;
+
+        try {
+            const response = await fetch(config.store, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': config.csrf,
+                },
+                body: JSON.stringify({ body: this.body }),
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            }
+        } finally {
+            this.sending = false;
+        }
+    },
+
+    async toggleAi() {
+        const response = await fetch(config.toggle, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': config.csrf },
+        });
+        const data = await this.json(response);
+        this.aiEnabled = Boolean(data.enabled);
+    },
+
+    async suggest() {
+        const response = await fetch(config.suggest, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': config.csrf },
+        });
+        const data = await this.json(response);
+        this.suggestion = response.ok ? data.suggestion : { error: data.message || 'Suggestion unavailable.' };
+    },
+
+    async summarize() {
+        const response = await fetch(config.summaryEndpoint, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': config.csrf },
+        });
+        const data = await this.json(response);
+
+        if (response.ok) {
+            this.summary = data.summary;
+        }
+    },
+
+    async translate(id) {
+        const response = await fetch(config.translate, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': config.csrf,
+            },
+            body: JSON.stringify({ message_id: id, language: 'English' }),
+        });
+        const data = await this.json(response);
+        this.translation = response.ok ? data.text : data.message;
+    },
+
+    format(value) {
+        return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    },
+}));
+
+Alpine.data('analyticsInsights', (config = {}) => ({
+    loading: false,
+    digest: null,
+    question: '',
+    answer: null,
+
+    async read(response) {
+        const data = await response.json();
+
+        if (! response.ok) {
+            throw new Error(data.message || 'The request could not be completed.');
+        }
+
+        return data.result;
+    },
+
+    async generate() {
+        this.loading = true;
+
+        try {
+            const response = await fetch(config.digest, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': config.csrf },
+            });
+
+            this.digest = await this.read(response);
+        } catch (error) {
+            this.digest = { error: error.message };
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    async ask() {
+        if (! this.question.trim()) {
+            return;
+        }
+
+        this.loading = true;
+
+        try {
+            const response = await fetch(config.ask, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': config.csrf,
+                },
+                body: JSON.stringify({ question: this.question }),
+            });
+
+            this.answer = await this.read(response);
+        } catch (error) {
+            this.answer = { error: error.message };
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    format(value) {
+        return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    },
+}));
+
+Alpine.data('platformSupport', () => ({
+    supportOpen: false,
+    supportTab: 'store',
+
+    openSupport() {
+        this.supportOpen = true;
+        document.body.classList.add('sheet-open');
+    },
+
+    closeSupport() {
+        this.supportOpen = false;
+        document.body.classList.remove('sheet-open');
+    },
+}));
 
 Alpine.start();

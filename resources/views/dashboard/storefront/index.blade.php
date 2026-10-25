@@ -30,8 +30,30 @@
     @endif
 
     <form method="POST" action="{{ route('storefront.update', $tab) }}" enctype="multipart/form-data"
-          class="mx-auto max-w-3xl space-y-4">
+          class="mx-auto max-w-3xl space-y-4"
+          x-data="storefrontEditor(@jsExpr([
+              'endpoint' => route('dashboard.ai.contextual'),
+              'csrf' => csrf_token(),
+              'feature' => $tab === 'brand' ? 'appearance' : 'content',
+              'text' => 'Improve the copy for the '.$tab.' page of '.$page->name.'. Keep all facts, prices, dates, links, and policies unchanged.',
+          ]))">
         @csrf
+
+        <div class="rounded-2xl border border-brand-edge bg-brand-wash/50 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold text-ink">AI for this page</p>
+                    <p class="mt-1 text-[11px] text-ink-3">Get a copy suggestion for the {{ $allTabs[$tab] ?? $tab }} page. Review and paste only what you want to keep.</p>
+                </div>
+                <button type="button" @click="draftPageCopy" :disabled="aiLoading" class="min-h-10 rounded-xl bg-brand px-3.5 text-xs font-bold text-brand-ink disabled:opacity-50">
+                    <span x-text="aiLoading ? 'Preparing…' : 'Improve with AI'"></span>
+                </button>
+            </div>
+            <div x-show="aiDraft" x-cloak class="mt-3 rounded-xl border border-brand-edge bg-card p-3">
+                <pre x-text="format(aiDraft)" class="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-5 text-ink"></pre>
+            </div>
+            <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
+        </div>
 
         @if ($tab === 'details')
             <div class="rounded-2xl border border-rule bg-card p-6">
@@ -75,6 +97,42 @@
                                class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
                         @error('address') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
                     </label>
+
+                    <div class="rounded-2xl border border-brand-edge bg-brand-wash/40 p-4" data-map-picker>
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-xs font-bold text-ink">Pin your exact location</h3>
+                                <p class="mt-1 max-w-xl text-[11px] leading-relaxed text-ink-3">
+                                    Search for your shop, choose a result, then drag the pin or tap the map to correct it.
+                                    Customers will see this location on your contact page.
+                                </p>
+                            </div>
+                            @if (config('services.google.maps_browser_key'))
+                                <span class="rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-brand-text">Google Maps</span>
+                            @endif
+                        </div>
+
+                        @if (config('services.google.maps_browser_key'))
+                            <label class="mt-4 block">
+                                <span class="text-[11px] font-semibold text-ink">Search the map</span>
+                                <div id="location-search" class="mt-1 min-h-11 overflow-hidden rounded-xl border border-rule-strong bg-card"></div>
+                            </label>
+
+                            <div id="location-map" class="mt-3 h-72 overflow-hidden rounded-xl border border-rule-strong bg-tint" aria-label="Business location map"></div>
+                            <p class="mt-2 text-[11px] text-ink-3">The pin is the source of truth. The address above remains editable for customers who need the written directions.</p>
+                        @else
+                            @if (auth()->user()?->is_admin)
+                                <p class="mt-3 rounded-xl border border-warn-edge bg-warn-wash px-3 py-2.5 text-[11px] leading-relaxed text-warn-text">
+                                    Add <code class="font-semibold">GOOGLE_MAPS_BROWSER_KEY</code> to the environment to enable address search and the map picker.
+                                </p>
+                            @endif
+                        @endif
+
+                        <input type="hidden" name="latitude" id="location-latitude" value="{{ old('latitude', $page->latitude) }}">
+                        <input type="hidden" name="longitude" id="location-longitude" value="{{ old('longitude', $page->longitude) }}">
+                        @error('latitude') <p class="mt-2 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                        @error('longitude') <p class="mt-2 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block">
@@ -160,6 +218,18 @@
                     </p>
                 @endif
 
+                <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-rule p-4 hover:border-rule-strong">
+                    <input type="hidden" name="reduce_motion" value="0">
+                    <input type="checkbox" name="reduce_motion" value="1" @checked(data_get(old(), 'reduce_motion', data_get($page->settings, 'reduce_motion', false))) class="mt-0.5 size-4 rounded border-rule-strong accent-brand">
+                    <span><span class="block text-sm font-semibold text-ink">Reduce storefront motion</span><span class="mt-0.5 block text-xs text-ink-3">Keep the page calm for visitors who prefer less animation.</span></span>
+                </label>
+
+                <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-rule p-4 hover:border-rule-strong">
+                    <input type="hidden" name="animated_background" value="0">
+                    <input type="checkbox" name="animated_background" value="1" @checked(data_get(old(), 'animated_background', data_get($page->settings, 'animated_background', false))) class="mt-0.5 size-4 rounded border-rule-strong accent-brand">
+                    <span><span class="block text-sm font-semibold text-ink">Animated storefront background</span><span class="mt-0.5 block text-xs text-ink-3">Add a quiet, brand-coloured moving layer behind your theme. It respects visitors’ reduced-motion settings.</span></span>
+                </label>
+
                 <div class="mt-6 border-t border-rule pt-6">
                     <label for="price_tier" class="text-sm font-bold text-ink">Where do your prices sit?</label>
                     <p class="mt-1 text-xs text-ink-3">
@@ -217,6 +287,18 @@
                 </p>
 
                 <div class="mt-5 grid gap-5 sm:grid-cols-3">
+                    <div class="sm:col-span-3">
+                        <label for="theme_preset" class="text-xs font-semibold text-ink">Theme direction</label>
+                        <select id="theme_preset" name="theme_preset" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                            @foreach (config('themes.presets') as $key => $preset)
+                                @if (in_array($page->theme->value, $preset['business_types'], true))
+                                    <option value="{{ $key }}" @selected($brandSettings['theme_preset'] === $key)>{{ $preset['label'] }} — {{ $preset['description'] }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-[11px] text-ink-3">A locked layout direction with its own rhythm, type and density.</p>
+                    </div>
+
                     <div>
                         <label for="brand_surface" class="text-xs font-semibold text-ink">Surface</label>
                         <select id="brand_surface" name="surface"
@@ -244,16 +326,10 @@
                     </div>
 
                     <div>
-                        <label for="brand_font" class="text-xs font-semibold text-ink">Typeface</label>
-                        <select id="brand_font" name="font"
-                                class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
-                            <option value="" @selected($brandSettings['font'] === null || $brandSettings['font'] === '')>Theme default</option>
-                            @foreach (config('theming.fonts') as $key => $choice)
-                                <option value="{{ $key }}" @selected($brandSettings['font'] === $key)>
-                                    {{ $choice['label'] }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <span class="text-xs font-semibold text-ink">Typeface</span>
+                        <div class="mt-1 flex min-h-11 items-center rounded-xl border border-rule bg-tint px-3 py-2.5 text-sm text-ink">
+                            {{ config('themes.presets.'.$brandSettings['theme_preset'].'.font_label', 'Theme default') }}
+                        </div>
                         <p class="mt-1 text-[11px] text-ink-3">{{ $brandFontNote }}</p>
                     </div>
                 </div>
@@ -261,6 +337,7 @@
                 @error('surface') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
                 @error('radius') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
                 @error('font') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
+                @error('theme_preset') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
             </div>
 
             <div class="rounded-2xl border border-rule bg-card p-6">
@@ -308,6 +385,87 @@
                 </div>
                 @error('cover') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
             </div>
+
+            <div class="rounded-2xl border border-rule bg-card p-6">
+                <h2 class="text-sm font-bold text-ink">Social sharing image</h2>
+                <p class="mt-1 text-xs text-ink-3">This image appears when your storefront is shared on WhatsApp, Facebook, or X. Use a wide image with your business name visible.</p>
+                <div class="mt-4">
+                    @if ($page->og_image_path)
+                        <img src="{{ \Illuminate\Support\Facades\Storage::url($page->og_image_path) }}" alt="" class="mb-3 h-28 w-full rounded-xl border border-rule object-cover">
+                    @endif
+                    <input type="file" name="og_image" accept="image/jpeg,image/png,image/webp" class="text-xs">
+                    @if ($page->og_image_path)
+                        <label class="mt-2 flex items-center gap-2 text-[11px] text-ink-3"><input type="checkbox" name="remove_og_image" value="1" class="rounded"> Remove sharing image</label>
+                    @endif
+                </div>
+                @error('og_image') <p class="mt-2 text-xs text-danger-text">{{ $message }}</p> @enderror
+            </div>
+
+            @if ($heroStylesEnabled)
+                <div class="rounded-2xl border border-rule bg-card p-6">
+                    <h2 class="text-sm font-bold text-ink">Hero direction</h2>
+                    <p class="mt-1 text-xs leading-relaxed text-ink-3">
+                        Give the first screen a stronger point of view. These controls
+                        change the composition, not your content.
+                    </p>
+
+                    <div class="mt-5 grid gap-4 sm:grid-cols-3">
+                        <label class="block">
+                            <span class="text-xs font-semibold text-ink">Layout</span>
+                            <select name="hero_style" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm">
+                                @foreach (['immersive' => 'Immersive image', 'split' => 'Editorial split', 'minimal' => 'Minimal statement'] as $key => $label)
+                                    <option value="{{ $key }}" @selected(($page->settings['hero_style'] ?? 'immersive') === $key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-semibold text-ink">Text alignment</span>
+                            <select name="hero_alignment" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm">
+                                <option value="center" @selected(($page->settings['hero_alignment'] ?? 'center') === 'center')>Centered</option>
+                                <option value="left" @selected(($page->settings['hero_alignment'] ?? 'center') === 'left')>Left aligned</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-semibold text-ink">Image treatment</span>
+                            <select name="hero_overlay" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm">
+                                <option value="deep" @selected(($page->settings['hero_overlay'] ?? 'deep') === 'deep')>Deep contrast</option>
+                                <option value="soft" @selected(($page->settings['hero_overlay'] ?? 'deep') === 'soft')>Soft contrast</option>
+                                <option value="none" @selected(($page->settings['hero_overlay'] ?? 'deep') === 'none')>Clean image</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                        <label class="flex items-start gap-3 rounded-xl border border-rule p-3">
+                            <input type="hidden" name="carousel_autoplay" value="0">
+                            <input type="checkbox" name="carousel_autoplay" value="1" @checked($page->settings['carousel_autoplay'] ?? false) class="mt-0.5 size-4 accent-brand">
+                            <span><span class="block text-xs font-semibold">Auto-advance carousel</span><span class="mt-1 block text-[11px] text-ink-3">Keep it off for a calmer editorial feel.</span></span>
+                        </label>
+                        <label class="flex items-start gap-3 rounded-xl border border-rule p-3">
+                            <input type="hidden" name="show_trust_strip" value="0">
+                            <input type="checkbox" name="show_trust_strip" value="1" @checked($page->settings['show_trust_strip'] ?? true) class="mt-0.5 size-4 accent-brand">
+                            <span><span class="block text-xs font-semibold">Show trust strip</span><span class="mt-1 block text-[11px] text-ink-3">Show platform assurances beneath the hero.</span></span>
+                        </label>
+                    </div>
+
+                    @if ($layoutOptions->isNotEmpty())
+                        <div class="mt-6 border-t border-rule pt-5">
+                            <h3 class="text-xs font-bold text-ink">Page layout</h3>
+                            <p class="mt-1 text-[11px] text-ink-3">Hide sections you do not need. Required catalog or booking sections stay available.</p>
+                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                @foreach ($layoutOptions as $key => $label)
+                                    <label class="flex items-center gap-2 rounded-lg border border-rule px-3 py-2.5 text-xs text-ink-2">
+                                        <input type="checkbox" name="hidden_sections[]" value="{{ $key }}"
+                                               @checked(in_array($key, $page->settings['hidden_sections']['home'] ?? [], true))
+                                               class="size-4 accent-brand">
+                                        Hide {{ $label }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
         @endif
 
         @foreach ($blocks as $block)
@@ -334,8 +492,8 @@
 
                         @if (($field['type'] ?? 'text') === 'richtext')
                             <label class="block">
-                                <span class="text-xs font-semibold text-ink">{{ $field['label'] }}</span>
-                                <textarea name="blocks[{{ $block->key }}][{{ $name }}]" rows="6"
+                                <span class="flex items-center justify-between gap-2 text-xs font-semibold text-ink"><span>{{ $field['label'] }}</span><button type="button" @click="openAiForField($event)" class="text-[11px] font-bold text-brand-text">Improve with AI</button></span>
+                                <textarea name="blocks[{{ $block->key }}][{{ $name }}]" rows="6" @ai.result.window="if ($event.detail.feature === 'content') $el.value = $event.detail.text"
                                           class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2 text-sm focus:border-brand focus:outline-none">{{ old($name, $value) }}</textarea>
                             </label>
 
@@ -447,10 +605,70 @@
             <button class="rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-hover">
                 Save {{ $siteNoun }}
             </button>
-            <a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" target="_blank" rel="noopener"
+            <a href="{{ \App\Shared\Support\StoreUrl::forSeller($page) }}" target="_blank" rel="noopener"
                class="text-xs font-semibold text-ink-3 hover:text-ink">View my page</a>
         </div>
     </form>
+
+    @if ($tab === 'brand' && $carouselEnabled)
+        <section class="mx-auto mt-6 max-w-3xl rounded-2xl border border-rule bg-card p-6">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-bold text-ink">Hero carousel</h2>
+                    <p class="mt-1 max-w-xl text-xs leading-relaxed text-ink-3">
+                        Add up to five campaign moments. Visitors can swipe between
+                        them on mobile; the first slide is your opening statement.
+                    </p>
+                </div>
+                <span class="rounded-full bg-brand-wash px-3 py-1 text-[11px] font-semibold text-brand-text">{{ $carouselSlides->count() }}/5 slides</span>
+            </div>
+
+            <div class="mt-5 space-y-3">
+                @foreach ($carouselSlides as $slide)
+                    <form method="POST" action="{{ route('carousel.update', $slide) }}" enctype="multipart/form-data"
+                          class="grid gap-4 rounded-xl border border-rule p-4 md:grid-cols-[7rem_minmax(0,1fr)_auto]">
+                        @csrf
+                        @method('PUT')
+                        @if ($slide->image_path)
+                            <img src="{{ $slide->imageUrl() }}" alt="" class="h-20 w-28 rounded-lg object-cover">
+                        @else
+                            <div class="flex h-20 w-28 items-center justify-center rounded-lg bg-tint text-[10px] text-ink-3">No image</div>
+                        @endif
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <input name="headline" value="{{ $slide->headline }}" placeholder="Slide headline" required class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                            <input name="subtext" value="{{ $slide->subtext }}" placeholder="Supporting line" class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                            <input name="button_label" value="{{ $slide->button_label }}" placeholder="Button label" class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                            <input type="url" name="button_url" value="{{ $slide->button_url }}" placeholder="https://..." class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                            <input type="file" name="image" accept="image/*" class="text-[11px] sm:col-span-2">
+                            <label class="flex items-center gap-2 text-[11px] text-ink-3 sm:col-span-2">
+                                <input type="checkbox" name="is_active" value="1" @checked($slide->is_active) class="size-4 accent-brand"> Visible on the storefront
+                            </label>
+                        </div>
+                        <div class="flex gap-2 md:flex-col">
+                            <div class="flex gap-1">
+                                <form method="POST" action="{{ route('carousel.move', ['slide' => $slide, 'direction' => 'up']) }}">@csrf<button aria-label="Move slide up" class="rounded-lg border border-rule px-2 py-2 text-[11px] font-bold text-ink-2">↑</button></form>
+                                <form method="POST" action="{{ route('carousel.move', ['slide' => $slide, 'direction' => 'down']) }}">@csrf<button aria-label="Move slide down" class="rounded-lg border border-rule px-2 py-2 text-[11px] font-bold text-ink-2">↓</button></form>
+                            </div>
+                            <button class="rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-brand-ink">Save</button>
+                            <button type="submit" name="remove" value="1" data-confirm="Remove this slide?" class="rounded-lg border border-danger-edge px-3 py-2 text-[11px] font-semibold text-danger-text">Remove</button>
+                        </div>
+                    </form>
+                @endforeach
+            </div>
+
+            @if ($carouselSlides->count() < 5)
+                <form method="POST" action="{{ route('carousel.store') }}" enctype="multipart/form-data" class="mt-5 grid gap-3 rounded-xl border border-dashed border-rule-strong p-4 sm:grid-cols-2">
+                    @csrf
+                    <input name="headline" placeholder="New slide headline" required class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                    <input name="subtext" placeholder="Supporting line" class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                    <input name="button_label" placeholder="Button label" class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                    <input type="url" name="button_url" placeholder="https://..." class="rounded-lg border border-rule-strong px-3 py-2 text-xs">
+                    <input type="file" name="image" accept="image/*" required class="text-[11px] sm:col-span-2">
+                    <button class="rounded-lg border border-rule-strong px-3 py-2 text-xs font-semibold hover:bg-tint sm:col-span-2">Add slide</button>
+                </form>
+            @endif
+        </section>
+    @endif
 
     @once
         <script>
@@ -471,3 +689,88 @@
         </script>
     @endonce
 @endsection
+
+@if ($tab === 'details' && config('services.google.maps_browser_key'))
+    @section('scripts')
+        <script>
+            window.initLocationPicker = async function () {
+                const mapElement = document.getElementById('location-map');
+                const searchElement = document.getElementById('location-search');
+                const latitudeElement = document.getElementById('location-latitude');
+                const longitudeElement = document.getElementById('location-longitude');
+
+                if (!mapElement || !searchElement || !latitudeElement || !longitudeElement) {
+                    return;
+                }
+
+                const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
+
+                const fallback = { lat: 6.5244, lng: 3.3792 };
+                const initial = {
+                    lat: Number(latitudeElement.value) || fallback.lat,
+                    lng: Number(longitudeElement.value) || fallback.lng,
+                };
+                const map = new google.maps.Map(mapElement, {
+                    center: initial,
+                    zoom: latitudeElement.value && longitudeElement.value ? 16 : 11,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                });
+                const marker = new google.maps.Marker({
+                    map,
+                    position: initial,
+                    draggable: true,
+                    title: 'Business location',
+                });
+
+                const setLocation = (location, zoom = 16) => {
+                    const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+                    const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+
+                    latitudeElement.value = Number(lat).toFixed(7);
+                    longitudeElement.value = Number(lng).toFixed(7);
+                    marker.setPosition({ lat: Number(lat), lng: Number(lng) });
+                    map.setCenter({ lat: Number(lat), lng: Number(lng) });
+                    map.setZoom(zoom);
+                };
+
+                map.addListener('click', (event) => setLocation(event.latLng));
+                marker.addListener('dragend', (event) => setLocation(event.latLng));
+
+                const autocomplete = new PlaceAutocompleteElement({
+                    includedRegionCodes: ['ng'],
+                });
+                autocomplete.placeholder = 'Search an address, landmark or business';
+                searchElement.appendChild(autocomplete);
+
+                autocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
+                    const place = placePrediction.toPlace();
+                    await place.fetchFields({
+                        fields: ['formattedAddress', 'location', 'addressComponents'],
+                    });
+
+                    if (!place.location) {
+                        return;
+                    }
+
+                    setLocation(place.location);
+
+                    if (place.formattedAddress) {
+                        document.querySelector('input[name="address"]').value = place.formattedAddress;
+                    }
+
+                    const components = Object.fromEntries((place.addressComponents || []).flatMap((component) =>
+                        component.types.map((type) => [type, component.longText])
+                    ));
+                    const city = components.locality || components.postal_town || components.administrative_area_level_2;
+                    const state = components.administrative_area_level_1;
+
+                    if (city) document.querySelector('input[name="city"]').value = city;
+                    if (state) document.querySelector('input[name="state"]').value = state;
+                });
+            };
+        </script>
+        <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google.maps_browser_key')) }}&libraries=places&v=weekly&callback=initLocationPicker" async defer></script>
+    @endsection
+@endif

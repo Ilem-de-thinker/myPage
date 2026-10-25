@@ -3,6 +3,7 @@
 namespace App\Domains\Orders\Notifications;
 
 use App\Domains\Orders\Models\AbandonedCart;
+use App\Shared\Mail\TransactionalMailMessage;
 use App\Shared\Support\Money;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -30,13 +31,14 @@ class AbandonedCartReminder extends Notification
             ->map(fn (array $item) => "{$item['quantity']} x {$item['name']} — ".Money::format($item['line_kobo']))
             ->implode("\n");
 
-        return (new MailMessage)
+        return (new TransactionalMailMessage)
             ->subject("You left something in your cart at {$this->cart->storePage?->name}")
             ->greeting($this->cart->email ? 'Hello,' : 'Hello,')
             ->line('You started an order but did not finish it. Your cart is:')
             ->line($lines)
             ->line('Total: '.Money::format($this->cart->total_kobo))
             ->action('Finish your order', $this->cart->recoveryUrl())
-            ->line('If you would rather not hear from us, ignore this and we will not chase you again.');
+            ->line('If you would rather not hear from us, ignore this and we will not chase you again.')
+            ->platformFooter();
     }
 }

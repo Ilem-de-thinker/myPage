@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1125" role="img" aria-labelledby="title desc">
+  <title id="title">Fashion studio illustration</title><desc id="desc">Editorial illustration of folded clothing and a studio mirror.</desc>
+  <rect width="900" height="1125" fill="#e9dfcf"/><rect x="90" y="120" width="720" height="850" rx="32" fill="#f7f2e9"/>
+  <path d="M180 785 292 430l160-72 164 72 104 355-270 115z" fill="#ad5941"/><path d="M305 420h290l-44 180H348z" fill="#2f4a3b"/>
+  <path d="M196 795h500l-48 132H245z" fill="#d0a675"/><circle cx="676" cy="268" r="72" fill="#d0a675"/><path d="M584 296c40-108 162-119 190-30-60-20-108 24-190 30z" fill="#1e2e27"/>
+</svg>

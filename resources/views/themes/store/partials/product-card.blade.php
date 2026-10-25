@@ -16,7 +16,7 @@
     $category = $product->category;
     // Populated by ProductSort::Popular; absent on every other ordering.
     $sold = isset($product->sold_count) ? (int) $product->sold_count : null;
-    $href = route('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]);
+    $href = \App\Shared\Support\StoreUrl::path('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]);
 @endphp
 
 <article class="card p-3 group flex flex-col">
@@ -61,16 +61,19 @@
       <p class="t-meta mb-1">{{ $category->name }}</p>
     @endif
 
-    <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-sm font-semibold text-[var(--ink)] line-clamp-1">
       <a href="{{ $href }}" class="card-stretched-link hover:underline">{{ $product->name }}</a>
-    </h3>
+      </h3>
+      <x-themes.shared.verified-badge :page="$page" />
+    </div>
 
     {{-- One line of evidence under the name: the rating when there is one, the
          sales figure when the ordering produced it, the stock when it is the
          thing worth knowing. --}}
     <div class="flex items-center gap-1.5 mt-1.5 mb-3 text-xs text-[var(--ink-3)]">
       @if ($product->hasRating())
-        <span class="flex items-center text-amber-500 font-bold"
+        <span class="flex items-center text-[var(--rating)] font-bold"
               aria-label="{{ number_format($product->ratingLabel(), 1) }} stars out of 5">
           ★ {{ number_format($product->ratingLabel(), 1) }}
         </span>
@@ -101,8 +104,8 @@
            landed. The spinner clears on the next frame, so a fast click does not
            leave it running after the label has already changed. --}}
       <button type="button"
-              x-data="{ adding: false }"
-              @click="adding = true; $store.cart.add({ id: {{ $product->id }}, name: @js($product->name), price_kobo: {{ $product->price_kobo }} }); requestAnimationFrame(() => adding = false)"
+              x-data="addToCartButton(@jsExpr(['id' => $product->id, 'name' => $product->name, 'priceKobo' => $product->price_kobo]))"
+              @click="add()"
               @disabled($soldOut)
               class="relative z-20 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius)] transition-opacity {{ $soldOut ? 'font-medium bg-[var(--surface)] text-[var(--ink-3)] border border-[var(--rule)] cursor-not-allowed' : 'bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90' }}"
               aria-label="Add {{ $product->name }} to cart">

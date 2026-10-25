@@ -13,7 +13,7 @@
           action="{{ $variant ? route('variants.update', $variant) : route('products.variants.store', $product) }}"
           enctype="multipart/form-data"
           class="bg-card p-6 rounded-2xl border border-rule space-y-5 max-w-2xl mx-auto"
-          x-data="{ previewOpen: false, previews: @js($variant?->imageUrl() ? [$variant->imageUrl()] : []) }">
+          x-data="imagePreview(@jsExpr(['previews' => $variant?->imageUrl() ? [$variant->imageUrl()] : []]))">
         @csrf
         @if ($variant) @method('PUT') @endif
 
@@ -48,7 +48,7 @@
         <div>
             <label class="block text-xs font-semibold text-ink mb-1.5">Photo</label>
             <input type="file" name="image" accept="image/*" class="text-sm"
-                   @change="previews = [...previews, ...Array.from($event.target.files).map(f => URL.createObjectURL(f))]">
+                   @change="addFiles($event)">
             <button type="button" @click="previewOpen = true" :disabled="previews.length === 0"
                     class="mt-2 text-xs font-semibold text-brand disabled:text-ink-3 disabled:cursor-not-allowed">Preview photo</button>
             <div x-cloak x-show="previewOpen" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">

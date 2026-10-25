@@ -3,6 +3,7 @@
 namespace App\Domains\Booking\Notifications;
 
 use App\Domains\Booking\Models\Booking;
+use App\Shared\Mail\TransactionalMailMessage;
 use App\Shared\Support\BuyerLinks;
 use App\Shared\Support\Money;
 use Illuminate\Bus\Queueable;
@@ -36,7 +37,7 @@ class BookingStatusChangedNotification extends Notification
         $when = $booking->starts_at->timezone($booking->storePage?->timezone ?? config('mypage.timezone'))
             ->format('D j M Y, g:i a');
 
-        return (new MailMessage)
+        return (new TransactionalMailMessage)
             ->subject("Your booking {$booking->reference} is {$this->statusLabel}")
             ->greeting($booking->customer_name ? "Hello {$booking->customer_name}," : 'Hello,')
             ->line("{$booking->service?->name} at {$booking->storePage?->name} is {$this->statusLabel}.")
@@ -51,6 +52,7 @@ class BookingStatusChangedNotification extends Notification
             // them to go and type it in was asking for work before it answered
             // anything.
             ->line('Keep this link. It shows your appointment and retainer status without an account, and it works for 30 days.')
-            ->action('Manage your booking', BuyerLinks::booking($booking->storePage, $booking));
+            ->action('Manage your booking', BuyerLinks::booking($booking->storePage, $booking))
+            ->platformFooter();
     }
 }

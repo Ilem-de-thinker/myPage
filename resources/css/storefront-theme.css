@@ -47,6 +47,7 @@
   --warn-wash: #fffbeb;
   --warn-edge: #fde68a;
   --warn-text: #92400e;
+  --rating: #b45309;
   --danger-wash: #fef2f2;
   --danger-edge: #fecaca;
   --danger-text: #991b1b;
@@ -107,6 +108,7 @@
     --warn-wash: color-mix(in srgb, #f59e0b 16%, var(--paper));
     --warn-edge: color-mix(in srgb, #f59e0b 38%, transparent);
     --warn-text: #fcd34d;
+    --rating: #fbbf24;
     --danger-wash: color-mix(in srgb, #ef4444 16%, var(--paper));
     --danger-edge: color-mix(in srgb, #ef4444 38%, transparent);
     --danger-text: #fca5a5;
@@ -148,6 +150,7 @@
   --warn-wash: color-mix(in srgb, #f59e0b 16%, var(--paper));
   --warn-edge: color-mix(in srgb, #f59e0b 38%, transparent);
   --warn-text: #fcd34d;
+  --rating: #fbbf24;
   --danger-wash: color-mix(in srgb, #ef4444 16%, var(--paper));
   --danger-edge: color-mix(in srgb, #ef4444 38%, transparent);
   --danger-text: #fca5a5;
@@ -171,6 +174,60 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.js-motion [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance, 1.25rem), 0);
+  transition: opacity 700ms cubic-bezier(.22, 1, .36, 1), transform 700ms cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.js-motion [data-reveal="fade"] { transform: none; }
+.js-motion [data-reveal="scale"] { transform: scale(.97); }
+.js-motion [data-reveal].is-visible { opacity: 1; transform: none; }
+.js-motion [data-stagger] > [data-reveal] { transition-delay: calc(var(--stagger-index, 0) * 80ms + var(--reveal-delay, 0ms)); }
+[data-motion="brutalist"] [data-reveal] { transition-duration: 380ms; transition-timing-function: steps(5, end); }
+[data-motion="boutique"] [data-reveal] { transition-duration: 900ms; transform: translate3d(0, var(--reveal-distance, 1.25rem), 0) scale(.985); }
+[data-motion="tech"] [data-reveal] { transition-duration: 300ms; transition-timing-function: cubic-bezier(.2, .8, .2, 1); }
+[data-motion="editorial"] [data-reveal] { transition-duration: 1050ms; }
+body[data-store] header { transition: background-color 280ms ease, box-shadow 280ms ease, transform 280ms ease; }
+body[data-store] header.is-scrolled { background: color-mix(in srgb, var(--paper) 92%, transparent); box-shadow: var(--shadow-rest); }
+body[data-store] [data-reveal] { --reveal-distance: 1.25rem; }
+[data-motion="brutalist"] [data-reveal] { --reveal-distance: .75rem; }
+[data-motion="tech"] [data-reveal] { --reveal-distance: .5rem; }
+.theme-motion-field { pointer-events: none; position: fixed; inset: 0; z-index: 4; overflow: hidden; opacity: .34; }
+.theme-motion-field span, .theme-motion-field i { position: absolute; display: block; border: 1px solid color-mix(in srgb, var(--brand) 16%, transparent); border-radius: 999px; }
+.theme-motion-field span:nth-child(1) { width: 20rem; height: 20rem; right: -7rem; top: 18%; animation: theme-drift-one 20s ease-in-out infinite alternate; }
+.theme-motion-field span:nth-child(2) { width: 10rem; height: 10rem; left: -3rem; top: 55%; animation: theme-drift-two 15s ease-in-out infinite alternate; }
+.theme-motion-field span:nth-child(3) { width: 4rem; height: 4rem; right: 25%; top: 72%; border-color: color-mix(in srgb, var(--brand) 24%, transparent); animation: theme-drift-three 11s ease-in-out infinite alternate; }
+.theme-motion-field i { width: .35rem; height: .35rem; border: 0; background: var(--brand); opacity: .45; }
+.theme-motion-field i:nth-of-type(1) { left: 20%; top: 20%; animation: theme-float 9s ease-in-out infinite alternate; }
+.theme-motion-field i:nth-of-type(2) { right: 18%; top: 65%; animation: theme-float 12s ease-in-out 1s infinite alternate; }
+[data-motion="editorial"] .theme-motion-field { opacity: .2; }
+[data-motion="editorial"] .theme-motion-field span { animation-duration: 30s; }
+[data-motion="boutique"] .theme-motion-field { opacity: .3; }
+[data-motion="boutique"] .theme-motion-field span { animation-duration: 24s; filter: blur(.4px); }
+[data-motion="brutalist"] .theme-motion-field { opacity: .22; }
+[data-motion="brutalist"] .theme-motion-field span { border-width: 2px; border-radius: 0; animation-duration: 9s; animation-timing-function: steps(6, end); }
+[data-motion="brutalist"] .theme-motion-field i { width: .6rem; height: .6rem; border-radius: 0; }
+[data-motion="tech"] .theme-motion-field { opacity: .2; }
+[data-motion="tech"] .theme-motion-field span { border-radius: .35rem; animation-duration: 7s; animation-timing-function: linear; }
+[data-motion="tech"] .theme-motion-field i { width: 1.5rem; height: 1px; border-radius: 0; }
+[data-motion="editorial"] .theme-motion-field span:nth-child(1) { top: 12%; }
+[data-motion="boutique"] .theme-motion-field span:nth-child(2) { top: 62%; }
+[data-motion="brutalist"] .theme-motion-field span:nth-child(3) { top: 78%; }
+[data-motion="tech"] .theme-motion-field span:nth-child(1) { right: -3rem; top: 24%; }
+@keyframes theme-drift-one { to { transform: translate3d(-2rem, 3rem, 0) rotate(16deg); } }
+@keyframes theme-drift-two { to { transform: translate3d(2rem, -2rem, 0) rotate(-18deg); } }
+@keyframes theme-drift-three { to { transform: translate3d(-1rem, -2rem, 0) scale(1.15); } }
+@keyframes theme-float { to { transform: translate3d(0, -1.5rem, 0) scale(1.5); } }
+body[data-store] > header, body[data-store] > main, body[data-store] > footer, body[data-store] > .theme-motion-field { position: relative; }
+body[data-store] > header, body[data-store] > main, body[data-store] > footer { z-index: 3; }
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) { .theme-motion-field { display: none; } }
+.save-data .theme-motion-field, body[data-reduce-motion="true"] .theme-motion-field { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal], .js-motion [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
 }
 
 /* ─── Focus Ring Rules (survival on brand fills via paper inner halo) ─── */
@@ -434,6 +491,485 @@ body {
 
 .animate-bounce-subtle {
   animation: bounceSubtle 4s ease-in-out infinite;
+}
+
+/* ─── Locked theme directions ──────────────────────────────────────────────
+   These are structural finishes, not merchant colours. Every colour still
+   comes from the page token generator above. */
+[data-theme-preset="editorial-luxe"] .section-y { padding-block: clamp(4rem, 9vw, 9rem); }
+[data-theme-preset="editorial-luxe"] .card { border-radius: 0; box-shadow: none; }
+[data-theme-preset="editorial-luxe"] .t-display-1,
+[data-theme-preset="editorial-luxe"] .t-display-2 { letter-spacing: -0.045em; }
+
+[data-theme-preset="minimal-swiss"] .card { border-radius: 0; box-shadow: none; }
+[data-theme-preset="minimal-swiss"] .section-y { border-top: 1px solid var(--rule); }
+[data-theme-preset="minimal-swiss"] .shell { max-width: 78rem; }
+
+[data-theme-preset="brutalist-soft"] .card { border: 2px solid var(--ink); border-radius: var(--radius-sm); box-shadow: 6px 6px 0 var(--brand-wash-2); }
+[data-theme-preset="brutalist-soft"] .t-display-1,
+[data-theme-preset="brutalist-soft"] .t-display-2 { letter-spacing: -0.06em; text-transform: none; }
+
+[data-theme-preset="catalog"] .card { border-radius: var(--radius-sm); }
+[data-theme-preset="catalog"] .section-y { padding-block: clamp(2.5rem, 5vw, 5rem); }
+[data-theme-preset="catalog"] .shell { max-width: 86rem; }
+
+[data-theme-preset="boutique-warm"] .card { border-radius: var(--radius-lg); box-shadow: var(--shadow-rest); }
+[data-theme-preset="boutique-warm"] .section-y { padding-block: clamp(4rem, 8vw, 8rem); }
+
+[data-theme-preset="tech-pro"] .card { border-radius: var(--radius-sm); box-shadow: 0 1px 0 var(--brand-edge); }
+[data-theme-preset="tech-pro"] .section-y { padding-block: clamp(3rem, 6vw, 6rem); }
+
+/* ─── Premium composition system ─────────────────────────────────────────
+   Presets now change the first-screen composition as well as the finish. The
+   hero title is deliberately shared only as a scale; each composition gives
+   it a different alignment, image relationship, and action rhythm. */
+.premium-hero-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.7rem, 5.8vw, 6.8rem);
+  font-weight: 700;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+.premium-hero-editorial .premium-hero-title,
+.premium-hero-editorial .font-heading,
+[data-theme-preset="boutique-warm"] .premium-hero-title {
+  letter-spacing: -0.055em;
+}
+
+[data-theme-preset="editorial-luxe"] .premium-hero-title,
+[data-theme-preset="boutique-warm"] .premium-hero-title {
+  font-weight: 500;
+  line-height: 0.94;
+}
+
+[data-theme-preset="brutalist-soft"] .premium-hero-title {
+  font-size: clamp(3.3rem, 8vw, 8.4rem);
+  font-weight: 900;
+  letter-spacing: -0.085em;
+  line-height: 0.83;
+}
+
+[data-theme-preset="catalog"] .premium-hero-title {
+  font-size: clamp(2.5rem, 5vw, 5.4rem);
+  letter-spacing: -0.06em;
+}
+
+[data-theme-preset="tech-pro"] .premium-hero-title {
+  font-size: clamp(2.65rem, 5.3vw, 6rem);
+  font-weight: 800;
+  letter-spacing: -0.07em;
+}
+
+[data-theme-preset="editorial-luxe"] .premium-hero-editorial img,
+[data-theme-preset="boutique-warm"] .premium-hero-editorial img {
+  clip-path: inset(0 0 0 0 round 0);
+}
+
+[data-theme-preset="boutique-warm"] .premium-hero-editorial img {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 var(--radius-lg);
+}
+
+[data-theme-preset="minimal-swiss"] .premium-hero-structured,
+[data-theme-preset="tech-pro"] .premium-hero-structured {
+  background-image: linear-gradient(to right, transparent 0, transparent calc(100% - 1px), var(--rule) calc(100% - 1px));
+  background-size: 25% 100%;
+}
+
+[data-theme-preset="tech-pro"] .premium-hero-structured .premium-hero-title {
+  max-width: 11ch;
+}
+
+[data-theme-preset="catalog"] .premium-hero-catalog {
+  box-shadow: inset 0 -1px 0 var(--rule);
+}
+
+[data-theme-preset="brutalist-soft"] .premium-hero-brutalist {
+  background: var(--paper);
+}
+
+.premium-hero-boutique .premium-hero-title {
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.premium-hero-tech {
+  background-image: linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), var(--rule) calc(100% - 1px));
+  background-size: 50% 100%;
+}
+
+.premium-hero-tech .t-meta {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Navigation patterns are intentionally different: catalog is compact and
+   utility-led, editorial is quiet and spacious, Swiss/Tech is ruled and
+   measured, while Bold uses the brand as a piece of architecture. */
+[data-nav-style="editorial-luxe"].theme-nav,
+[data-nav-style="boutique-warm"].theme-nav {
+  letter-spacing: -0.01em;
+}
+
+[data-nav-style="editorial-luxe"].theme-nav > div,
+[data-nav-style="boutique-warm"].theme-nav > div {
+  max-width: 76rem;
+}
+
+[data-nav-style="minimal-swiss"].theme-nav,
+[data-nav-style="tech-pro"].theme-nav {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--rule);
+  backdrop-filter: none;
+}
+
+[data-nav-style="catalog"].theme-nav {
+  font-size: 0.8125rem;
+}
+
+[data-nav-style="catalog"].theme-nav a {
+  letter-spacing: -0.01em;
+}
+
+[data-nav-style="brutalist-soft"].theme-nav {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--ink);
+  backdrop-filter: none;
+}
+
+[data-nav-style="brutalist-soft"].theme-nav a,
+[data-nav-style="brutalist-soft"].theme-nav button {
+  border-radius: 0;
+}
+
+[data-nav-style="brutalist-soft"].theme-nav .theme-nav-drawer {
+  border-width: 2px;
+  border-color: var(--ink);
+  box-shadow: 6px 6px 0 var(--brand-wash-2);
+}
+
+[data-nav-style="editorial-luxe"].theme-nav .theme-nav-drawer,
+[data-nav-style="boutique-warm"].theme-nav .theme-nav-drawer {
+  min-height: calc(100dvh - 3.5rem);
+  padding-top: 2rem;
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+
+[data-theme-preset="brutalist-soft"] .premium-hero-brutalist a,
+[data-theme-preset="brutalist-soft"] .premium-hero-brutalist img {
+  border-radius: 0;
+}
+
+/* The same product/service data gets a different reading order per direction:
+   catalog is fast and dense, editorial is image-led, and tech is information
+   first. These selectors also apply to the catalogue and detail-page cards. */
+[data-theme-preset="editorial-luxe"] .card,
+[data-theme-preset="boutique-warm"] .card {
+  border-color: transparent;
+}
+
+[data-theme-preset="editorial-luxe"] .card .plate,
+[data-theme-preset="boutique-warm"] .card .plate {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 var(--radius-lg);
+}
+
+[data-theme-preset="editorial-luxe"] .card .plate-media img,
+[data-theme-preset="boutique-warm"] .card .plate-media img {
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme-preset="editorial-luxe"] .card:hover .plate-media img,
+[data-theme-preset="boutique-warm"] .card:hover .plate-media img {
+  transform: scale(1.035);
+}
+
+[data-theme-preset="catalog"] .card {
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  background: var(--card);
+}
+
+[data-theme-preset="catalog"] .card .plate {
+  margin-bottom: 0.625rem;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme-preset="tech-pro"] .card {
+  border-top: 2px solid var(--brand);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+}
+
+[data-theme-preset="tech-pro"] .card .plate {
+  border-radius: var(--radius-sm);
+}
+
+[data-theme-preset="brutalist-soft"] .card .plate {
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+/* Collection rhythms: the same catalogue data is composed differently per
+   direction. Editorial gives one piece the room of a cover story, Catalog
+   keeps scanning fast, Boutique invites a thumb-led swipe, and Bold lets the
+   grid feel like a poster wall. */
+[data-collection-style="editorial-luxe"].theme-grid-featured,
+[data-collection-style="boutique-warm"].theme-grid-featured {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-collection-style="editorial-luxe"].theme-grid-featured > :first-child,
+[data-collection-style="boutique-warm"].theme-grid-featured > :first-child {
+  grid-row: span 2;
+}
+
+[data-collection-style="editorial-luxe"].theme-grid-featured > :first-child .plate,
+[data-collection-style="boutique-warm"].theme-grid-featured > :first-child .plate {
+  aspect-ratio: 4 / 5;
+}
+
+[data-collection-style="catalog"].theme-grid-products,
+[data-collection-style="catalog"].theme-grid-featured {
+  gap: 0.75rem;
+}
+
+[data-collection-style="brutalist-soft"].theme-grid-products,
+[data-collection-style="brutalist-soft"].theme-grid-featured,
+[data-collection-style="brutalist-soft"].theme-grid-services {
+  gap: 1.25rem;
+}
+
+[data-collection-style="brutalist-soft"].theme-grid-products > :nth-child(3n),
+[data-collection-style="brutalist-soft"].theme-grid-featured > :nth-child(3n) {
+  transform: translateY(1.5rem);
+}
+
+[data-collection-style="tech-pro"].theme-grid-services {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-collection-style="tech-pro"].theme-grid-services > * {
+  min-height: 100%;
+}
+
+/* Footer compositions finish the identity. Editorial/Boutique give the
+   business voice room, Catalog stays useful and compact, Bold becomes a hard
+   block, and Swiss/Tech finish with measured rules. */
+[data-footer-style="editorial-luxe"] .shell,
+[data-footer-style="boutique-warm"] .shell {
+  max-width: 76rem;
+}
+
+[data-footer-style="editorial-luxe"] .shell > .grid,
+[data-footer-style="boutique-warm"] .shell > .grid {
+  gap: 3rem;
+}
+
+[data-footer-style="editorial-luxe"] .shell > .grid > :first-child,
+[data-footer-style="boutique-warm"] .shell > .grid > :first-child {
+  grid-column: span 2;
+  padding-right: 3rem;
+}
+
+[data-footer-style="minimal-swiss"].theme-footer,
+[data-footer-style="tech-pro"].theme-footer {
+  background: var(--paper);
+}
+
+[data-footer-style="minimal-swiss"] .shell > .grid,
+[data-footer-style="tech-pro"] .shell > .grid {
+  border-top: 1px solid var(--rule);
+  padding-top: 2rem;
+}
+
+[data-footer-style="brutalist-soft"].theme-footer {
+  border-top-width: 2px;
+  border-top-color: var(--ink);
+}
+
+[data-footer-style="brutalist-soft"] .shell > .grid > * {
+  border: 2px solid var(--ink);
+  padding: 1rem;
+}
+
+[data-footer-style="catalog"].theme-footer {
+  padding-top: 2.5rem;
+  padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+}
+
+[data-gallery-style="editorial-luxe"].theme-gallery,
+[data-gallery-style="boutique-warm"].theme-gallery {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+[data-gallery-style="editorial-luxe"].theme-gallery > :first-child,
+[data-gallery-style="boutique-warm"].theme-gallery > :first-child {
+  grid-column: span 7;
+  grid-row: span 2;
+}
+
+[data-gallery-style="editorial-luxe"].theme-gallery > :nth-child(2),
+[data-gallery-style="boutique-warm"].theme-gallery > :nth-child(2) {
+  grid-column: span 5;
+}
+
+[data-gallery-style="brutalist-soft"].theme-gallery > * {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+
+[data-gallery-style="tech-pro"].theme-gallery > * {
+  border-top: 2px solid var(--brand);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 767px) {
+  [data-collection-style="editorial-luxe"].theme-grid-featured,
+  [data-collection-style="boutique-warm"].theme-grid-featured {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  [data-collection-style="editorial-luxe"].theme-grid-featured > *,
+  [data-collection-style="boutique-warm"].theme-grid-featured > * {
+    flex: 0 0 min(82vw, 22rem);
+    scroll-snap-align: start;
+  }
+
+  [data-collection-style="editorial-luxe"].theme-grid-featured > :first-child,
+  [data-collection-style="boutique-warm"].theme-grid-featured > :first-child {
+    grid-row: auto;
+  }
+
+  [data-collection-style="brutalist-soft"].theme-grid-products > :nth-child(3n),
+  [data-collection-style="brutalist-soft"].theme-grid-featured > :nth-child(3n) {
+    transform: none;
+  }
+
+  [data-collection-style="tech-pro"].theme-grid-services {
+    grid-template-columns: 1fr;
+  }
+
+  [data-footer-style="editorial-luxe"] .shell > .grid > :first-child,
+  [data-footer-style="boutique-warm"] .shell > .grid > :first-child {
+    grid-column: auto;
+    padding-right: 0;
+  }
+
+  [data-gallery-style="editorial-luxe"].theme-gallery,
+  [data-gallery-style="boutique-warm"].theme-gallery {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
+  }
+
+  [data-gallery-style="editorial-luxe"].theme-gallery > *,
+  [data-gallery-style="boutique-warm"].theme-gallery > * {
+    flex: 0 0 78vw;
+    grid-column: auto;
+    grid-row: auto;
+    scroll-snap-align: start;
+  }
+}
+
+/* Detail pages are part of the theme, not a generic checkout surface. */
+.theme-detail-store > .grid > .md\:col-span-7 > .plate {
+  transition: border-radius 300ms ease, box-shadow 300ms ease;
+}
+
+[data-detail-style="editorial-luxe"].theme-detail-store > .grid > .md\:col-span-7 > .plate,
+[data-detail-style="boutique-warm"].theme-detail-store > .grid > .md\:col-span-7 > .plate {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 var(--radius-lg);
+  box-shadow: none;
+}
+
+[data-detail-style="editorial-luxe"].theme-detail-store > .grid > .md\:col-span-5,
+[data-detail-style="boutique-warm"].theme-detail-store > .grid > .md\:col-span-5 {
+  border-color: transparent;
+  background: var(--brand-wash);
+  box-shadow: none;
+}
+
+[data-detail-style="minimal-swiss"].theme-detail-store,
+[data-detail-style="tech-pro"].theme-detail-store {
+  max-width: 86rem;
+}
+
+[data-detail-style="minimal-swiss"].theme-detail-store > .grid > .md\:col-span-5,
+[data-detail-style="tech-pro"].theme-detail-store > .grid > .md\:col-span-5 {
+  border-top: 2px solid var(--brand);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+[data-detail-style="brutalist-soft"].theme-detail-store > .grid > .md\:col-span-7 > .plate,
+[data-detail-style="brutalist-soft"].theme-detail-store > .grid > .md\:col-span-5 {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 7px 7px 0 var(--brand-wash-2);
+}
+
+[data-detail-style="catalog"].theme-detail-store > .grid {
+  gap: 1.5rem;
+}
+
+[data-detail-style="catalog"].theme-detail-store > .grid > .md\:col-span-7 > .plate {
+  border-radius: var(--radius-sm);
+}
+
+[data-detail-style="editorial-luxe"].theme-detail-service .shell,
+[data-detail-style="boutique-warm"].theme-detail-service .shell {
+  max-width: 76rem;
+}
+
+[data-detail-style="brutalist-soft"].theme-detail-service .card,
+[data-detail-style="brutalist-soft"].theme-detail-service form {
+  border-radius: 0;
+  border-width: 2px;
+  box-shadow: 6px 6px 0 var(--brand-wash-2);
+}
+
+@media (max-width: 767px) {
+  .premium-hero-title {
+    font-size: clamp(2.65rem, 13vw, 4.4rem);
+  }
+
+  [data-theme-preset="brutalist-soft"] .premium-hero-title {
+    font-size: clamp(3.1rem, 16vw, 5.3rem);
+  }
+
+  [data-theme-preset="minimal-swiss"] .premium-hero-structured,
+  [data-theme-preset="tech-pro"] .premium-hero-structured {
+    background-image: none;
+  }
+
+  .premium-hero-tech {
+    background-image: none;
+  }
+}
+
+.mobile-snap-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.mobile-snap-row::-webkit-scrollbar { display: none; }
+.mobile-snap-row > * { flex: 0 0 min(82vw, 22rem); scroll-snap-align: start; }
+
+@media (min-width: 768px) {
+  .mobile-snap-row { display: grid; overflow: visible; }
+  .mobile-snap-row > * { flex-basis: auto; }
 }
 
 /* ─── Prefers Reduced Motion (Strict Enforcement) ─── */

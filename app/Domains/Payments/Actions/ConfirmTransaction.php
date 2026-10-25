@@ -5,20 +5,12 @@ namespace App\Domains\Payments\Actions;
 use App\Domains\Payments\Enums\TransactionStatus;
 use App\Domains\Payments\Events\PaymentConfirmed;
 use App\Domains\Payments\Models\Transaction;
-use App\Domains\Payments\Services\CommissionCalculator;
-use App\Domains\Payments\Services\Contracts\EscrowRouter;
-use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
-use App\Domains\Payments\Services\LedgerService;
+use App\Domains\Payments\Services\GatewayFactory;
 use Illuminate\Support\Facades\DB;
 
 class ConfirmTransaction
 {
-    public function __construct(
-        private readonly PaymentGatewayInterface $gateway,
-        private readonly CommissionCalculator $commission,
-        private readonly LedgerService $ledger,
-        private readonly EscrowRouter $escrow,
-    ) {}
+    public function __construct(private readonly GatewayFactory $gateways) {}
 
     /**
      * Re-verify with the gateway and settle. Safe to call repeatedly: a transaction
@@ -33,7 +25,7 @@ class ConfirmTransaction
             return $existing;
         }
 
-        $verification = $this->gateway->verify($reference);
+        $verification = $this->gateways->forTransaction($existing)->verify($reference);
 
         if ($verification['status'] !== 'success' || $verification['amount_kobo'] !== $existing->amount_kobo) {
             $existing->update([
@@ -51,14 +43,17 @@ class ConfirmTransaction
                 return $transaction;
             }
 
+            /*
+             * No commission and no ledger entry. The money was paid into the
+             * seller's own gateway account, so there is nothing for us to hold,
+             * split or pay out; recording a fee here would be inventing a debt
+             * that never existed.
+             */
             $transaction->update([
                 'status' => TransactionStatus::Paid,
-                'commission_kobo' => $this->commission->for($transaction->amount_kobo),
                 'paid_at' => now(),
                 'gateway_payload' => $verification['raw'],
             ]);
-
-            $this->ledger->settleSale($transaction, $this->escrow->destinationFor($transaction));
 
             event(new PaymentConfirmed($transaction));
 

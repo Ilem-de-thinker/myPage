@@ -138,7 +138,7 @@ it('hides an empty block from the public page but keeps its input in settings', 
     ]);
 
     // Gone from the shop...
-    $this->get('/'.$page->slug)
+    $this->get(storeUrl($page->slug))
         ->assertOk()
         ->assertDontSee('Hero', false);
 

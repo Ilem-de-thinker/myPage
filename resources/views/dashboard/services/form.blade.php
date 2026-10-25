@@ -20,7 +20,15 @@
 
     <form method="POST" action="{{ $editing ? route('services.update', $service) : route('services.store') }}"
           enctype="multipart/form-data"
-          class="max-w-2xl mx-auto space-y-4">
+          class="max-w-2xl mx-auto space-y-4"
+          x-data="aiListingForm(@jsExpr([
+              'name' => old('name', $service?->name ?? ''),
+              'description' => old('description', $service?->description ?? ''),
+              'task' => 'service_listing',
+              'feature' => 'services',
+              'endpoint' => route('dashboard.ai.run'),
+              'csrf' => csrf_token(),
+          ]))">
         @csrf
         @if ($editing) @method('PUT') @endif
 
@@ -49,17 +57,22 @@
             </div>
 
             <label class="block">
-                <span class="text-xs font-semibold text-ink">Name</span>
-                <input type="text" name="name" required value="{{ old('name', $service?->name) }}"
+                <span class="mb-1 flex items-center justify-between gap-3 text-xs font-semibold text-ink">
+                    <span>Name</span>
+                    <button type="button" @click.prevent="draftCopy" :disabled="aiLoading || !name && !description" class="rounded-lg border border-brand-edge bg-brand-wash px-2.5 py-1.5 text-[11px] font-bold text-brand-text disabled:opacity-50"><span x-text="aiLoading ? 'Drafting…' : 'Draft with AI'"></span></button>
+                </span>
+                <input type="text" name="name" required x-model="name"
                        class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none"
                        placeholder="Braid consultation">
             </label>
 
             <label class="block">
                 <span class="text-xs font-semibold text-ink">Description</span>
-                <textarea name="description" rows="4"
+                <textarea name="description" rows="4" x-model="description"
                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none"
                           placeholder="What the appointment covers, and anything the customer should bring.">{{ old('description', $service?->description) }}</textarea>
+                <p x-show="aiMessage" x-text="aiMessage" class="mt-2 text-[11px] text-ok-text"></p>
+                <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
             </label>
         </div>
 

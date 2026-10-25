@@ -29,6 +29,7 @@ class BlockRenderer
         // for the blocks showing real rows: "no heading typed" is not the same
         // as "no products".
         return $this->editableForPage($storePage, $page, $theme)
+            ->reject(fn (PageBlock $block): bool => $this->isHidden($storePage, $page, $block->key))
             ->filter(fn (PageBlock $block) => $this->hasSomethingToShow($block))
             ->values();
     }
@@ -48,6 +49,11 @@ class BlockRenderer
     private function hasSomethingToShow(PageBlock $block): bool
     {
         return ($block->schema()['always'] ?? false) || ! $block->isEmpty();
+    }
+
+    private function isHidden(StorePage $storePage, string $page, string $key): bool
+    {
+        return in_array($key, ($storePage->settings ?? [])['hidden_sections'][$page] ?? [], true);
     }
 
     /**

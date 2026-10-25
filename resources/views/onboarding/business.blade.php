@@ -32,5 +32,12 @@
                 </button>
             </div>
         </form>
+        <form method="POST" action="{{ route('onboarding.ai') }}" class="rounded-2xl border border-brand-edge bg-brand-wash p-6 sm:p-8 space-y-4">
+            @csrf
+            <div><h2 class="font-display text-lg font-bold text-ink">Create with AI</h2><p class="mt-1 text-xs leading-5 text-ink-2">Only your business name and one sentence about what you do are needed. You will review everything before anything is saved.</p></div>
+            <input type="text" name="name" value="{{ $data['name'] ?? '' }}" required maxlength="120" placeholder="Business name" class="w-full rounded-xl border border-rule-strong bg-card px-4 py-2.5 text-sm">
+            <textarea name="description" required maxlength="3000" rows="3" placeholder="What does your business sell or do?" class="w-full rounded-xl border border-rule-strong bg-card p-3 text-sm"></textarea>
+            <button type="submit" class="min-h-11 rounded-xl bg-brand px-5 py-3 text-xs font-bold text-brand-ink">Create with AI</button>
+        </form>
     </div>
 @endsection

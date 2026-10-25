@@ -72,6 +72,56 @@
                 </div>
             </div>
 
+            <section x-data="analyticsInsights({digest: @jsExpr(route('dashboard.analytics.digest')), ask: @jsExpr(route('dashboard.analytics.ask')), csrf: @jsExpr(csrf_token())})" class="rounded-2xl border border-rule bg-card p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-3">Storefront analytics · last 7 days</p>
+                        <h2 class="mt-1 text-xl font-display font-bold text-ink">Know what is getting attention</h2>
+                        <p class="mt-1 text-xs text-ink-2">{{ number_format($analytics['views']) }} visits from {{ number_format($analytics['unique_visitors']) }} unique visitors.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('dashboard.analytics.index') }}" class="min-h-11 rounded-xl border border-rule-strong px-4 py-2.5 text-xs font-bold text-ink-2 hover:bg-surface">Open analytics</a>
+                        <button type="button" @click="generate" :disabled="loading" class="min-h-11 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-brand-ink disabled:opacity-50" x-text="loading ? 'Preparing…' : 'Use AI summary'"></button>
+                    </div>
+                </div>
+
+                <div class="mt-5 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+                    <div>
+                        <div class="flex h-32 items-end gap-2 rounded-xl bg-surface px-3 pb-3 pt-5">
+                            @php $maxViews = max(1, collect($analytics['daily'])->max('views')); @endphp
+                            @forelse ($analytics['daily'] as $day)
+                                <div class="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" title="{{ $day['day'] }}: {{ $day['views'] }} visits">
+                                    <span class="text-[10px] font-semibold text-ink-3">{{ $day['views'] }}</span>
+                                    <div class="w-full max-w-8 rounded-t-md bg-brand" style="height: {{ max(8, (int) round(($day['views'] / $maxViews) * 82)) }}px"></div>
+                                    <span class="text-[9px] text-ink-3">{{ \Illuminate\Support\Carbon::parse($day['day'])->format('D') }}</span>
+                                </div>
+                            @empty
+                                <p class="self-center text-xs text-ink-3">Traffic will appear here as buyers visit your storefront.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="rounded-xl border border-rule p-3"><p class="text-[11px] text-ink-3">Listing views</p><p class="mt-1 text-lg font-bold text-ink">{{ number_format($analytics['product_views'] + $analytics['service_views']) }}</p></div>
+                        <div class="rounded-xl border border-rule p-3"><p class="text-[11px] text-ink-3">WhatsApp taps</p><p class="mt-1 text-lg font-bold text-ink">{{ number_format($analytics['whatsapp_taps']) }}</p></div>
+                        <div class="rounded-xl border border-rule p-3"><p class="text-[11px] text-ink-3">Enquiries</p><p class="mt-1 text-lg font-bold text-ink">{{ number_format($analytics['enquiries']) }}</p></div>
+                        <div class="rounded-xl border border-rule p-3"><p class="text-[11px] text-ink-3">Top interest</p><p class="mt-1 truncate text-sm font-bold text-ink">{{ $analytics['top_products'][0]['name'] ?? ($analytics['top_services'][0]['name'] ?? 'No listing data yet') }}</p></div>
+                    </div>
+                </div>
+
+                <div x-show="digest" x-cloak class="mt-4 rounded-xl bg-surface p-4 text-sm text-ink">
+                    <p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">AI summary</p>
+                    <p x-text="digest?.summary || digest?.error"></p>
+                    <ul x-show="digest?.recommendations?.length" class="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-2"><template x-for="recommendation in (digest?.recommendations || [])" :key="recommendation"><li x-text="recommendation"></li></template></ul>
+                </div>
+
+                <form @submit.prevent="ask" class="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <label class="sr-only" for="dashboard-analytics-question">Ask about your analytics</label>
+                    <input id="dashboard-analytics-question" x-model="question" maxlength="1000" class="min-h-11 min-w-0 flex-1 rounded-xl border border-rule-strong bg-card px-3 text-sm text-ink" placeholder="Ask about your store data">
+                    <button class="min-h-11 rounded-xl border border-rule-strong px-4 text-xs font-bold text-ink-2 hover:bg-surface" :disabled="loading">Ask your data</button>
+                </form>
+                <p x-show="answer" x-cloak x-text="answer?.answer || answer?.error" class="mt-3 rounded-xl bg-surface p-3 text-xs text-ink-2"></p>
+            </section>
+
             <div class="bg-card rounded-2xl border border-rule p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div>

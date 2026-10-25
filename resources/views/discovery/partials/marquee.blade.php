@@ -23,7 +23,7 @@
 
                 <h2 class="text-lg font-bold text-[var(--ink)] mb-2">Nobody has joined the directory yet.</h2>
                 <p class="t-body text-xs text-[var(--ink-2)] mb-6 max-w-md mx-auto leading-relaxed">
-                    Every merchant here has asked to be found and verified with escrow security. The first one could be yours.
+                    Every merchant here has asked to be found and verified before they appear. The first one could be yours.
                 </p>
 
                 <a href="{{ route('register') }}" class="inline-flex h-10 px-5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs items-center justify-center hover:opacity-90 transition-opacity">
@@ -101,7 +101,7 @@
                     <p class="t-meta">Curated Merchants</p>
                     <h2 class="t-display-2 text-[var(--ink)] mt-1">Featured Nigerian storefronts</h2>
                 </div>
-                <span class="t-meta hidden sm:block">All merchants verified with escrow security</span>
+                <span class="t-meta hidden sm:block">All merchants verified before they appear</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -29,7 +29,7 @@
 
         {{-- Breadcrumbs --}}
         <nav class="flex items-center gap-2 text-xs text-[var(--ink-3)] mb-6" aria-label="Breadcrumb">
-            <a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
             <span aria-hidden="true">/</span>
             <span class="text-[var(--ink)] font-semibold" aria-current="page">Manage Booking</span>
         </nav>
@@ -42,7 +42,7 @@
             </span>
             <h1 class="t-display-1 text-[var(--ink)]">Track Appointment &amp; Retainer.</h1>
             <p class="t-body-lg text-[var(--ink-2)] mt-4">
-                Look up your studio booking using your reference code and the WhatsApp phone or email you booked with. Check the session time, studio directions, and escrow retainer status.
+                Look up your studio booking using your reference code and the WhatsApp phone or email you booked with. Check the session time, studio directions, and deposit status.
             </p>
         </div>
 
@@ -50,7 +50,7 @@
      the link already carries its authorisation, so the form is noise. --}}
         @if (! ($viaLink ?? false))
             <div class="card p-6 sm:p-8 mb-10">
-            <form method="GET" action="{{ route('storefront.manage-booking', ['slug' => $page->slug]) }}"
+            <form method="GET" action="{{ \App\Shared\Support\StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]) }}"
                   class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="manage-ref" class="block text-xs font-bold text-[var(--ink)] mb-1.5">Booking Reference *</label>
@@ -96,6 +96,34 @@
         @elseif ($booking)
             <div class="space-y-8">
 
+                @if (session('status'))
+                    <div class="rounded-xl border border-[var(--ok-edge)] bg-[var(--ok-wash)] px-4 py-3 text-sm text-[var(--ok-text)]">{{ session('status') }}</div>
+                @endif
+
+                @if (! ($reschedule ?? false) && ($contact ?? null) && ! in_array($booking->status, [BookingStatus::Cancelled, BookingStatus::Completed], true))
+                    <div class="card flex flex-wrap items-center justify-between gap-4 border-[var(--brand-edge)] p-5">
+                        <div><h2 class="text-sm font-bold text-[var(--ink)]">Need a different time?</h2><p class="mt-1 text-xs text-[var(--ink-2)]">Move this appointment while there is still {{ $windowHours ?? 24 }} hours’ notice.</p></div>
+                        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.booking-reschedule', ['slug' => $page->slug, 'reference' => $booking->reference, 'contact' => $contact]) }}" class="min-h-11 rounded-[var(--radius)] bg-[var(--brand)] px-4 py-2.5 text-xs font-bold text-[var(--brand-ink)]">Reschedule</a>
+                    </div>
+                @endif
+
+                @if (($reschedule ?? false))
+                    <div class="card border-[var(--brand-edge)] p-6 sm:p-8">
+                        <h2 class="t-title text-[var(--ink)]">Choose a new time</h2>
+                        @if ($locked)
+                            <p class="mt-2 text-sm text-[var(--warn-text)]">This appointment is within the {{ $windowHours }}-hour change window. Please contact the studio on WhatsApp.</p>
+                        @else
+                            <form method="POST" action="{{ \App\Shared\Support\StoreUrl::path('storefront.booking-reschedule.store', ['slug' => $page->slug]) }}" class="mt-5 grid gap-4 sm:grid-cols-2">
+                                @csrf
+                                <input type="hidden" name="reference" value="{{ $reference }}"><input type="hidden" name="contact" value="{{ $contact }}">
+                                <label class="text-xs font-bold text-[var(--ink)]">Date<input type="date" name="date" value="{{ $selectedDate }}" onchange="const url = new URL(window.location); url.searchParams.set('date', this.value); window.location = url.toString()" class="mt-2 h-11 w-full rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] px-3 text-xs"></label>
+                                <label class="text-xs font-bold text-[var(--ink)]">Available time<select name="starts_at" required class="mt-2 h-11 w-full rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] px-3 text-xs"><option value="">Select a time</option>@foreach (($slots ?? []) as $slot)<option value="{{ $slot['starts_at'] }}">{{ $slot['label'] }}</option>@endforeach</select></label>
+                                <div class="flex flex-wrap gap-3 sm:col-span-2"><button class="min-h-11 rounded-[var(--radius)] bg-[var(--brand)] px-5 text-xs font-bold text-[var(--brand-ink)]">Confirm new time</button><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug, 'reference' => $reference, 'contact' => $contact]) }}" class="inline-flex min-h-11 items-center rounded-[var(--radius)] border border-[var(--rule)] px-5 text-xs font-bold text-[var(--ink-2)]">Keep current time</a></div>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+
                 {{-- Result Card --}}
                 <div class="card p-6 sm:p-8 border-[var(--brand-edge)] shadow-sm space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rule)] pb-6">
@@ -104,8 +132,8 @@
                                 <span class="font-mono text-sm font-extrabold text-[var(--ink)]">Ref: {{ $booking->reference }}</span>
                                 <span @class([
                                     'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--radius-pill)] border text-[10px] font-bold',
-                                    'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' => $booking->status === BookingStatus::Confirmed,
-                                    'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' => $booking->status === BookingStatus::PendingPayment,
+                                    'bg-[var(--ok-wash)] text-[var(--ok-text)] border-[var(--ok-edge)]' => $booking->status === BookingStatus::Confirmed,
+                                    'bg-[var(--warn-wash)] text-[var(--warn-text)] border-[var(--warn-edge)]' => $booking->status === BookingStatus::PendingPayment,
                                     'bg-[var(--surface)] text-[var(--ink-2)] border-[var(--rule)]' => ! in_array($booking->status, [BookingStatus::Confirmed, BookingStatus::PendingPayment], true),
                                 ])>
                                     <span class="w-1.5 h-1.5 rounded-full" aria-hidden="true"
@@ -159,14 +187,14 @@
                         </div>
                     </div>
 
-                    {{-- Escrow Vault Breakdown --}}
+                    {{-- Payment Breakdown --}}
                     <div class="p-6 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] space-y-4">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <span class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)]">
                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <span>mypage Sovereign Escrow Vault Status</span>
+                                <span>Payment Status</span>
                             </span>
-                            <span class="font-mono text-xs font-bold text-[var(--brand-text)]">Vault Token #{{ str($booking->reference)->after('-') }}</span>
+                            <span class="font-mono text-xs font-bold text-[var(--brand-text)]">Reference #{{ str($booking->reference)->after('-') }}</span>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs">
@@ -175,12 +203,12 @@
                                 <p class="t-price-sm">{{ Money::format($booking->price_kobo) }}</p>
                             </div>
                             <div>
-                                <span class="text-[var(--ink-3)] block">Retainer Held in Escrow</span>
+                                <span class="text-[var(--ink-3)] block">Deposit Paid</span>
                                 <p @class([
                                     't-price-sm',
-                                    'text-emerald-600 dark:text-emerald-400' => $deposit > 0 && $booking->status === BookingStatus::Confirmed,
+                                    'text-[var(--ok-text)]' => $deposit > 0 && $booking->status === BookingStatus::Confirmed,
                                 ])>
-                                    {{ $deposit > 0 ? Money::format($deposit).' (Locked)' : 'No deposit required' }}
+                                    {{ $deposit > 0 ? Money::format($deposit).' (Paid)' : 'No deposit required' }}
                                 </p>
                             </div>
                             <div>
@@ -191,9 +219,9 @@
 
                         <p class="text-[11px] text-[var(--ink-2)] border-t border-[var(--brand-edge)] pt-3 leading-relaxed">
                             @if ($deposit > 0)
-                                Your {{ Money::format($deposit) }} retainer is held securely in the sovereign escrow vault. It is only released to {{ $page->name }} once the appointment is completed and you approve the result.
+                                Your {{ Money::format($deposit) }} retainer was paid at booking and went straight to {{ $page->name }}. The balance is settled at the studio.
                             @else
-                                This booking carries no deposit, so there is nothing held in escrow. The full amount is settled at the studio.
+                                This booking carries no deposit. The full amount is settled at the studio.
                             @endif
                         </p>
                     </div>
@@ -216,14 +244,14 @@
                                 <a href="{{ $desk }}"
                                    target="_blank"
                                    rel="noopener noreferrer"
-                                   class="px-4 py-2.5 rounded-[var(--radius)] bg-[#25D366] text-white text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 shadow-sm">
+                                   class="px-4 py-2.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 shadow-sm">
                                     <x-ui.whatsapp-mark />
                                     <span>Studio WhatsApp Desk</span>
                                 </a>
                             @endif
                         </div>
 
-                        <a href="{{ route('storefront.book', ['slug' => $page->slug, 'booking' => $booking->reference]) }}"
+                        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug, 'booking' => $booking->reference]) }}"
                            class="text-xs text-[var(--ink-3)] hover:text-[var(--ink)] underline">
                             Need to reschedule or modify?
                         </a>

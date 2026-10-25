@@ -3,6 +3,7 @@
 namespace App\Domains\Domains\Http\Controllers;
 
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Domains\Enums\DomainStatus;
 use App\Domains\Domains\Jobs\VerifyDomainDns;
 use App\Domains\Domains\Models\DomainBinding;
@@ -27,6 +28,8 @@ use Illuminate\View\View;
  */
 class DomainBindingController extends Controller
 {
+    public function __construct(private readonly SubscriptionAvailability $availability) {}
+
     public function index(Request $request): View
     {
         $seller = $request->user();
@@ -148,6 +151,10 @@ class DomainBindingController extends Controller
 
     private function planAllows($seller): bool
     {
+        if (! $this->availability->enabled()) {
+            return true;
+        }
+
         $subscription = Subscription::with('plan')->where('seller_id', $seller->getKey())->first();
 
         return $subscription?->canWrite()

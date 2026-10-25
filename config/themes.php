@@ -21,6 +21,15 @@
 */
 
 return [
+    'presets' => [
+        'editorial-luxe' => ['label' => 'Editorial Luxe', 'description' => 'Magazine-led layouts for fashion, beauty and premium goods.', 'business_types' => ['store', 'service'], 'composition' => ['hero' => 'editorial', 'navigation' => 'editorial', 'collection' => 'editorial', 'detail' => 'editorial', 'footer' => 'editorial'], 'font_label' => 'Newsreader + Inter', 'font' => ['heading' => "'Newsreader', Georgia, serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap'],
+        'minimal-swiss' => ['label' => 'Minimal Swiss', 'description' => 'Grid-first clarity for consultants, agencies and studios.', 'business_types' => ['store', 'service'], 'composition' => ['hero' => 'structured', 'navigation' => 'minimal', 'collection' => 'structured', 'detail' => 'structured', 'footer' => 'minimal'], 'font_label' => 'Plus Jakarta Sans + Inter', 'font' => ['heading' => "'Plus Jakarta Sans', Inter, sans-serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'],
+        'brutalist-soft' => ['label' => 'Bold / Soft', 'description' => 'Oversized type and confident blocks for creative businesses and food.', 'business_types' => ['store', 'service'], 'composition' => ['hero' => 'brutalist', 'navigation' => 'brutalist', 'collection' => 'brutalist', 'detail' => 'brutalist', 'footer' => 'brutalist'], 'font_label' => 'Archivo + Inter', 'font' => ['heading' => "'Archivo', system-ui, sans-serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap'],
+        'catalog' => ['label' => 'Marketplace Catalog', 'description' => 'Fast browsing, filters and dense product discovery.', 'business_types' => ['store'], 'composition' => ['hero' => 'catalog', 'navigation' => 'catalog', 'collection' => 'catalog', 'detail' => 'catalog', 'footer' => 'catalog'], 'font_label' => 'Archivo + Inter', 'font' => ['heading' => "'Archivo', system-ui, sans-serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap'],
+        'boutique-warm' => ['label' => 'Boutique Warm', 'description' => 'Image-led, tactile and welcoming for artisans and bakeries.', 'business_types' => ['store', 'service'], 'composition' => ['hero' => 'boutique', 'navigation' => 'boutique', 'collection' => 'boutique', 'detail' => 'boutique', 'footer' => 'boutique'], 'font_label' => 'Newsreader + Inter', 'font' => ['heading' => "'Newsreader', Georgia, serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap'],
+        'tech-pro' => ['label' => 'Tech / Pro', 'description' => 'Structured trust signals for B2B and technical providers.', 'business_types' => ['store', 'service'], 'composition' => ['hero' => 'tech', 'navigation' => 'tech', 'collection' => 'tech', 'detail' => 'tech', 'footer' => 'tech'], 'font_label' => 'Plus Jakarta Sans + Inter', 'font' => ['heading' => "'Plus Jakarta Sans', Inter, sans-serif", 'body' => "'Inter', system-ui, sans-serif"], 'fonts_link' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'],
+    ],
+
     'store' => [
         'label' => 'Store',
         'view_namespace' => 'themes.store',
@@ -40,7 +49,7 @@ return [
         'pages' => [
             'home' => [
                 'label' => 'Home',
-                'blocks' => ['hero', 'featured', 'categories', 'products', 'reviews', 'about', 'contact'],
+                'blocks' => ['hero', 'featured', 'categories', 'products', 'reviews', 'about', 'faq', 'contact'],
             ],
             'about' => ['label' => 'About', 'blocks' => ['story']],
             'contact' => ['label' => 'Contact', 'blocks' => ['intro']],
@@ -113,6 +122,18 @@ return [
                 ],
             ],
 
+            'home_faq' => [
+                'label' => 'Frequently asked questions',
+                'help' => 'Answer the questions buyers ask before they place an order.',
+                'fields' => [
+                    'heading' => ['type' => 'text', 'label' => 'Heading', 'default' => 'Questions, answered'],
+                    'items' => ['type' => 'repeater', 'label' => 'Questions', 'fields' => [
+                        'question' => ['type' => 'text', 'label' => 'Question', 'required' => true],
+                        'answer' => ['type' => 'textarea', 'label' => 'Answer', 'required' => true],
+                    ]],
+                ],
+            ],
+
             'home_contact' => [
                 'label' => 'Contact',
                 'always' => true,
@@ -165,7 +186,7 @@ return [
         'pages' => [
             'home' => [
                 'label' => 'Home',
-                'blocks' => ['hero', 'services', 'team', 'booking', 'gallery', 'reviews', 'about', 'contact'],
+                'blocks' => ['hero', 'services', 'team', 'booking', 'gallery', 'reviews', 'about', 'faq', 'contact'],
             ],
             'about' => ['label' => 'About', 'blocks' => ['story']],
             'contact' => ['label' => 'Contact', 'blocks' => ['intro']],
@@ -257,6 +278,18 @@ return [
                     'heading' => ['type' => 'text', 'label' => 'Heading', 'default' => 'About us'],
                     'body' => ['type' => 'richtext', 'label' => 'Your story'],
                     'image' => ['type' => 'image', 'label' => 'Photo'],
+                ],
+            ],
+
+            'home_faq' => [
+                'label' => 'Frequently asked questions',
+                'help' => 'Answer the questions clients ask before they book.',
+                'fields' => [
+                    'heading' => ['type' => 'text', 'label' => 'Heading', 'default' => 'Before you book'],
+                    'items' => ['type' => 'repeater', 'label' => 'Questions', 'fields' => [
+                        'question' => ['type' => 'text', 'label' => 'Question', 'required' => true],
+                        'answer' => ['type' => 'textarea', 'label' => 'Answer', 'required' => true],
+                    ]],
                 ],
             ],
             'home_contact' => [

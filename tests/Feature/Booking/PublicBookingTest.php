@@ -5,8 +5,10 @@ use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Models\Booking;
 use App\Domains\Booking\Models\Service;
 use App\Domains\Booking\Models\WorkingHour;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Support\Carbon;
 
 use function Pest\Laravel\get;
@@ -49,6 +51,9 @@ function bookablePage(string $date): array
         'price_kobo' => 1500000,
     ]);
 
+    // Deposits are paid into the seller's own gateway account.
+    SellerGateway::factory()->for($seller)->create();
+
     return [$service, $page];
 }
 
@@ -63,7 +68,7 @@ function openDate(): string
 it('serves the slot list for a day', function () {
     [$service, $page] = bookablePage('x');
 
-    $response = get("/{$page->slug}/availability?service={$service->id}&date=".openDate())
+    $response = get(storeUrl($page->slug, "/availability?service={$service->id}&date=").openDate())
         ->assertOk()
         ->assertJsonStructure(['slots' => [['starts_at', 'label']]]);
 
@@ -86,7 +91,7 @@ it('drops a taken slot from the list', function () {
         'ends_at' => Carbon::parse($date.' 12:00', 'Africa/Lagos')->utc(),
     ]);
 
-    $labels = collect(get("/{$page->slug}/availability?service={$service->id}&date={$date}")->json('slots'))
+    $labels = collect(get(storeUrl($page->slug, "/availability?service={$service->id}&date={$date}"))->json('slots'))
         ->pluck('label')
         ->all();
 
@@ -104,7 +109,7 @@ it('refuses to list another store\'s service', function () {
         ])->id,
     ]);
 
-    get("/{$page->slug}/availability?service={$foreign->id}&date=".openDate())->assertNotFound();
+    get(storeUrl($page->slug, "/availability?service={$foreign->id}&date=").openDate())->assertNotFound();
 });
 
 it('books a genuinely free slot and shows the confirmation', function () {
@@ -114,7 +119,7 @@ it('books a genuinely free slot and shows the confirmation', function () {
     // Nothing owed means no payment step at all.
     $service->update(['price_kobo' => 0]);
 
-    post("/{$page->slug}/book", [
+    post(storeUrl($page->slug, '/book'), [
         'service' => $service->id,
         'starts_at' => Carbon::parse($date.' 11:00', 'Africa/Lagos')->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -126,7 +131,7 @@ it('books a genuinely free slot and shows the confirmation', function () {
     expect($booking->status)->toBe(BookingStatus::Confirmed)
         ->and($booking->customer_name)->toBe('Ada Buyer');
 
-    get("/{$page->slug}/book/confirmation?booking={$booking->reference}")
+    get(storeUrl($page->slug, "/book/confirmation?booking={$booking->reference}"))
         ->assertOk()
         ->assertSee('Braid consultation')
         ->assertSee($booking->reference);
@@ -145,7 +150,7 @@ it('sends a booking with no deposit but a real price to payment', function () {
     ]);
     fakePaystack();
 
-    post("/{$page->slug}/book", [
+    post(storeUrl($page->slug, '/book'), [
         'service' => $service->id,
         'starts_at' => Carbon::parse($date.' 11:00', 'Africa/Lagos')->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -177,7 +182,7 @@ it('sends a deposit booking to payment instead of confirming it', function () {
     ]);
     fakePaystack();
 
-    post("/{$page->slug}/book", [
+    post(storeUrl($page->slug, '/book'), [
         'service' => $service->id,
         'starts_at' => Carbon::parse($date.' 11:00', 'Africa/Lagos')->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -202,7 +207,7 @@ it('refuses a slot that was taken while the form was open', function () {
         'ends_at' => Carbon::parse($date.' 12:00', 'Africa/Lagos')->utc(),
     ]);
 
-    post("/{$page->slug}/book", [
+    post(storeUrl($page->slug, '/book'), [
         'service' => $service->id,
         'starts_at' => Carbon::parse($date.' 11:00', 'Africa/Lagos')->toIso8601String(),
         'name' => 'Ada Buyer',
@@ -215,8 +220,8 @@ it('refuses a slot that was taken while the form was open', function () {
 it('never serves the booking pages to a store seller', function () {
     [$seller, $page] = sellerWithPage(['theme' => 'store', 'status' => 'published']);
 
-    get("/{$page->slug}/book")->assertNotFound();
-    get("/{$page->slug}/availability?service=1&date=".openDate())->assertNotFound();
+    get(storeUrl($page->slug, '/book'))->assertNotFound();
+    get(storeUrl($page->slug, '/availability?service=1&date=').openDate())->assertNotFound();
 });
 
 it('shows an honest empty state when the seller has no services', function () {
@@ -228,7 +233,7 @@ it('shows an honest empty state when the seller has no services', function () {
     ]);
 
     // No services at all: the widget must not pretend a form will work.
-    get("/{$page->slug}/book")
+    get(storeUrl($page->slug, '/book'))
         ->assertOk()
         ->assertSee('Bookings open soon');
 });
@@ -236,12 +241,12 @@ it('shows an honest empty state when the seller has no services', function () {
 it('renders the booking widget with the real service list', function () {
     [$service, $page] = bookablePage('x');
 
-    $html = get("/{$page->slug}/book")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/book'))->assertOk()->getContent();
 
     expect($html)
         ->toContain('Braid consultation')
         // The form posts here; the widget posts nowhere else.
-        ->toContain(route('storefront.booking.store', ['slug' => $page->slug]))
+        ->toContain(StoreUrl::path('storefront.booking.store', ['slug' => $page->slug]))
         ->toContain('Book this time')
         // The slot list is fetched, so the URL appears inside the Alpine setup
         // rather than as plain markup.

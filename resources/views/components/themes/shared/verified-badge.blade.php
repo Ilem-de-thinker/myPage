@@ -8,7 +8,8 @@
      * The badge is looked up per page render rather than cached, because it changes
      * rarely and a stale tick on someone's storefront is worse than one extra query.
      */
-    $isVerified = BadgeApplication::where('store_page_id', $page->getKey())
+    $isVerified = $page->verified_at !== null
+        && BadgeApplication::where('store_page_id', $page->getKey())
         ->where('status', BadgeStatus::Approved->value)
         ->exists();
 
@@ -30,5 +31,15 @@
       <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 111.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clip-rule="evenodd"/>
     </svg>
     Verified
+  </span>
+@else
+  <span
+    class="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-[var(--warn-edge)] bg-[var(--warn-wash)] px-2.5 py-1 text-[11px] font-semibold text-[var(--warn-text)]"
+    title="This business has not been verified by mypage.ng"
+  >
+    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M9.4 2.4a.7.7 0 011.2 0l7.1 12.3a.7.7 0 01-.6 1.1H2.9a.7.7 0 01-.6-1.1L9.4 2.4zM10 7a.8.8 0 01.8.8v3.1a.8.8 0 11-1.6 0V7.8A.8.8 0 0110 7zm0 6.2a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+    </svg>
+    Not verified by mypage.ng
   </span>
 @endif

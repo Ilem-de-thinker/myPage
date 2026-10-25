@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -81,12 +82,19 @@ class GenerateSitemap extends Command
         ]];
 
         if (config('mypage.features.directory')) {
-            $urls[] = [
-                'loc' => $this->absolute(route('directory.index')),
-                'lastmod' => now()->toAtomString(),
-                'changefreq' => 'daily',
-                'priority' => '0.8',
-            ];
+            foreach ([
+                ['route' => 'directory.index', 'priority' => '0.8'],
+                ['route' => 'directory.stores', 'priority' => '0.7'],
+                ['route' => 'directory.products', 'priority' => '0.7'],
+                ['route' => 'directory.services', 'priority' => '0.7'],
+            ] as $directoryPage) {
+                $urls[] = [
+                    'loc' => $this->absolute(route($directoryPage['route'])),
+                    'lastmod' => now()->toAtomString(),
+                    'changefreq' => 'daily',
+                    'priority' => $directoryPage['priority'],
+                ];
+            }
         }
 
         /*
@@ -117,13 +125,23 @@ class GenerateSitemap extends Command
             ->chunkById(500, function ($pages) use (&$urls): void {
                 foreach ($pages as $page) {
                     $urls[] = [
-                        'loc' => $this->absolute(route('storefront.show', ['slug' => $page->slug])),
+                        'loc' => StoreUrl::home($page),
                         'lastmod' => ($page->updated_at ?? now())->toAtomString(),
                         'changefreq' => 'weekly',
                         // A verified page has been through a human check, so it
                         // is worth more than an unclaimed one of equal recency.
                         'priority' => $page->verified_at ? '0.8' : '0.6',
                     ];
+
+                    if (config('mypage.features.directory') && $page->is_directory_opted_in) {
+                        $page->loadMissing(['products', 'services']);
+                        foreach ($page->products->where('status', 'active')->where('is_directory_listed', true) as $product) {
+                            $urls[] = ['loc' => StoreUrl::absolute($page, 'storefront.product', ['productSlug' => $product->slug]), 'lastmod' => ($product->updated_at ?? now())->toAtomString(), 'changefreq' => 'weekly', 'priority' => '0.5'];
+                        }
+                        foreach ($page->services->where('is_active', true)->where('is_directory_listed', true) as $service) {
+                            $urls[] = ['loc' => StoreUrl::absolute($page, 'storefront.service', ['serviceSlug' => $service->slug]), 'lastmod' => ($service->updated_at ?? now())->toAtomString(), 'changefreq' => 'weekly', 'priority' => '0.5'];
+                        }
+                    }
                 }
             });
 

@@ -4,6 +4,7 @@ namespace App\Domains\Orders\Notifications;
 
 use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Models\Order;
+use App\Shared\Mail\TransactionalMailMessage;
 use App\Shared\Support\Money;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,7 +30,7 @@ class NewOrderNotification extends Notification
         $order = $this->order;
         $buyer = $order->customer_name ?: 'A buyer';
 
-        $message = (new MailMessage)
+        $message = (new TransactionalMailMessage)
             ->subject("New {$order->source->shortLabel()} order {$order->reference} — ".Money::format($order->total_kobo))
             ->greeting("New order from {$buyer}")
             ->line(
@@ -44,6 +45,6 @@ class NewOrderNotification extends Notification
             $message->line("Phone: {$order->customer_phone}");
         }
 
-        return $message;
+        return $message->platformFooter();
     }
 }

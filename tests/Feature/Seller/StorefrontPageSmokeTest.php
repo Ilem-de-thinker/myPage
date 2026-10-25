@@ -6,6 +6,7 @@ use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -65,7 +66,7 @@ function servicePage(): StorePage
 it('renders every store page with content on it', function (string $path, string $expected) {
     $page = storePage();
 
-    get($path === '' ? "/{$page->slug}" : "/{$page->slug}{$path}")
+    get($path === '' ? storeUrl($page->slug, '') : storeUrl($page->slug, "{$path}"))
         ->assertOk()
         ->assertSee($expected);
 })->with([
@@ -73,7 +74,7 @@ it('renders every store page with content on it', function (string $path, string
     'about' => ['/about', 'Smoke Store'],
     'contact' => ['/contact', 'Contact'],
     'products' => ['/products', 'Smoke Product'],
-    'cart' => ['/cart', 'Order Bag & Escrow Receipt'],
+    'cart' => ['/cart', 'Order Bag & Checkout'],
     'checkout' => ['/checkout', 'Checkout'],
     'track order' => ['/track-order', 'Track your order'],
 ]);
@@ -81,7 +82,7 @@ it('renders every store page with content on it', function (string $path, string
 it('renders every service page with content on it', function (string $path, string $expected) {
     $page = servicePage();
 
-    get("/{$page->slug}{$path}")
+    get(storeUrl($page->slug, $path))
         ->assertOk()
         ->assertSee($expected);
 })->with([
@@ -108,8 +109,8 @@ it('never leaks a Blade comment into the rendered page', function () {
         ->toStartWith('{{--')
         ->toContain('--}}');
 
-    expect(get('/'.storePage()->slug.'/contact')->assertOk()->getContent())->not->toContain('{{--');
-    expect(get('/'.servicePage()->slug.'/contact')->assertOk()->getContent())->not->toContain('{{--');
+    expect(get(storeUrl(storePage()->slug, '/contact'))->assertOk()->getContent())->not->toContain('{{--');
+    expect(get(storeUrl(servicePage()->slug, '/contact'))->assertOk()->getContent())->not->toContain('{{--');
 });
 
 it('renders a service detail page even when the seller wrote no introduction', function () {
@@ -117,7 +118,7 @@ it('renders a service detail page even when the seller wrote no introduction', f
 
     $page->blocks()->where('page', 'service-show')->delete();
 
-    $html = get("/{$page->slug}/services/smoke-service-item")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/services/smoke-service-item'))->assertOk()->getContent();
 
     expect($html)
         ->toContain('Smoke Service')
@@ -130,7 +131,7 @@ it('renders the services listing even when the seller wrote no introduction', fu
 
     $page->blocks()->where('page', 'services')->delete();
 
-    get("/{$page->slug}/services")
+    get(storeUrl($page->slug, '/services'))
         ->assertOk()
         ->assertSee('Smoke Service');
 });
@@ -140,7 +141,7 @@ it('renders the service home even when every block is empty', function () {
 
     $page->blocks()->delete();
 
-    get("/{$page->slug}")
+    get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('Smoke Service');
 });
@@ -153,11 +154,11 @@ it('shows an empty service list rather than an error when there is nothing to bo
         'slug' => 'smoke-empty-service',
     ]);
 
-    get("/{$page->slug}/services")
+    get(storeUrl($page->slug, '/services'))
         ->assertOk()
         ->assertSee('has not listed any services yet');
 
-    get("/{$page->slug}/book")
+    get(storeUrl($page->slug, '/book'))
         ->assertOk()
         ->assertSee('Bookings open soon.');
 });
@@ -167,11 +168,11 @@ it('hides an inactive service from the listing and from its own page', function 
 
     Service::withoutGlobalScopes()->where('store_page_id', $page->id)->update(['is_active' => false]);
 
-    get("/{$page->slug}/services")
+    get(storeUrl($page->slug, '/services'))
         ->assertOk()
         ->assertDontSee('Smoke Service');
 
-    get("/{$page->slug}/services/smoke-service-item")
+    get(storeUrl($page->slug, '/services/smoke-service-item'))
         ->assertNotFound();
 });
 
@@ -182,7 +183,7 @@ it('renders the store home from its blocks in theme order', function () {
     $page->blocks()->where('key', 'hero')->update(['content' => ['headline' => 'FIRSTWORDHERO']]);
     $page->blocks()->where('key', 'about')->update(['content' => ['body' => 'LASTWORDABOUT']]);
 
-    $html = get("/{$page->slug}")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
     // The hero comes before the about block because the theme says so, not
     // because of anything the seller typed.
@@ -201,7 +202,7 @@ it('shows the uploaded logo and cover photo on the public page', function () {
         'cover_path' => UploadedFile::fake()->image('cover.jpg')->store('storefront/cover', 'public'),
     ]);
 
-    $html = get("/{$page->slug}")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
     expect($html)
         ->toContain(Storage::disk('public')->url($page->logo_path))
@@ -212,7 +213,7 @@ it('uses the brand colour the seller chose', function () {
     $page = storePage();
     $page->update(['brand_color' => '#7c3aed']);
 
-    get("/{$page->slug}")
+    get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('--brand: #7c3aed', escape: false);
 });
@@ -224,13 +225,13 @@ it('shows the catalogue blocks on a store with products and hides them on one wi
     $page->blocks()->where('key', 'products')->update(['content' => []]);
     $page->blocks()->where('key', 'categories')->update(['content' => []]);
 
-    get("/{$page->slug}")
+    get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('Smoke Product');
 
     Product::withoutGlobalScopes()->where('store_page_id', $page->id)->delete();
 
-    $html = get("/{$page->slug}")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
     // Nothing left to list, so the block renders nothing rather than an empty grid.
     expect($html)->not->toContain('Smoke Product');
@@ -244,19 +245,19 @@ describe('service home blocks', function () {
     it('lists the services a customer can book', function () {
         $page = servicePage();
 
-        $html = get("/{$page->slug}")->assertOk()->getContent();
+        $html = get(storeUrl($page->slug, ''))->assertOk()->getContent();
 
         expect($html)
             ->toContain('Smoke Service')
-            ->toContain(route('storefront.service', ['slug' => $page->slug, 'serviceSlug' => 'smoke-service-item']))
-            ->toContain(route('storefront.services', ['slug' => $page->slug]));
+            ->toContain(StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => 'smoke-service-item']))
+            ->toContain(StoreUrl::path('storefront.services', ['slug' => $page->slug]));
     });
 
     it('hides the services block when there is nothing bookable', function () {
         $page = servicePage();
         Service::withoutGlobalScopes()->where('store_page_id', $page->id)->delete();
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertDontSee('See every service');
     });
@@ -271,7 +272,7 @@ describe('service home blocks', function () {
             'is_active' => true,
         ]);
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertSee('Smoke Stylist');
     });
@@ -286,7 +287,7 @@ describe('service home blocks', function () {
             'is_active' => false,
         ]);
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertDontSee('Paused Stylist');
     });
@@ -296,7 +297,7 @@ describe('service home blocks', function () {
 
         $page = servicePage();
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertDontSee('smoke-service-item.jpg');
 
@@ -306,7 +307,7 @@ describe('service home blocks', function () {
             ->where('store_page_id', $page->id)
             ->update(['image_path' => $path]);
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertSee(Storage::disk('public')->url($path));
     });
@@ -317,22 +318,22 @@ describe('service home blocks', function () {
         // The home page offers a way in. It does not open with a booking panel:
         // that tells a visitor who just arrived what to do instead of showing
         // them the business.
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertSee('See available times')
-            ->assertSee(route('storefront.book', ['slug' => $page->slug]))
+            ->assertSee(StoreUrl::path('storefront.book', ['slug' => $page->slug]))
             ->assertDontSee('name="starts_at"', escape: false);
 
         // The choice is made on the service page, so the times are there too.
-        get("/{$page->slug}/services/smoke-service-item")
+        get(storeUrl($page->slug, '/services/smoke-service-item'))
             ->assertOk()
-            ->assertSee('action="'.route('storefront.booking.store', ['slug' => $page->slug]).'"', escape: false)
+            ->assertSee('action="'.StoreUrl::path('storefront.booking.store', ['slug' => $page->slug]).'"', escape: false)
             ->assertSee('name="starts_at"', escape: false);
 
         Service::withoutGlobalScopes()->where('store_page_id', $page->id)->delete();
 
         // Nothing bookable, nothing rendered: no form that cannot submit.
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
             ->assertDontSee('See available times')
             ->assertDontSee('name="starts_at"', escape: false);
@@ -341,10 +342,10 @@ describe('service home blocks', function () {
     it('sends the hero call to action at the booking page, not the product list', function () {
         $page = servicePage();
 
-        get("/{$page->slug}")
+        get(storeUrl($page->slug, ''))
             ->assertOk()
-            ->assertSee(route('storefront.book', ['slug' => $page->slug]))
-            ->assertDontSee(route('storefront.products', ['slug' => $page->slug]));
+            ->assertSee(StoreUrl::path('storefront.book', ['slug' => $page->slug]))
+            ->assertDontSee(StoreUrl::path('storefront.products', ['slug' => $page->slug]));
     });
 });
 
@@ -372,7 +373,7 @@ it('renders the home page with a populated catalogue', function () {
         'status' => 'active',
     ]);
 
-    get("/{$page->slug}")
+    get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('Populated Shelf');
 });

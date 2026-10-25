@@ -1,0 +1,243 @@
+/**
+ * MyPage.ng — Platform Design Tokens
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Art direction: Nigerian editorial desk. Warm paper, deep ink, one confident
+ * terracotta accent and one supporting forest tone. Light-first, cinematic,
+ * built for trust and discovery — never marketplace checkout.
+ *
+ * This is the ONLY file that declares platform colour, type, spacing, radius,
+ * shadow and motion values. Components consume the custom properties; they do
+ * not hard-code brand colours.
+ *
+ * Contrast: body copy and links meet WCAG AA (4.5:1) on paper, surface and
+ * card. `--platform-ink-faint` is decorative/meta only and is never used for
+ * long text. Dark mode mirrors the same semantic roles.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Surfaces ───────────────────────────────────────────────────────────── */
+  --platform-paper: #f7f3ea;
+  --platform-paper-subtle: #f1ebdd;
+  --platform-surface: #eae2d2;
+  --platform-surface-hover: #e2d8c5;
+  --platform-card: #fffdf8;
+  --platform-card-elevated: #ffffff;
+  --platform-glass: rgba(247, 243, 234, 0.86);
+  --platform-ink-glass: rgba(20, 25, 21, 0.72);
+
+  /* ── Inks ───────────────────────────────────────────────────────────────── */
+  --platform-ink: #141915;
+  --platform-ink-subtle: #2a332c;
+  --platform-ink-muted: #566258;
+  --platform-ink-faint: #7c887e;
+  --platform-ink-invert: #fbf8f1;
+
+  /* ── One bold accent + one supporting tone ──────────────────────────────── */
+  --platform-accent: #b94a24;          /* terracotta — action, emphasis */
+  --platform-accent-hover: #9c3c1b;
+  --platform-accent-wash: #f8e8de;
+  --platform-accent-wash-strong: #f2d5c4;
+  --platform-accent-border: #e7bda8;
+
+  --platform-support: #1f513c;         /* forest — trust, verification */
+  --platform-support-hover: #173e2e;
+  --platform-support-wash: #e8f0e9;
+  --platform-support-wash-strong: #d6e6da;
+  --platform-support-border: #b7cfbf;
+
+  /* ── Lines & focus ──────────────────────────────────────────────────────── */
+  --platform-line: #e2dacb;
+  --platform-line-strong: #cdc2ad;
+  --platform-line-invert: rgba(251, 248, 241, 0.18);
+  --platform-focus: #1f513c;
+  --platform-focus-offset: #f7f3ea;
+
+  /* ── Type ───────────────────────────────────────────────────────────────── */
+  --platform-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --platform-text: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --platform-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  --platform-tracking-display: -0.055em;
+  --platform-tracking-tight: -0.032em;
+  --platform-tracking-normal: -0.01em;
+  --platform-tracking-kicker: 0.16em;
+
+  /* Fluid type scale, 360px → 1440px. */
+  --platform-text-2xs: 0.6875rem;
+  --platform-text-xs: 0.75rem;
+  --platform-text-sm: 0.875rem;
+  --platform-text-base: 1rem;
+  --platform-text-lg: clamp(1.0625rem, 0.98rem + 0.35vw, 1.1875rem);
+  --platform-text-xl: clamp(1.25rem, 1.12rem + 0.55vw, 1.5rem);
+  --platform-text-2xl: clamp(1.5rem, 1.28rem + 0.95vw, 2rem);
+  --platform-text-3xl: clamp(1.875rem, 1.5rem + 1.7vw, 2.75rem);
+  --platform-text-4xl: clamp(2.25rem, 1.65rem + 2.7vw, 3.75rem);
+  --platform-text-5xl: clamp(2.75rem, 1.8rem + 4.3vw, 5.25rem);
+  --platform-text-display: clamp(3rem, 1.75rem + 5.6vw, 6.75rem);
+
+  --platform-leading-display: 0.9;
+  --platform-leading-tight: 1.08;
+  --platform-leading-body: 1.65;
+
+  /* ── Spacing rhythm (4px base) ──────────────────────────────────────────── */
+  --platform-space-1: 0.25rem;
+  --platform-space-2: 0.5rem;
+  --platform-space-3: 0.75rem;
+  --platform-space-4: 1rem;
+  --platform-space-5: 1.25rem;
+  --platform-space-6: 1.5rem;
+  --platform-space-8: 2rem;
+  --platform-space-10: 2.5rem;
+  --platform-space-12: 3rem;
+  --platform-space-16: 4rem;
+  --platform-space-20: 5rem;
+  --platform-space-24: 6rem;
+  --platform-space-32: 8rem;
+
+  --platform-gutter: clamp(1rem, 0.55rem + 1.8vw, 2rem);
+  --platform-container: 82rem;
+  --platform-container-narrow: 46rem;
+  --platform-section-y: clamp(4.5rem, 3rem + 5vw, 8rem);
+
+  /* ── Radius ─────────────────────────────────────────────────────────────── */
+  --platform-radius-xs: 0.375rem;
+  --platform-radius-sm: 0.625rem;
+  --platform-radius-md: 0.875rem;
+  --platform-radius-lg: 1.25rem;
+  --platform-radius-xl: 1.75rem;
+  --platform-radius-2xl: 2.5rem;
+  --platform-radius-pill: 9999px;
+
+  /* ── Shadows: layered, soft, believable ─────────────────────────────────── */
+  --platform-shadow-xs: 0 1px 2px rgba(20, 25, 21, 0.04);
+  --platform-shadow-sm: 0 2px 5px rgba(20, 25, 21, 0.05), 0 1px 2px rgba(20, 25, 21, 0.03);
+  --platform-shadow-md: 0 10px 28px -10px rgba(20, 25, 21, 0.12), 0 3px 8px -3px rgba(20, 25, 21, 0.05);
+  --platform-shadow-lg: 0 24px 54px -18px rgba(20, 25, 21, 0.18), 0 6px 16px -6px rgba(20, 25, 21, 0.06);
+  --platform-shadow-xl: 0 40px 90px -28px rgba(20, 25, 21, 0.24), 0 12px 28px -8px rgba(20, 25, 21, 0.08);
+  --platform-shadow-accent: 0 24px 52px -22px rgba(185, 74, 36, 0.35);
+  --platform-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  /* ── Motion: calm, natural curves. No linear, no cartoon bounce. ─────────── */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ease-sharp: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --duration-instant: 120ms;
+  --duration-fast: 220ms;
+  --duration-normal: 360ms;
+  --duration-slow: 560ms;
+  --duration-deliberate: 760ms;
+  --duration-cinematic: 1200ms;
+
+  --motion-reveal-distance: 1.5rem;
+  --motion-stagger-step: 70ms;
+  --motion-parallax-limit: 0.08;
+
+  /* ── Safe areas ─────────────────────────────────────────────────────────── */
+  --platform-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --platform-safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Dark surfaces (platform only; merchant storefronts own their palette) ── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --platform-paper: #0d1210;
+  --platform-paper-subtle: #121a16;
+  --platform-surface: #17211c;
+  --platform-surface-hover: #1e2a23;
+  --platform-card: #141d18;
+  --platform-card-elevated: #18241d;
+  --platform-glass: rgba(13, 18, 16, 0.88);
+  --platform-ink-glass: rgba(13, 18, 16, 0.78);
+
+  --platform-ink: #f4f0e6;
+  --platform-ink-subtle: #ddd8ca;
+  --platform-ink-muted: #a6b2a8;
+  --platform-ink-faint: #7c8a80;
+  --platform-ink-invert: #111713;
+
+  --platform-accent: #e58a5c;
+  --platform-accent-hover: #f0a077;
+  --platform-accent-wash: #2b1911;
+  --platform-accent-wash-strong: #3a2116;
+  --platform-accent-border: #5c3220;
+
+  --platform-support: #5cbb90;
+  --platform-support-hover: #75cda5;
+  --platform-support-wash: #10261c;
+  --platform-support-wash-strong: #143326;
+  --platform-support-border: #24503c;
+
+  --platform-line: #243029;
+  --platform-line-strong: #35443a;
+  --platform-focus: #5cbb90;
+  --platform-focus-offset: #0d1210;
+
+  --platform-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --platform-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --platform-shadow-md: 0 12px 30px -10px rgba(0, 0, 0, 0.55);
+  --platform-shadow-lg: 0 28px 60px -20px rgba(0, 0, 0, 0.7);
+  --platform-shadow-xl: 0 44px 96px -30px rgba(0, 0, 0, 0.8);
+  --platform-shadow-accent: 0 24px 52px -22px rgba(229, 138, 92, 0.28);
+  --platform-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/*
+ * Compatibility aliases.
+ *
+ * They are scoped to the platform shell so they cannot overwrite a merchant's
+ * own `--brand` / `--paper` tokens (ThemeTokens) or the dashboard vocabulary.
+ */
+body[data-platform-shell] {
+  --paper: var(--platform-paper);
+  --paper-subtle: var(--platform-paper-subtle);
+  --surface: var(--platform-surface);
+  --surface-hover: var(--platform-surface-hover);
+  --card: var(--platform-card);
+  --card-elevated: var(--platform-card-elevated);
+  --ink: var(--platform-ink);
+  --ink-2: var(--platform-ink-muted);
+  --ink-3: var(--platform-ink-faint);
+  --rule: var(--platform-line);
+  --rule-strong: var(--platform-line-strong);
+  --tint: var(--platform-surface);
+
+  --brand: var(--platform-support);
+  --brand-hover: var(--platform-support-hover);
+  --brand-ink: var(--platform-ink-invert);
+  --brand-text: var(--platform-support);
+  --brand-wash: var(--platform-support-wash);
+  --brand-wash-2: var(--platform-support-wash-strong);
+  --brand-edge: var(--platform-support-border);
+
+  /* Public platform naming used by the landing and directory views. */
+  --platform-brand: var(--platform-support);
+  --platform-brand-hover: var(--platform-support-hover);
+  --platform-brand-ink: var(--platform-ink-invert);
+  --platform-brand-text: var(--platform-support);
+  --platform-brand-wash: var(--platform-support-wash);
+  --platform-brand-wash-2: var(--platform-support-wash-strong);
+  --platform-brand-border: var(--platform-support-border);
+  --accent: var(--platform-accent);
+  --accent-text: var(--platform-accent);
+  --accent-wash: var(--platform-accent-wash);
+
+  --focus-ring: var(--platform-focus);
+  --shadow-rest: var(--platform-shadow-sm);
+  --shadow-lift: var(--platform-shadow-lg);
+  --glow: var(--platform-shadow-accent);
+
+  --radius: var(--platform-radius-md);
+  --radius-sm: var(--platform-radius-sm);
+  --radius-lg: var(--platform-radius-xl);
+  --radius-pill: var(--platform-radius-pill);
+
+  --font-heading: var(--platform-display);
+  --font-body: var(--platform-text);
+  --font-body-stack: var(--platform-text);
+}

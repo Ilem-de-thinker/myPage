@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Confirms a subscription payment.
  *
- * Deliberately NOT the order path: ConfirmTransaction settles a sale by crediting
- * the seller's wallet. A subscription is the seller paying us, so running it
- * through the sale ledger would credit them with their own money.
+ * Deliberately NOT the order path: ConfirmTransaction confirms a sale that was
+ * paid into the seller's own gateway account. A subscription is the seller
+ * paying us, and its money never reaches the seller's account.
  */
 class ConfirmSubscriptionPayment
 {

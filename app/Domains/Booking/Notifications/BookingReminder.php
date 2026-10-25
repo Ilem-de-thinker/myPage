@@ -3,6 +3,7 @@
 namespace App\Domains\Booking\Notifications;
 
 use App\Domains\Booking\Models\Booking;
+use App\Shared\Mail\TransactionalMailMessage;
 use App\Shared\Support\Money;
 use App\Shared\Support\PhoneNumber;
 use App\Shared\Support\WhatsApp;
@@ -44,7 +45,7 @@ class BookingReminder extends Notification
             default => 'Soon',
         };
 
-        return (new MailMessage)
+        return (new TransactionalMailMessage)
             ->subject("{$lead}: {$booking->service?->name} at {$booking->storePage?->name}")
             ->greeting($booking->customer_name ? "Hello {$booking->customer_name}," : 'Hello,')
             ->line("{$lead} you have {$booking->service?->name} with {$booking->storePage?->name}.")
@@ -67,7 +68,8 @@ class BookingReminder extends Notification
                 fn (MailMessage $message) => $message->line(
                     'Need to change it? Reply to this email or call '.$booking->storePage?->name.'.'
                 ),
-            );
+            )
+            ->platformFooter();
     }
 
     /**

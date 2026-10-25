@@ -8,60 +8,32 @@
     <div class="mb-8">
       <nav aria-label="Breadcrumb" class="mb-2">
         <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-          <li><a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
+          <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
           <li aria-hidden="true">/</li>
-          <li><a href="{{ route('storefront.cart', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Bag</a></li>
+          <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.cart', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Bag</a></li>
           <li aria-hidden="true">/</li>
           <li class="text-[var(--ink)] font-semibold" aria-current="page">Checkout</li>
         </ol>
       </nav>
 
-      <h1 class="t-display-2 text-[var(--ink)]">Secure Escrow Checkout</h1>
+      <h1 class="t-display-2 text-[var(--ink)]">Secure Checkout</h1>
       <p class="t-body text-xs text-[var(--ink-2)] mt-1">
-        Buyers never need an account. Your payment is held in escrow until dispatch is verified.
+        Buyers never need an account. Your payment goes straight to {{ $page->name }} through their own payment account.
       </p>
+      @if (! $page->verified_at)
+        <div class="mt-4 flex gap-3 rounded-[var(--radius)] border border-[var(--warn-edge)] bg-[var(--warn-wash)] p-4 text-xs text-[var(--warn-text)]" role="alert">
+          <span class="font-bold" aria-hidden="true">!</span>
+          <p><strong>{{ $page->name }} is not verified by mypage.ng.</strong> Your payment goes directly to this seller, not to mypage.ng, and the platform cannot vouch for the transaction.</p>
+        </div>
+      @endif
     </div>
 
-    <div x-data="{
-           submitting: false,
-           captured: false,
-           /**
-            * Fire once the buyer has given us a way to reach them and then looked
-            * away. Without this the seller never learns the cart existed.
-            */
-           async capture() {
-             if (this.captured) return;
-             const email = document.getElementById('email')?.value?.trim();
-             const phone = document.getElementById('phone')?.value?.trim();
-             if (!email && !phone) return;
-             if (this.$store.cart.items.length === 0) return;
-
-             try {
-               await fetch(@js(route('storefront.checkout.capture', ['slug' => $page->slug])), {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/json',
-                   'Accept': 'application/json',
-                   'X-CSRF-TOKEN': @js(csrf_token()),
-                 },
-                 body: JSON.stringify({
-                   email: email || null,
-                   phone: phone || null,
-                   name: document.getElementById('name')?.value?.trim() || null,
-                   items: this.$store.cart.items.map(i => ({ id: i.id, variant_id: i.variant_id ?? null, qty: i.qty })),
-                 }),
-               });
-               this.captured = true;
-             } catch (error) {
-               // Never block checkout on a best-effort capture.
-             }
-           },
-         }">
+    <div x-data="storeCheckout(@jsExpr(['captureUrl' => \App\Shared\Support\StoreUrl::path('storefront.checkout.capture', ['slug' => $page->slug]), 'csrf' => csrf_token()]))">
 
       <template x-if="$store.cart.items.length === 0">
         <div class="py-20 text-center">
           <p class="t-title">Your cart is empty, so there is nothing to check out.</p>
-          <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
              class="mt-6 inline-flex min-h-12 items-center justify-center rounded-[var(--radius)] px-7 text-[15px] font-bold"
              style="background: var(--brand); color: var(--brand-ink)">Shop the collection</a>
         </div>
@@ -78,8 +50,8 @@
               @csrf
 
               @if ($errors->any())
-                <div role="alert" class="rounded-[var(--radius)] border border-[#f3c0bd] bg-[#fef3f2] p-4">
-                  <ul class="t-body space-y-1" style="color: #912018">
+                <div role="alert" class="rounded-[var(--radius)] border border-[var(--danger-edge)] bg-[var(--danger-wash)] p-4">
+                  <ul class="t-body space-y-1" style="color: var(--danger-text)">
                     @foreach ($errors->all() as $error)
                       <li>{{ $error }}</li>
                     @endforeach
@@ -95,7 +67,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label for="name" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
-                      Recipient Full Name <span class="text-red-500" aria-hidden="true">*</span>
+                      Recipient Full Name <span class="text-[var(--danger-text)]" aria-hidden="true">*</span>
                     </label>
                     <input type="text"
                            id="name"
@@ -107,7 +79,7 @@
 
                   <div>
                     <label for="phone" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
-                      WhatsApp Phone Number <span class="text-red-500" aria-hidden="true">*</span>
+                      WhatsApp Phone Number <span class="text-[var(--danger-text)]" aria-hidden="true">*</span>
                     </label>
                     <div class="relative flex items-center">
                       <span class="absolute left-3 text-xs font-bold text-[var(--ink-3)] select-none">+234</span>
@@ -179,7 +151,7 @@
             <div class="lg:sticky lg:top-24 bg-[var(--card)] p-6 rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-[var(--shadow-rest)]">
               <div class="pb-4 border-b border-[var(--rule)] mb-4 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-[var(--ink)]">Order Summary</h2>
-                <a href="{{ route('storefront.cart', ['slug' => $page->slug]) }}" class="text-xs text-[var(--brand-text)] font-bold hover:underline">
+                <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.cart', ['slug' => $page->slug]) }}" class="text-xs text-[var(--brand-text)] font-bold hover:underline">
                   Edit bag
                 </a>
               </div>
@@ -205,7 +177,7 @@
                   <span class="font-medium text-[var(--ink)] tabular-nums" x-text="'₦' + ($store.cart.totalKobo / 100).toLocaleString()"></span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-[var(--ink-2)]">Escrow Buyer Protection</span>
+                  <span class="text-[var(--ink-2)]">Processing Fee</span>
                   <span class="font-bold text-[var(--brand-text)]">₦0 (Included)</span>
                 </div>
                 <div class="flex items-center justify-between pt-3 border-t border-[var(--rule)]">
@@ -217,16 +189,16 @@
               <div class="mt-6 p-4 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] text-xs text-[var(--brand-text)]">
                 <div class="flex items-center gap-2 font-bold mb-1">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  <span>mypage Sovereign Escrow Vault</span>
+                  <span>Paystack / Flutterwave</span>
                 </div>
                 <p class="text-[11px] leading-relaxed text-[var(--ink-2)]">
-                  Your payment is not transferred to the merchant until you have received and accepted the order.
+                  Payment is collected by {{ $page->name }}'s own gateway account. mypage.ng does not receive or hold your money.
                 </p>
               </div>
 
               <p class="text-[11px] text-[var(--ink-3)] leading-relaxed mt-4">
                 Prices are confirmed by {{ $page->name }} when your payment completes. You will be able to
-                pay by card, bank transfer or USSD on the next screen.
+                pay through the seller's gateway on the next screen.
               </p>
             </div>
           </div>

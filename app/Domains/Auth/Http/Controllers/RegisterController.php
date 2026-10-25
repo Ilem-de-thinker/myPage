@@ -22,6 +22,10 @@ class RegisterController extends Controller
 
         Auth::login($seller);
         $request->session()->regenerate();
+        $request->session()->put('onboarding', [
+            'ai_enabled' => $request->boolean('ai_enabled'),
+            'ai_goal' => $request->input('ai_goal'),
+        ]);
 
         return redirect()->route('verification.notice');
     }

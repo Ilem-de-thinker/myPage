@@ -55,13 +55,13 @@
         @endif
 
         <div class="flex flex-wrap items-center gap-4 pt-2">
-          <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
              class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-sm font-bold shadow-[var(--shadow-lift)] hover:opacity-95 transition-opacity">
             <span>Explore the Collection</span>
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
 
-          <a href="{{ route('storefront.contact', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.contact', ['slug' => $page->slug]) }}"
              class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] text-sm font-bold hover:bg-[var(--surface)] transition-colors">
             <span>Talk to the Studio</span>
           </a>
@@ -143,20 +143,20 @@
       <div class="space-y-2">
         <span class="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand-text)]">
           <svg class="w-4 h-4 text-[var(--brand-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>100% Buyer Escrow Protection</span>
+          <span>100% Secure Payment</span>
         </span>
-        <h3 class="t-title text-[var(--ink)]">Every Naira Held In Vault Until You Confirm Delivery</h3>
+        <h3 class="t-title text-[var(--ink)]">Paid Directly To {{ $page->name }}, Not Held By Us</h3>
         <p class="text-xs text-[var(--ink-2)] max-w-xl">
-          {{ $page->name }} trades on mypage.ng sovereign escrow. When you place an order, your payment is held securely until you receive and inspect your parcel.
+          {{ $page->name }} takes payment through its own Paystack or Flutterwave account. When you check out, your money goes straight to them — mypage.ng never holds it.
         </p>
       </div>
 
       <div class="flex items-center gap-4 shrink-0">
-        <a href="{{ route('storefront.track-order', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.track-order', ['slug' => $page->slug]) }}"
            class="px-5 py-2.5 rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] text-xs font-bold hover:bg-[var(--surface)] transition-colors">
-          How Escrow Protects You
+          How Payment Works
         </a>
-        <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
            class="px-5 py-2.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold shadow-sm hover:opacity-95 transition-opacity">
           Shop Catalogue
         </a>

@@ -3,6 +3,7 @@
 namespace App\Domains\Auth\Notifications;
 
 use App\Domains\Seller\Models\Seller;
+use App\Shared\Mail\TransactionalMailMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -25,7 +26,7 @@ class WelcomeNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        return (new TransactionalMailMessage)
             ->subject('Welcome to mypage.ng')
             ->greeting("Hello {$notifiable->name},")
             ->line('Your page is not live yet. Three steps and a Lagos tailor, a barber or a provisions seller has a website that takes orders and bookings.')
@@ -33,7 +34,8 @@ class WelcomeNotification extends Notification
             ->line('Add your business name, WhatsApp number and the template that matches what you sell.')
             ->line('Add two products or services and publish.')
             ->action('Start setting up', $this->firstStepUrl)
-            ->line('Nothing is charged until you choose a plan, and browsing your own page never needs one.');
+            ->line('Nothing is charged until you choose a plan, and browsing your own page never needs one.')
+            ->platformFooter();
     }
 
     /**

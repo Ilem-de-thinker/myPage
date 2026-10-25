@@ -26,7 +26,7 @@ use function Pest\Laravel\postJson;
  */
 function captureCart(StorePage $page, array $items, array $buyer = []): TestResponse
 {
-    return postJson("/{$page->slug}/checkout/capture", [
+    return postJson(storeUrl($page->slug, '/checkout/capture'), [
         'items' => $items,
         'email' => 'buyer@example.com',
         ...$buyer,
@@ -111,7 +111,7 @@ it('closes the cart once the buyer goes on to check out', function () {
     config(['services.paystack.secret' => 'sk_test', 'mypage.gateway' => 'paystack']);
     fakePaystack();
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'buyer@example.com',
         'phone' => '08031234567',
         'cart' => [['product_id' => $product->id, 'quantity' => 2]],
@@ -136,7 +136,7 @@ it('leaves another buyer\'s cart open when someone else checks out', function ()
     config(['services.paystack.secret' => 'sk_test', 'mypage.gateway' => 'paystack']);
     fakePaystack();
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [['product_id' => $product->id, 'quantity' => 1]],
     ])->assertRedirect();
@@ -253,7 +253,7 @@ it('tells the seller about a new order', function () {
     );
 
     captureCart($page, [['id' => $product->id, 'qty' => 1]])->assertOk();
-    postJson("/{$page->slug}/checkout/whatsapp", [
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 1]],
         'name' => 'Ada Buyer',
     ])->assertOk();

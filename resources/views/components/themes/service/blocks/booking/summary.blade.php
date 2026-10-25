@@ -15,7 +15,7 @@
 
   {{-- Breadcrumbs --}}
   <nav class="flex items-center gap-2 text-xs text-[var(--ink-3)] mb-6" aria-label="Breadcrumb">
-    <a href="{{ \App\Shared\Support\StoreUrl::home($page) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
+    <a href="{{ \App\Shared\Support\StoreUrl::homePath($page) }}" class="hover:text-[var(--ink)] transition-colors">Home</a>
     <span aria-hidden="true">/</span>
     <span class="text-[var(--ink)] font-semibold" aria-current="page">Book Appointment</span>
   </nav>
@@ -33,7 +33,7 @@
       <p class="t-body-lg text-[var(--ink-2)] mt-4">{{ $body }}</p>
     @else
       <p class="t-body-lg text-[var(--ink-2)] mt-4">
-        Pick a service, choose an available calendar date, and secure your session with a protected escrow deposit.
+        Pick a service, choose an available calendar date, and secure your session with a deposit paid at booking.
       </p>
     @endif
   </div>

@@ -6,6 +6,7 @@ use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Money;
+use App\Shared\Support\StoreUrl;
 use App\Shared\Support\WhatsApp;
 
 class GenerateWhatsAppOrderLink
@@ -32,7 +33,7 @@ class GenerateWhatsAppOrderLink
         $message = "Hello {$page->name}, I'd like to order (ref {$order->reference}):\n"
             .$lines."\n"
             ."\nTotal: ".Money::format($order->total_kobo)
-            ."\n\nLink: ".route('storefront.show', ['slug' => $page->slug]);
+            ."\n\nLink: ".StoreUrl::home($page);
 
         return [
             'order' => $order,

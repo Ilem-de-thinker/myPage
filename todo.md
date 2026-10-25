@@ -3,6 +3,24 @@
 > Source of truth: "MYPAGE.NG — Implementation Plan (Phase 0 to Launch) (1).md".
 > [x] = implemented, [ ] = not done.
 
+> **2026-10-23 — payment architecture changed. Read this before the phase list.**
+>
+> Buyer money no longer touches the platform. Two flows, never meeting:
+>
+> 1. **Seller → mypage.ng**: subscription, on the platform's own Paystack account.
+> 2. **Buyer → seller**: on the **seller's own** Paystack account, using keys the
+>    seller enters in settings. mypage.ng never holds, escrows, refunds or pays out
+>    buyer money.
+>
+> Bank transfer is **refused** as a buyer payment method — every buyer payment must
+> be a trackable gateway transaction.
+>
+> Consequences for this file: everything ticked under **Phase 7** involving wallets,
+> ledgers, commission and payouts, and all of **Phase 9 escrow**, is now **to be
+> deleted**, not maintained. The ticks are honest history, not current direction.
+> New work is tracked in **Phase 17** below. The full rationale is at the top of
+> `before lunch.md`.
+
 ## Answer to the /page question
 
 `/page` (StorePageController + dashboard/page-editor.blade.php) edits **your storefront page** — the
@@ -142,13 +160,17 @@ Still open in this area, all small:
 ## Phase 7 — Payments
 - [x] PaymentGatewayInterface + Paystack/Flutterwave
 - [x] transactions polymorphic payable, webhooks (HMAC, idempotency, queue)
-- [x] wallets + wallet_ledger double-entry, CommissionCalculator
-- [x] Payouts (hold in payouts pool, re-credit on failure)
+- [x] ~~wallets + wallet_ledger double-entry, CommissionCalculator~~ — **to delete (Phase 17)**
+- [x] ~~Payouts (hold in payouts pool, re-credit on failure)~~ — **to delete (Phase 17)**
 - [x] Store checkout CreateOrderFromCheckout (re-price server-side)
 - [x] Checkout thank-you view; gateway callback re-verifies server-side
 - [x] Service checkout deposit/full: PublicBookingController charges a Booking through
       the same InitializePayment, free services confirm outright
 - [ ] Verify gateway field names against live docs
+- [x] **Checkout must initialise against the seller's own gateway credentials, not
+      the platform's** (Phase 17) — 2026-10-23
+- [x] **Refuse bank transfer as a buyer payment method** — no manual "mark as paid"
+      for on-platform orders (Phase 17)
 
 ## Phase 8 — Orders inbox / customers
 - [x] orders, order_items, order_status_histories, OrderStatus enum (transition map)
@@ -171,42 +193,59 @@ Still open in this area, all small:
 - [x] Lifetime value follows order status in (Paid) and back out (refunded,
       cancelled), via OrderStatusChanged
 
-## Phase 9 — Billing, plans, escrow  ← DONE
+## Phase 9 — Billing, plans and escrow  ← PARTLY WITHDRAWN 2026-10-23
+
+**Still current:**
 - [x] plans, subscriptions, EnsureSubscriptionValid, ExpireSubscriptions
 - [x] Feature::enabled() helper
-- [x] Escrow ledger, ReleaseEscrow, disputes
 - [x] Verification badge application + admin review
-- [x] Escrow release link and dispute button in the buyer/seller UI
+
+**Withdrawn — to be deleted, not maintained (see Phase 17):**
+- [x] ~~Escrow ledger, ReleaseEscrow, disputes~~ — no platform-held money
+- [x] ~~Escrow release link and dispute button in the buyer/seller UI~~
       - Buyer page at `/{slug}/escrow/{token}`, token-gated, no login required
       - Buyer releases early or freezes the money with a reason
       - Seller disputes from the order detail page
       - Release link surfaced on order tracking once reference + contact match
-- [x] Fixed: `OpenEscrowAfterPayment` trusted the feature flag at job-run time
-      instead of checking where the money actually went. A sale that settled
-      straight to the seller could be recorded as escrowed, and the first release
-      paid the seller a second time while the pool went negative.
+- [x] ~~Fixed: `OpenEscrowAfterPayment` double-paid the seller~~ — the fix was
+      correct; the whole path is now being removed instead.
+- [x] ~~`docs/escrow.md`~~ — historical, see its banner.
 
-## Phase 10 — Admin panel  ← DONE (minimum viable)
+Verification is no longer a money control. It is a buyer-facing trust signal only.
+An unverified seller keeps full dashboard access **and can still take payments**;
+their page, product cards, checkout and order screen carry an explicit
+"Not verified by mypage.ng" marker, including beside the pay button. See
+`tests/Feature/Security/VerifiedGateTest.php` and Phase 17.
+
+## Phase 10 — Admin panel  ← DONE (minimum viable), needs rescoping
 - [x] `is_admin` flag on sellers, `EnsureUserIsAdmin` returns 404 not 403
 - [x] `CrossTenant` switch so the panel reads across seller_id scopes
-- [x] Overview: GMV from settled orders only, commission, escrow held, disputes
+- [x] ~~Overview: GMV from settled orders only, commission, escrow held, disputes~~
+      — **reshape (Phase 17):** GMV stays, commission and escrow-held go. Replace
+      with subscriptions active/lapsed and reports outstanding.
 - [x] Badge queue with all three states, approve/reject, rejection reason required
 - [x] Verified tick rendered on both storefront themes
-- [x] Escrow queue with dispute resolution, frozen escrow settles exactly once
+- [x] ~~Escrow queue with dispute resolution~~ — **delete (Phase 17)**
 - [x] Store moderation: suspend with a mandatory reason, reinstate to draft
 - [x] Append-only audit log, immutable at the model layer
-- [x] Seller withdrawals, self-service (no admin in the loop)
+- [x] ~~Seller withdrawals, self-service~~ — **delete (Phase 17)**
       - `/payouts`: available balance, bank details, request, history
       - Held escrow is shown but excluded from what is withdrawable
       - Bank account name confirmed with the gateway before it is saved
       - Gateway failure reads as a message, not a 500
 - [x] Transaction browser: every payment across sellers, filter by status,
       gateway and reference, with ours and the gateway's reference side by side
-- [x] Payout queue showing only failures and in-flight transfers, with the
-      stranded balance. No retry button on purpose: a failed payout has already
-      returned the money to the seller, who can request it again themselves
+      — **survives**, but it now shows the seller's gateway transactions, not
+      platform-held ones. Reconcile against the seller's account, not ours.
+- [x] ~~Payout queue~~ — **delete (Phase 17)**
 - [x] Demo seed now creates transactions and payouts so both screens are non-empty
+      — **update** to seed subscriptions and store reports instead of payouts
 - [ ] Feature-flag toggles from the panel
+- [ ] **Store reports queue** (Phase 17): every report across sellers, filter by
+      category and state, count per store, resolve/dismiss with a note, leading
+      to suspension rather than to any money movement
+- [x] **Per-seller gateway health** (Phase 17): which sellers have credentials,
+      whether the key verifies, whether their webhook is configured
 ## Phase 11 — Messaging (WhatsApp Cloud API)  ← DEFERRED TO POST-MVP
 
 **Re-confirmed deferred by the owner 2026-10-15.** All Meta Business, App Review,
@@ -403,15 +442,36 @@ A seller's own hostname, CNAMEd at us and served once DNS proves it.
 ## Phase 15 — Hardening & launch  ← IN PROGRESS
 - [ ] Rate limiting, CSP/security headers, upload validation review
   - [x] Baseline `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` on web routes
-  - [x] HTTPS-only HSTS and a report-only CSP with a sanitized, throttled `/webhooks/csp-report` endpoint
-  - [ ] CSP enforcement, inline-handler/Alpine eval removal, and upload-validation review
+  - [x] HTTPS-only HSTS and a throttled `/webhooks/csp-report` endpoint
+  - [x] Enforced baseline CSP for origins, forms, frames, objects, workers, and connections
+  - [x] Upload validation review for seller KYC documents and protected document viewing
+  - [ ] Remove Alpine inline handlers/eval and migrate to a nonce/hash or Alpine CSP build
+  - [x] Plain-English validation catalogue and visible validation summaries in platform shells
+  - [x] Seller-owned queries retain tenant scopes; cross-tenant reads are limited to explicit admin paths
 - [ ] Horizon supervisors, Sentry, uptime, backups
+- [x] Transactional notifications use a shared branded/legal footer and accurate
+      direct-to-seller payment wording across auth, orders, bookings and gateway alerts.
+- [ ] Production mail transport and deliverability: live mailer, SPF, DKIM, DMARC,
+      queue worker, and one end-to-end delivery check.
 - [ ] N+1 audit, page cache hit-rate
   - [x] `Model::preventLazyLoading()` outside production
   - [x] Fixed strict-mode hotspots in storefront block rendering and product-variant price fallback
   - [ ] Page cache hit-rate review
-- [ ] Privacy/terms, NDPR consent, data export/delete
+- [x] Privacy/terms, NDPR consent, data export/delete — legal pages, versioned seller
+      consent at registration, and public access/correction/deletion/restriction request
+      endpoint are implemented; operational review and NDPC registration remain external.
 - [ ] Demo seed pages, private beta rollout
+- [x] **Seller gateway key storage reviewed before launch** (Phase 17): encrypted
+      cast, not fillable, hidden from serialisation, `#[SensitiveParameter]`,
+      never in queue payloads or logs, `APP_PREVIOUS_KEYS` documented
+- [x] **Report a store** and **store support contact** reachable from both themes
+      (Phase 17)
+- [x] Admin platform settings: public platform name, tagline, support email,
+      platform logo upload, and theme capability switches for Store and Business
+      storefronts.
+- [x] Seller premium theme controls: hero composition, alignment, image contrast,
+      trust-strip visibility, and tenant-owned swipeable carousel slide management.
+- [ ] Theme preview workflow and drag-to-reorder carousel slides.
 
 ## Phase 16 — Discovery Hub & catalog filtering  ← IMPLEMENTED, tests deferred
 
@@ -625,6 +685,179 @@ added *after* they were written and have no coverage at all.
 - [x] Marquee renders 3 columns with `up`/`down`/`up`, duplicate cards `inert`, badges present
 - [x] Service page renders `/project`, `/hour`, tier glyphs, deliverables, "Featured", "Most booked"
 
+## Phase 17 — Payment architecture rework  ← NEW, 2026-10-23
+
+Decided while reviewing the launch gate. Buyer money stops touching the platform.
+17.1 and 17.2 shipped on 2026-10-23; 17.3 is partly wired (checkout, verify, webhooks);
+17.3 remaining items and 17.4 onward are unimplemented.
+
+### 17.1 Subdomain routing, enforced
+
+The seller's name must come first so the buyer plainly sees whose shop they are in:
+`{store}.mypage.ng`, not `mypage.ng/{store}`.
+
+**How it landed (2026-10-23):** storefront and checkout route groups are constrained to
+`{slug}.{mypage.domain}` and registered before the apex group; `EnsureApexHost` 404s
+platform paths on a tenant host. A custom-domain request is rewritten to the canonical
+subdomain host by `ForwardCustomDomainToStorefront`, with a fallback group so
+storefront-only paths (`/about`, `/cart`) still forward. Internal shop links are
+**relative** (`StoreUrl::path()`/`homePath()`) so a buyer on a custom domain never jumps
+to the subdomain; external/absolute links use `StoreUrl::home()` and platform links use
+`StoreUrl::platform()` (built from `APP_URL`, not the current host).
+
+- [x] `STOREFRONT_PATH_ROUTES=false` (config default; `path_routes` is now retired).
+- [x] The `{slug}` route parameter comes from the domain, so `SlugResolver` needs no
+      subdomain branch — a tenant subdomain resolves through the constrained route.
+- [x] Apex routes do not answer on a tenant host (`/`, `/login`, `/dashboard` → 404);
+      apex routes still answer on the apex.
+- [x] `SESSION_DOMAIN` stays **unset** (host-only). `.mypage.ng` would make every
+      seller's session cookie readable by every other tenant. `SESSION_SECURE_COOKIE=true`
+      in production.
+- [ ] Wildcard `*.mypage.ng` certificate. This also closes the custom-domain TLS gap
+      (MEDIUM 2) for every seller on a subdomain.
+- [ ] `callback_url` resolves to the tenant subdomain, not `APP_URL` (17.3).
+- [x] `StorePreviewTest`/`StorefrontPageSmokeTest` and every storefront test fixture
+      migrated to `storeUrl()`; suite green at 726.
+- [ ] Re-check seeded demo URLs in the seeder/marketing pages for `/{slug}` leftovers.
+
+### 17.2 Seller gateway credentials
+
+**How it landed (2026-10-23):** `seller_gateways` + `SellerGateway` (secrets encrypted,
+non-fillable, hidden), `SaveSellerGateway` (prefix → environment, production/test guard,
+prove against `/balance` or `/v3/balances` before writing), `VerifyGatewayCredentials`,
+`GatewayCredentials` DTO, dashboard screen with masked display and `password.confirm`
+(including the Google-only detour). 15 tests in `SellerGatewayTest` +
+`PasswordConfirmationTest`. Rotation documented in `before lunch.md`; no re-encrypt
+command yet.
+
+- [x] `seller_gateways` table: `seller_id`, `gateway`, `environment`,
+      `public_key`, `secret_key` (**text**, encrypted), `secret_key_last4`,
+      `webhook_secret` (encrypted), `verified_at`, `last_failed_at`, `last_webhook_at`; unique on
+      `(seller_id, gateway)`.
+- [x] `secret_key` and `webhook_secret` are **not fillable** and **not** in
+      `$hidden`-exempt output. One action writes them.
+- [x] Prove the key against the gateway before saving (`/balance` or
+      `/integration`); store `verified_at`. A broken key must be refused, not saved.
+- [x] Reject `sk_test_` in production and `sk_live_` outside it.
+- [x] `password.confirm` required to add or change a key.
+- [x] `#[SensitiveParameter]` on every method that receives the key. Never pass it
+      into a queued job — pass `seller_id` and resolve inside the job.
+- [x] A later 401/403 marks `last_failed_at` and notifies the seller, with a
+      once-per-day notification guard.
+- [x] Dashboard screen: add, verify, masked display (`sk_live_••••4f2a`), replace,
+      remove. Never echo the key back into a form.
+- [x] `GatewayCredentials` readonly DTO; controllers do not touch the model's key.
+- [x] Document the `APP_PREVIOUS_KEYS` rotation procedure; `key:generate` on
+      production destroys every seller's key.
+
+### 17.3 Per-tenant checkout and webhooks
+
+**How it landed so far (2026-10-23):** `GatewayFactory` resolves `platform()` from
+config (subscriptions) and `forSeller()` from the DB (orders/bookings), with no
+fallback between them; concrete gateways now take `GatewayCredentials`. Initialize,
+verify and webhook signature all resolve from the transaction reference, so a seller
+delivery is checked against the seller's own key and the platform's key is rejected.
+A shop with no key gets a clear checkout error instead of a platform charge.
+Suite green at 747 (`SellerStoreCheckoutTest` covers all four paths).
+
+- [x] `InitializePayment` resolves credentials from the payable's store page, not
+      from `config('mypage.gateway')`.
+- [x] Refuse manual "mark as paid" for on-platform orders. `UpdateOrderStatus` throws
+      for PendingPayment → Paid, the controller returns 422, and the detail screen
+      hides the button; the payment listener still settles with no seller. Bank
+      transfer was never a seller checkout method — the hosted page is the seller's
+      own gateway account.
+- [x] Callback URL is built from the storefront request's own host
+      (`StoreUrl::onCurrentHost()`), so a custom-domain buyer returns to their own
+      domain. Custom-domain POSTs now forward before routing; the fallback route only
+      answered GET, which made checkout a 405.
+- [x] Webhook signature is per seller. Resolved from the payload's transaction
+      reference rather than the host, which also works on custom domains; the
+      platform key is rejected for seller references.
+- [x] The same webhook endpoint carries both flows: a seller reference verifies with
+      that seller's key, and subscription/lifecycle events fall back to the platform
+      account. One endpoint, two keys, never a shared charge.
+- [x] Seller setup instructions include the exact webhook URL on the Payment keys
+      screen. Nothing in Paystack's API can register it.
+- [ ] Detect a seller who never pasted the URL. The screen warns, but nothing can
+      tell whether the webhook is actually registered, so the warning cannot be
+      replaced with "configured". (Needs a real gateway probe or seller attestation.)
+- [x] Sweep for unprocessed `webhook_events` must run per tenant as well as for
+      the platform account. See HIGH 1.
+
+### 17.4 Verification as a trust signal
+
+- [x] Remove `business.verified` from the dashboard group. Keep the middleware,
+      the factory states and `VerifiedGateTest`. Checkout stays open.
+- [x] An unverified seller's checkout shows a clear warning beside the pay
+      button: the store is not verified by mypage.ng and the money goes to the
+      seller, not the platform. It must not be a footer note.
+- [x] `verified-badge.blade.php` must render an explicit **"Not verified by
+      mypage.ng"** state instead of rendering nothing. On the page, on product and
+      service cards, at checkout and on the order screen.
+- [x] Badge identity capture strengthened: registered legal name, CAC/RC or ID
+      number stored separately from the document, retention/deletion rule,
+      re-verification or expiry. Daily expiry revokes the public trust marker;
+      sellers can submit a fresh application. See HIGH 4.
+- [x] Confirm the unverified-checkout rule with the owner before building it —
+      owner confirmed that sellers remain able to take direct gateway payments.
+
+### 17.5 Reporting and support
+
+- [x] `store_reports`: `store_page_id`, `category` (fraud | not_delivered |
+      not_as_described | misleading_listing | payment_problem | other), `body`,
+      reporter contact (optional, **withheld from the seller**), `status`
+      (open | resolved | dismissed), `resolved_by_seller_id`, `resolved_at`,
+      `admin_note`, timestamps. Indexed on `(store_page_id, status)`.
+- [x] "Report this store" reachable from every storefront page and from order
+      tracking. Throttled. CSRF-protected. No login required — a wronged buyer is
+      not going to make an account.
+- [x] Admin queue with per-store counts, filter by category and state, resolve or
+      dismiss with a note. Suspension is the only outcome; the platform does not
+      adjudicate money.
+- [x] Store support contact (WhatsApp, public email, contact form) present on
+      **every** page of both themes, not only the contact page.
+- [x] Platform contact and address on the legal pages; a report is not a dispute.
+
+### 17.6 Deletions — remove, do not flag off
+
+Deleting is the point. A dormant money path is the same defect as a dead
+authorization control: the next reader will "fix" it.
+
+- [x] `Escrow` model, `EscrowService`, `BuyerEscrowController`, escrow routes and
+      views, `OpenEscrowAfterPayment`, `ReleaseAutoEscrow`, `RefundEscrow`.
+- [x] `Wallet`, `WalletLedger`, `LedgerService`, `CommissionCalculator`.
+- [x] `Payout`, `RequestPayout`, `PayoutController`, payout routes and views,
+      seller bank/payout columns.
+- [x] `FEATURE_ESCROW` and the platform-wide buyer gateway config removed;
+      the remaining platform gateway config is subscription-only.
+- [x] Escrow/wallet/payout tests: `EscrowTest`, `EscrowBuyerTest`,
+      `SellerPayoutTest`, and the escrow parts of `PaymentFlowTest`.
+- [x] Every `ReleaseAutoEscrow` schedule entry in `routes/console.php`.
+- [ ] `docs/escrow.md` is already marked historical; leave it as a record.
+
+Migration note: dropping tables is destructive. Decide the deploy order (ship the
+new path, verify, then drop) rather than doing it in one migration.
+
+### 17.7 Tests
+
+- [ ] Checkout uses the seller's key and not the platform's; a seller without a
+      verified key cannot take payment.
+- [ ] A webhook arriving on tenant A cannot be verified with tenant B's secret.
+- [ ] An unverified seller can still check out, and the warning is rendered
+      beside the pay button; a verified seller shows no warning.
+- [ ] A report is stored, hidden from the seller, and visible in the admin queue.
+- [ ] Subdomain isolation: two tenants do not share a session cookie.
+- [ ] A test key in production is refused on save.
+
+### 17.8 Exit
+
+One real ₦ order paid to a seller's own Paystack account, with the seller having
+pasted their webhook URL, the order reaching `paid`, the stock moving and the buyer
+emailed. One real subscription charge to mypage.ng. One report filed and triaged.
+
+---
+
 ## Demo data (so you can click around)
 
 `php artisan migrate:fresh --seed` builds two sellers, one per theme, with real history on
@@ -646,24 +879,34 @@ Both demo businesses are also opted into the discovery hub at `/discover` (Phase
 price tiers, with the service seller's card carrying deliverables, a turnaround, one featured
 service and one priced per hour. Turn `FEATURE_DISCOVERY=true` on to see it.
 
-Storefront routes need the subdomain or path prefix. `config('mypage.path_routes')` is true, so
-`/{slug}/...` works without wildcard DNS.
+Storefront routes need the subdomain or path prefix. `config('mypage.path_routes')` is currently
+true, so `/{slug}/...` works without wildcard DNS. **Phase 17.1 reverses this**: the canonical
+address becomes `{store}.mypage.ng` and the path form goes away.
 
 ## Current state in one line
-Both themes are complete and usable by a real seller. Store: products → WhatsApp or paid checkout
-→ orders → customer book → abandoned carts → tracking → notifications. Service: services → team →
-opening hours and dates off → public booking widget → paid or confirmed booking → bookings inbox
-with a week calendar → reminders → reschedule and cancel. Both share one payment flow, one customer
-book and one identity rule, one billing/escrow ledger and one verified badge.
-**562 tests pass.** Done: orders, customer book, abandoned carts, booking, plans and
-subscriptions, escrow, verified badge, admin panel, landing page, demo seed, seller withdrawals,
-directory, sitemap, robots.txt, JSON-LD, and the storefront rebuilt onto the Part 9 fixed-theme
-model with per-block content fields, a brand colour/logo/cover tab, editable business
-details, and social media links. Phase 15 has started with baseline security headers,
-report-only CSP telemetry, and strict N+1 detection.
-Not started: Sanctum API, and TLS issuance for custom domains pending a real edge. WhatsApp Cloud API is deferred to post-MVP with its
-reasoning recorded in Phase 11.
 
-Phases 12, 12b and 13 are complete. Phase 13 still needs an edge to issue
-certificates against. Phase 15 hardening is underway; its remaining work is CSP
+Both themes are complete and usable by a real seller, but the payment model underneath them is
+being replaced. Store: products → WhatsApp or paid checkout → orders → customer book → abandoned
+carts → tracking → notifications. Service: services → team → opening hours and dates off → public
+booking widget → paid or confirmed booking → bookings inbox with a week calendar → reminders →
+reschedule and cancel. Both share one payment flow, one customer book, one identity rule and one
+verified badge.
+
+**722 tests pass.** Done: orders, customer book, abandoned carts, booking, plans and subscriptions,
+verified badge, admin panel, landing page, demo seed, directory, sitemap, robots.txt, JSON-LD, and
+the storefront rebuilt onto the Part 9 fixed-theme model with per-block content fields, a brand
+colour/logo/cover tab, editable business details and social media links. Phase 15 has started with
+baseline security headers, report-only CSP telemetry, and strict N+1 detection.
+
+**In flight, 2026-10-23 (Phase 17):** buyer payments move to each seller's own Paystack account;
+escrow, wallets, ledgers, commission and seller payouts are being deleted; subdomain routing is
+being enforced; verification becomes a trust signal rather than a dashboard gate; reports and store
+support are being added. Until Phase 17 is finished, the escrow and payout code described in Phases
+7, 9 and 10 is **working but no longer wanted**.
+
+Not started: Sanctum API. TLS issuance for custom domains still needs a real edge, although
+wildcard subdomains will cover every seller who does not use one. WhatsApp Cloud API is deferred to
+post-MVP with its reasoning recorded in Phase 11.
+
+Phases 12, 12b and 13 are complete. Phase 15 hardening is underway; its remaining work is CSP
 enforcement, reliability/observability, privacy/compliance, and launch rollout.

@@ -18,14 +18,14 @@ use Symfony\Component\HttpFoundation\Response;
  * The dashboard was, which meant a customer landing on shop.com/products got
  * bounced to the seller login screen.
  *
- * So on one of our own domains the request is re-issued with the seller's slug
- * put back in front of the path. That is exactly the request the storefront
- * already knows how to answer, and it means there is one implementation of every
- * shop page rather than a second one maintained in parallel.
+ * So on a seller's own domain the request is re-issued against the shop's
+ * canonical subdomain. The storefront routes are domain-constrained, so rewriting
+ * the host is what makes the request match them, and it keeps the address the
+ * buyer left as an alias rather than a second copy of every page.
  *
- * Anything the storefront has no answer for — /login, /dashboard — has no slug
- * route to fall back on and 404s, which is right: those are platform pages and
- * they are not reachable from a shop's domain.
+ * Anything the storefront has no answer for — /login, /dashboard — finds no
+ * route on the tenant host and 404s via EnsureApexHost, which is right: those are
+ * platform pages and they are not reachable from a shop's domain.
  */
 class ForwardCustomDomainToStorefront
 {
@@ -41,16 +41,30 @@ class ForwardCustomDomainToStorefront
             return $next($request);
         }
 
+        $canonical = $page->slug.'.'.config('mypage.domain');
+
+        $server = $request->server->all();
+        $server['HTTP_HOST'] = $canonical;
+        $server['SERVER_NAME'] = $canonical;
+
         $forwarded = Request::create(
-            '/'.$page->slug.$request->getPathInfo(),
+            $request->getScheme().'://'.$canonical.$request->getRequestUri(),
             $request->getMethod(),
-            $request->all(),
+            $request->request->all(),
             $request->cookies->all(),
             $request->files->all(),
-            $request->server->all(),
+            $server,
         );
 
         $forwarded->headers->replace($request->headers->all());
+        $forwarded->headers->set('HOST', $canonical);
+        $forwarded->server->set('REQUEST_URI', $request->getRequestUri());
+
+        // Keep the address the buyer actually used. The gateway callback is built
+        // from it so a custom-domain buyer is returned to that domain rather than
+        // walked onto the subdomain. Set here, after the request arrived, so a
+        // client cannot forge it.
+        $forwarded->server->set('ORIGINAL_HOST', $request->getHost());
         $forwarded->setUserResolver($request->getUserResolver());
         $forwarded->setRouteResolver(fn () => Route::getRoutes()->match($forwarded));
 

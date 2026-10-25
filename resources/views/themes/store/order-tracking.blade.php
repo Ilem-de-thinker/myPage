@@ -10,7 +10,7 @@
       <div class="mb-8">
         <nav aria-label="Breadcrumb" class="mb-2">
           <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-            <li><a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
+            <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
             <li aria-hidden="true">/</li>
             <li class="text-[var(--ink)] font-semibold" aria-current="page">Track Order</li>
           </ol>
@@ -31,7 +31,7 @@
            asking for the same thing twice. --}}
       @if (! ($viaLink ?? false))
       <div class="card p-6 bg-[var(--surface)] border border-[var(--rule)] mb-8">
-        <form method="GET" action="{{ route('storefront.track-order', ['slug' => $page->slug]) }}"
+        <form method="GET" action="{{ \App\Shared\Support\StoreUrl::path('storefront.track-order', ['slug' => $page->slug]) }}"
               class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
           <div class="sm:col-span-5">
             <label for="reference" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
@@ -73,8 +73,8 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--rule)]">
             <div>
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
-                <span class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{{ $order->status->label() }}</span>
+                <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--warn-text)]" aria-hidden="true"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-[var(--warn-text)]">{{ $order->status->label() }}</span>
                 <span class="text-[var(--rule)]" aria-hidden="true">·</span>
                 <span class="font-mono text-xs font-bold text-[var(--ink)]">{{ $order->reference }}</span>
               </div>
@@ -126,7 +126,7 @@
               <ol class="relative border-l border-[var(--rule)] ml-3 space-y-6 text-xs">
                 @foreach ($order->history->sortBy('created_at') as $entry)
                   <li class="pl-6 relative">
-                    <span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full {{ $loop->last ? 'bg-amber-500 animate-pulse' : 'bg-[var(--brand)]' }} ring-4 ring-[var(--card)]" aria-hidden="true"></span>
+                    <span class="absolute -left-1.5 top-1 h-3 w-3 rounded-full {{ $loop->last ? 'bg-[var(--warn-text)] animate-pulse' : 'bg-[var(--brand)]' }} ring-4 ring-[var(--card)]" aria-hidden="true"></span>
                     <div class="flex items-baseline justify-between gap-3">
                       <h4 class="font-bold text-[var(--ink)]">{{ $entry->to_status->label() }}</h4>
                       <time class="t-meta text-[11px]">{{ $entry->created_at?->format('j M, g:ia') }}</time>
@@ -140,26 +140,10 @@
             </div>
           @endif
 
-          @if ($escrow)
-            <div class="p-4 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] text-xs text-[var(--brand-text)]">
-              <p class="font-bold">
-                {{ Money::format($escrow->amount_kobo) }} is being held safely.
-              </p>
-              <p class="mt-1 text-[11px] text-[var(--ink-2)]">
-                {{ config('app.name') }} is holding this until you are happy with the order.
-              </p>
-              <a href="{{ route('storefront.escrow', ['slug' => $page->slug, 'token' => $escrow->releaseToken()]) }}"
-                 class="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] text-xs font-bold hover:opacity-90 transition-opacity">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                <span>{{ $escrow->isHeld() ? 'Manage Escrow Approval & Release →' : 'View this payment' }}</span>
-              </a>
-            </div>
-          @endif
-
           <div class="pt-6 border-t border-[var(--rule)] flex flex-col sm:flex-row items-center justify-between gap-4">
             @if ($wa = filled($page->whatsapp_number) ? WhatsApp::link($page, 'Hello '.$page->name.', I have a question about order '.$order->reference.'.') : null)
               <a href="{{ $wa }}" target="_blank" rel="noopener noreferrer"
-                 class="text-xs font-semibold text-[#25D366] hover:underline flex items-center gap-1.5">
+                 class="text-xs font-semibold text-[var(--brand-text)] hover:underline flex items-center gap-1.5">
                 <span>Contact Dispatch on WhatsApp</span>
               </a>
             @else
@@ -168,11 +152,18 @@
 
             <p class="t-meta">Need a change? Message {{ $page->name }} quoting {{ $order->reference }}.</p>
           </div>
+
+          @if (! $page->verified_at)
+            <div class="rounded-[var(--radius)] border border-[var(--warn-edge)] bg-[var(--warn-wash)] p-4 text-xs text-[var(--warn-text)]">
+              <strong>{{ $page->name }} is not verified by mypage.ng.</strong>
+              Payments are collected by the seller, not by mypage.ng.
+            </div>
+          @endif
         </div>
       @elseif ($searched)
-        <div class="p-5 rounded-[var(--radius)] bg-amber-500/10 border border-amber-500/30 text-xs">
-          <p class="text-sm font-bold text-amber-900">We could not find that order.</p>
-          <p class="mt-1 text-amber-800">
+        <div class="rounded-[var(--radius)] border border-[var(--warn-edge)] bg-[var(--warn-wash)] p-5 text-xs">
+          <p class="text-sm font-bold text-[var(--warn-text)]">We could not find that order.</p>
+          <p class="mt-1 text-[var(--warn-text)]">
             Check the reference and the email or phone you ordered with. Both have to match the order.
           </p>
         </div>

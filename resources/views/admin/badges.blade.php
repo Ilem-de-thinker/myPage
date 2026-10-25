@@ -40,6 +40,13 @@
           </span>
         </div>
 
+        <dl class="mt-4 grid gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
+          <div><dt class="text-ink-3">Registered legal name</dt><dd class="font-semibold text-ink">{{ $application->registered_legal_name ?: 'Not supplied' }}</dd></div>
+          <div><dt class="text-ink-3">CAC/RC or ID number</dt><dd class="font-mono font-semibold text-ink">{{ $application->registration_number ?: 'Not supplied' }}</dd></div>
+          <div><dt class="text-ink-3">Document expiry</dt><dd class="font-semibold text-ink">{{ $application->document_expires_at?->format('j M Y') ?: 'Not applicable / not supplied' }}</dd></div>
+          <div><dt class="text-ink-3">Retention until</dt><dd class="font-semibold text-ink">{{ $application->retention_until?->format('j M Y') ?: '—' }}</dd></div>
+        </dl>
+
         <dl class="mt-4 space-y-1 border-t border-rule pt-3 text-xs">
           <div class="flex justify-between">
             <dt class="text-ink-3">Document</dt>
@@ -55,10 +62,14 @@
           <p class="mt-3 rounded-lg bg-surface p-3 text-xs text-ink-2">{{ $application->note }}</p>
         @endif
 
-        <a href="{{ $application->documentUrl() }}" target="_blank" rel="noopener"
-           class="mt-3 inline-block text-xs font-semibold text-brand-text hover:underline">
-          Open the uploaded document
-        </a>
+        @if ($application->hasDocument())
+          <a href="{{ route('admin.badges.document', $application) }}" target="_blank" rel="noopener"
+             class="mt-3 inline-block text-xs font-semibold text-brand-text hover:underline">
+            View uploaded KYC document securely
+          </a>
+        @else
+          <p class="mt-3 text-xs font-semibold text-danger-text">The retained document is no longer available.</p>
+        @endif
 
         @if ($application->isPending())
           <div class="mt-4 space-y-3 border-t border-rule pt-4">

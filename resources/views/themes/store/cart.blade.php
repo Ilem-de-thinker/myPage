@@ -11,16 +11,16 @@
         <div class="mb-8">
           <nav aria-label="Breadcrumb" class="mb-2">
             <ol class="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-              <li><a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
+              <li><a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)]">Home</a></li>
               <li aria-hidden="true">/</li>
               <li class="text-[var(--ink)] font-semibold" aria-current="page">Shopping Bag</li>
             </ol>
           </nav>
 
           <span class="t-meta block mb-1">{{ $page->name }}{{ $page->locationLabel() ? ' · '.$page->locationLabel() : '' }}</span>
-          <h1 class="t-display-2 text-[var(--ink)]">Order Bag &amp; Escrow Receipt</h1>
+          <h1 class="t-display-2 text-[var(--ink)]">Order Bag &amp; Checkout</h1>
           <p class="t-body text-xs text-[var(--ink-2)] mt-1">
-            Review your items below. You can complete checkout directly on WhatsApp or through locked escrow transfer.
+            Review your items below. Complete checkout online, or finish the order on WhatsApp.
           </p>
         </div>
 
@@ -41,7 +41,7 @@
             </div>
 
             <span class="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] text-xs font-bold shrink-0">
-              Escrow Guaranteed
+              Secure Checkout
             </span>
           </div>
 
@@ -49,7 +49,7 @@
             <div class="py-16 text-center">
               <p class="t-title">Your cart is empty.</p>
               <p class="t-body mt-2 text-[color:var(--ink-2)]">Nothing here yet.</p>
-              <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+              <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
                  class="mt-6 inline-flex min-h-12 items-center justify-center rounded-[var(--radius)] px-7 text-[15px] font-bold"
                  style="background: var(--brand); color: var(--brand-ink)">
                 Shop the collection
@@ -75,14 +75,14 @@
                                 @click="$store.cart.setQty(item.id, item.variant_id, item.qty - 1)"
                                 :disabled="item.qty <= 1"
                                 aria-label="Decrease quantity"
-                                class="w-10 h-10 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] font-bold text-sm disabled:opacity-40">
+                                class="w-11 min-h-11 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] font-bold text-sm disabled:opacity-40">
                           −
                         </button>
-                        <span class="w-10 h-10 flex items-center justify-center text-xs font-bold text-[var(--ink)] border-x border-[var(--rule)] tabular-nums" x-text="item.qty"></span>
+                        <span class="w-11 min-h-11 flex items-center justify-center text-xs font-bold text-[var(--ink)] border-x border-[var(--rule)] tabular-nums" x-text="item.qty"></span>
                         <button type="button"
                                 @click="$store.cart.setQty(item.id, item.variant_id, item.qty + 1)"
                                 aria-label="Increase quantity"
-                                class="w-10 h-10 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] font-bold text-sm">
+                                class="w-11 min-h-11 flex items-center justify-center text-[var(--ink)] hover:bg-[var(--surface)] font-bold text-sm">
                           +
                         </button>
                       </div>
@@ -93,7 +93,7 @@
                       <button type="button"
                               @click="$store.cart.remove(item.id, item.variant_id)"
                               class="text-xs font-semibold underline underline-offset-4 shrink-0"
-                              style="color: #b42318">
+                              style="color: var(--danger-text)">
                         Remove
                       </button>
                     </div>
@@ -110,8 +110,8 @@
                   <span class="font-medium text-[var(--ink)] tabular-nums" x-text="'₦' + ($store.cart.totalKobo / 100).toLocaleString()"></span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-[var(--ink-2)]">Escrow Buyer Protection Guarantee</span>
-                  <span class="font-bold text-[var(--brand-text)]">₦0 (Covered by {{ $page->name }})</span>
+                  <span class="text-[var(--ink-2)]">Checkout Fee</span>
+                  <span class="font-bold text-[var(--brand-text)]">₦0</span>
                 </div>
                 <div class="flex items-center justify-between pt-4 border-t border-[var(--rule)]">
                   <span class="text-sm font-bold text-[var(--ink)]">Total Payable</span>
@@ -119,17 +119,17 @@
                 </div>
               </div>
 
-              <p x-show="error" x-cloak x-text="error" role="alert" class="t-body mt-4" style="color: #b42318"></p>
+              <p x-show="error" x-cloak x-text="error" role="alert" class="t-body mt-4" style="color: var(--danger-text)"></p>
 
               <div class="mt-8 pt-6 border-t border-[var(--rule)] space-y-3">
-                <a href="{{ route('storefront.checkout', ['slug' => $page->slug]) }}"
+                <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.checkout', ['slug' => $page->slug]) }}"
                    class="w-full h-12 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                  <span>Proceed to Escrow Checkout →</span>
+                  <span>Proceed to Checkout →</span>
                 </a>
 
                 <button type="button" :disabled="busy"
                         @click="busy = true; error = ''; reference = '';
-                            fetch('{{ route('storefront.checkout.whatsapp', ['slug' => $page->slug]) }}', {
+                            fetch('{{ \App\Shared\Support\StoreUrl::path('storefront.checkout.whatsapp', ['slug' => $page->slug]) }}', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                 body: JSON.stringify($store.cart.payload())
@@ -140,14 +140,14 @@
                                 window.open(data.url, '_blank');
                                 busy = false;
                             }).catch(() => { error = 'Network error'; busy = false; })"
-                        class="w-full h-12 rounded-[var(--radius)] bg-[#25D366] text-white font-bold text-xs flex items-center justify-center gap-2 hover:opacity-95 transition-opacity disabled:opacity-60">
+                        class="w-full h-12 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs flex items-center justify-center gap-2 hover:opacity-95 transition-opacity disabled:opacity-60">
                   <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.98-.276-.101-.477-.15-.678.15-.2.302-.779.98-.955 1.18-.176.202-.352.226-.653.076-.301-.15-1.272-.469-2.424-1.496-.896-.799-1.501-1.787-1.677-2.088-.176-.302-.019-.465.132-.615.136-.135.301-.352.452-.528.15-.175.2-.299.301-.502.101-.2.05-.376-.025-.526-.075-.15-.678-1.634-.93-2.238-.243-.589-.49-.509-.678-.519-.176-.01-.377-.01-.578-.01s-.527.075-.803.376c-.276.301-1.054 1.03-1.054 2.512s1.08 2.914 1.23 3.115c.15.201 2.126 3.245 5.15 4.553.72.311 1.282.497 1.72.636.723.23 1.381.197 1.901.12.579-.087 1.78-.728 2.032-1.431.251-.703.251-1.306.176-1.431-.076-.126-.277-.202-.578-.352z"/></svg>
                   <span x-show="!busy">Order via WhatsApp Direct</span>
                   <span x-show="busy" x-cloak>Preparing your order…</span>
                 </button>
 
                 <div class="text-center pt-2">
-                  <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}" class="text-xs text-[var(--ink-3)] hover:text-[var(--ink)]">
+                  <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}" class="text-xs text-[var(--ink-3)] hover:text-[var(--ink)]">
                     ← Continue shopping
                   </a>
                 </div>
@@ -156,9 +156,9 @@
               <div class="mt-6 p-4 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink-2)] flex items-start gap-3">
                 <svg class="w-5 h-5 text-[var(--brand)] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
                 <div>
-                  <p class="font-bold text-[var(--ink)]">Institutional Escrow Assurance</p>
+                  <p class="font-bold text-[var(--ink)]">Secure Payment</p>
                   <p class="mt-0.5 leading-relaxed text-[var(--ink-3)]">
-                    Your payment is held securely by mypage.ng escrow. Funds are transferred to {{ $page->name }} only after you confirm the delivery.
+                    Your payment goes straight to {{ $page->name }} through their own payment account. mypage.ng never holds it.
                   </p>
                 </div>
               </div>

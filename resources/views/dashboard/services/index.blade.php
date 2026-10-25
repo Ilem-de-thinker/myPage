@@ -2,9 +2,7 @@
 
 @section('content')
     <x-ui.page-header title="Services" subtitle="What customers can book, and for how long.">
-        <a href="{{ route('services.create') }}" class="rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover">
-            Add a service
-        </a>
+        <div class="flex flex-wrap items-center gap-2"><button type="button" @click="$dispatch('ai.open', { text: '' })" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-edge bg-brand-wash px-4 py-2.5 text-xs font-semibold text-brand-text"><x-ui.icon name="spark" class="size-4" /> Use AI</button><a href="{{ route('services.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover"><x-ui.icon name="briefcase" class="size-4" /> Add a service</a></div>
     </x-ui.page-header>
 
     @if ($daysOpen === 0)

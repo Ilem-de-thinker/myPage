@@ -24,8 +24,8 @@
             <div class="flex-1 text-center">
                 <span class="inline-block px-3 py-0.5 rounded-[var(--radius-sm)] bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-mono text-[var(--ink-3)]"
                       x-text="demoTab === 'service'
-                        ? @js($service['handle'] ?? 'mypage.ng/yourservice')
-                        : @js($store['handle'] ?? 'mypage.ng/yourstore')">
+                        ? @jsExpr($service['handle'] ?? 'mypage.ng/yourservice')
+                        : @jsExpr($store['handle'] ?? 'mypage.ng/yourstore')">
                     {{ $service['handle'] ?? 'mypage.ng/yourservice' }}
                 </span>
             </div>
@@ -98,7 +98,7 @@
 
                 <div class="flex items-center justify-between text-[11px] text-[var(--ink-3)] pt-2 border-t border-[var(--rule)]">
                     <span>Literal Calendar Engine</span>
-                    <span class="font-bold text-[var(--brand-text)]">Protected Escrow Deposit</span>
+                    <span class="font-bold text-[var(--brand-text)]">Secure Deposit</span>
                 </div>
             </div>
         @endif
@@ -161,7 +161,7 @@
                 <div>
                     <p class="text-xs font-bold text-[var(--ink)]">WhatsApp Order Generated</p>
                     <p class="text-[11px] text-[var(--ink-2)] mt-0.5">
-                        {{ $store['price'] }} from {{ $store['customer'] }} · <span class="font-bold text-[var(--brand-text)]">Escrow Secured</span>
+                        {{ $store['price'] }} from {{ $store['customer'] }} · <span class="font-bold text-[var(--brand-text)]">Payment Secured</span>
                     </p>
                 </div>
             @endif

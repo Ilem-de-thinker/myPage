@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 875" role="img" aria-labelledby="title desc">
+  <title id="title">Beauty studio illustration</title><desc id="desc">Editorial illustration of a beauty counter.</desc>
+  <rect width="700" height="875" fill="#ead7cc"/><rect x="90" y="160" width="520" height="530" rx="260" fill="#f6eee7"/>
+  <circle cx="350" cy="370" r="150" fill="#c97d68"/><path d="M200 328c64-150 254-132 300 28-76-40-155-44-300-28z" fill="#47352f"/>
+  <path d="M190 600h320l52 82H138z" fill="#2f4a3b"/><rect x="250" y="515" width="58" height="110" rx="20" fill="#d0a675"/><rect x="355" y="500" width="72" height="125" rx="22" fill="#ad5941"/>
+</svg>

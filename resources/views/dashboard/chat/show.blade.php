@@ -1,0 +1,21 @@
+@extends('layouts.app')
+
+@section('content')
+    <x-ui.page-header title="{{ $thread->subject ?: ($thread->guest_name ?: 'Customer conversation') }}" subtitle="Private tenant-scoped conversation" :back="route('dashboard.chat.index')" back-label="Back to chat" />
+    <div x-data="chatThread({aiEnabled: @jsExpr((bool) ($page->settings['ai_order_chat'] ?? false)), initialSummary: @jsExpr($thread->ai_summary), csrf: @jsExpr(csrf_token()), store: @jsExpr(route('dashboard.chat.store', $thread->id)), toggle: @jsExpr(route('dashboard.chat.ai-toggle')), suggest: @jsExpr(route('dashboard.chat.ai-suggestion', $thread->id)), summaryEndpoint: @jsExpr(route('dashboard.chat.summary', $thread->id)), translate: @jsExpr(route('dashboard.chat.translate', $thread->id))})" class="mx-auto max-w-3xl overflow-hidden rounded-2xl border border-rule bg-card">
+        @if ($timeline !== [])
+            <div class="border-b border-rule bg-surface p-5"><div class="flex items-center justify-between"><h2 class="text-xs font-bold uppercase tracking-wide text-ink-3">{{ $thread->order_id ? 'Order' : 'Booking' }} timeline</h2>@if ($whatsappUrl)<a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-brand-text">Open WhatsApp</a>@endif</div><ol class="mt-4 grid gap-3 sm:grid-cols-2">@foreach ($timeline as $event)<li class="rounded-xl border border-rule bg-card p-3"><p class="text-xs font-bold text-ink">{{ $event['label'] }}</p><p class="mt-1 text-[11px] text-ink-3">{{ $event['at']?->diffForHumans() }}</p>@if ($event['note'])<p class="mt-2 text-xs text-ink-2">{{ $event['note'] }}</p>@endif</li>@endforeach</ol></div>
+        @elseif ($whatsappUrl)
+            <div class="flex justify-end border-b border-rule bg-surface p-3"><a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-brand-text">Open WhatsApp</a></div>
+        @endif
+        <div class="min-h-[55vh] space-y-3 p-5">
+            @foreach ($thread->messages as $message)
+                <div class="flex {{ $message->sender_type === 'seller' ? 'justify-end' : 'justify-start' }}"><div class="max-w-[85%]"><p class="rounded-2xl px-4 py-3 text-sm {{ $message->sender_type === 'seller' ? 'bg-brand text-brand-ink' : 'bg-surface text-ink' }}">{{ $message->body }}</p>@if ($message->sender_type === 'buyer')<button type="button" @click="translate({{ $message->id }})" class="mt-1 text-[10px] font-bold text-ink-3">Translate</button>@endif</div></div>
+            @endforeach
+        </div>
+        <div class="flex flex-wrap items-center gap-2 border-t border-rule p-3"><button type="button" @click="toggleAi" class="min-h-11 rounded-xl border border-rule-strong px-3 text-xs font-bold text-ink" x-text="aiEnabled ? 'Disable chat AI' : 'Enable chat AI'"></button><button type="button" @click="summarize" class="min-h-11 rounded-xl bg-tint px-3 text-xs font-bold text-ink">Summarize</button><button type="button" x-show="aiEnabled" @click="suggest" class="min-h-11 rounded-xl bg-tint px-3 text-xs font-bold text-ink">Suggest reply</button></div>
+        <div x-show="summary" x-cloak class="border-t border-rule bg-surface p-4"><p class="text-[11px] font-bold uppercase tracking-wide text-ink-3">Conversation summary</p><p x-text="summary" class="mt-2 text-sm leading-6 text-ink"></p></div><div x-show="translation" x-cloak class="border-t border-rule bg-surface p-4 text-sm text-ink" x-text="translation"></div>
+        <div x-show="suggestion" x-cloak class="border-t border-rule bg-surface p-4"><p class="text-[11px] font-bold uppercase tracking-wide text-ink-3">AI draft — edit before sending</p><pre x-text="format(suggestion)" class="mt-2 whitespace-pre-wrap text-xs leading-5 text-ink"></pre></div>
+        <form @submit.prevent="send" class="flex gap-2 border-t border-rule p-3"><label class="sr-only" for="merchant-chat-body">Reply</label><textarea id="merchant-chat-body" x-model="body" rows="2" required maxlength="5000" class="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-rule-strong bg-card px-3 py-2 text-sm text-ink" placeholder="Write a reply…"></textarea><button class="min-h-11 rounded-xl bg-brand px-4 text-xs font-bold text-brand-ink" :disabled="sending">Send</button></form>
+    </div>
+@endsection

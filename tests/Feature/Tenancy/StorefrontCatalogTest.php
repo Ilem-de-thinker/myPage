@@ -4,6 +4,7 @@ use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Support\Facades\URL;
 
 use function Pest\Laravel\get;
@@ -28,7 +29,7 @@ it('lists only active products on the storefront', function () {
         'status' => 'draft',
     ]);
 
-    get("/{$page->slug}/products")
+    get(storeUrl($page->slug, '/products'))
         ->assertOk()
         ->assertSee('Catalog Ankara Print')
         ->assertDontSee('Hidden Draft');
@@ -66,12 +67,12 @@ it('filters products by category and search', function () {
         'status' => 'active',
     ]);
 
-    get("/{$page->slug}/products?category={$fabrics->id}")
+    get(storeUrl($page->slug, "/products?category={$fabrics->id}"))
         ->assertOk()
         ->assertSee('Catalog Ankara Print')
         ->assertDontSee('Catalog Lace Gown');
 
-    get("/{$page->slug}/products?q=Lace")
+    get(storeUrl($page->slug, '/products?q=Lace'))
         ->assertOk()
         ->assertSee('Catalog Lace Gown')
         ->assertDontSee('Catalog Ankara Print');
@@ -93,7 +94,7 @@ it('paginates the product listing and links its categories', function () {
         'status' => 'active',
     ]);
 
-    $response = get("/{$page->slug}/products")->assertOk()->assertSee('Fabrics');
+    $response = get(storeUrl($page->slug, '/products'))->assertOk()->assertSee('Fabrics');
 
     // 16 products with a page size of 12 must produce a second page.
     $paginator = $response->viewData('products');
@@ -115,7 +116,7 @@ it('serves a product detail page by slug with its price', function () {
         'status' => 'active',
     ]);
 
-    get("/{$page->slug}/products/test-e1tp")
+    get(storeUrl($page->slug, '/products/test-e1tp'))
         ->assertOk()
         ->assertSee('Test Product')
         ->assertSee('₦12,000');
@@ -148,7 +149,7 @@ it('shows related products with their category on the detail page', function () 
         'slug' => 'related-buba-set',
     ]);
 
-    get("/{$page->slug}/products/shown-aso-ebi")
+    get(storeUrl($page->slug, '/products/shown-aso-ebi'))
         ->assertOk()
         ->assertSee('Related Buba Set')
         ->assertSee('Fabrics');
@@ -178,16 +179,16 @@ it('keeps a draft store previewable on product pages after the signed url', func
     // The middleware encrypts it, so replay it the way a browser would.
     $this->withCookie('preview_draftcatalog', '127.0.0.1');
 
-    get("/{$page->slug}/products")->assertOk()->assertSee('Draft Product');
-    get("/{$page->slug}/products/{$product->slug}")->assertOk()->assertSee('Draft Product');
+    get(storeUrl($page->slug, '/products'))->assertOk()->assertSee('Draft Product');
+    get(storeUrl($page->slug, "/products/{$product->slug}"))->assertOk()->assertSee('Draft Product');
 });
 
 it('serves cart and checkout for a store page but not the booking route', function () {
     $page = catalogPage();
 
-    get("/{$page->slug}/cart")->assertOk();
-    get("/{$page->slug}/checkout")->assertOk();
-    get("/{$page->slug}/book")->assertNotFound();
+    get(storeUrl($page->slug, '/cart'))->assertOk();
+    get(storeUrl($page->slug, '/checkout'))->assertOk();
+    get(storeUrl($page->slug, '/book'))->assertNotFound();
 });
 
 it('exposes add-to-cart controls backed by browser storage', function () {
@@ -204,19 +205,19 @@ it('exposes add-to-cart controls backed by browser storage', function () {
     // The cart itself is an Alpine store persisted to localStorage, which lives
     // in the bundled app.js rather than the HTML. What the server owes the buyer
     // is the add control and a way to reach the cart it fills.
-    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
     expect($html)->toContain('Add to cart')
         ->toContain('$store.cart.add')
-        ->toContain(route('storefront.cart', ['slug' => $page->slug]));
+        ->toContain(StoreUrl::path('storefront.cart', ['slug' => $page->slug]));
 });
 
 it('shows a cart link with a live item count in the storefront nav', function () {
     $page = catalogPage();
 
-    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
-    expect($html)->toContain(route('storefront.cart', ['slug' => $page->slug]))
+    expect($html)->toContain(StoreUrl::path('storefront.cart', ['slug' => $page->slug]))
         ->toContain('$store.cart.count');
 });
 
@@ -242,10 +243,10 @@ it('shows the product sku, and still renders a product stored without one', func
         'status' => 'active',
     ]);
 
-    get("/{$page->slug}/products/sku-item")->assertOk()->assertSee('SKU-ABC12345');
+    get(storeUrl($page->slug, '/products/sku-item'))->assertOk()->assertSee('SKU-ABC12345');
 
     // A row with no sku must not break the page.
-    get("/{$page->slug}/products/no-sku-item")->assertOk()->assertSee('No Sku Item');
+    get(storeUrl($page->slug, '/products/no-sku-item'))->assertOk()->assertSee('No Sku Item');
 });
 
 it('marks an out of stock product on the listing', function () {
@@ -262,7 +263,7 @@ it('marks an out of stock product on the listing', function () {
         'stock_qty' => 0,
     ]);
 
-    get("/{$page->slug}/products")->assertOk()->assertSee('Sold Out Item')->assertSee('Out of stock');
+    get(storeUrl($page->slug, '/products'))->assertOk()->assertSee('Sold Out Item')->assertSee('Out of stock');
 });
 
 it('links products to their own detail page and never to another store', function () {
@@ -286,7 +287,7 @@ it('links products to their own detail page and never to another store', functio
         'status' => 'active',
     ]);
 
-    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
     expect($html)->toContain("/{$page->slug}/products/linked-item");
     expect($html)->not->toContain('other-store-item');
@@ -305,11 +306,11 @@ it('never leaks another store\'s products', function () {
         'status' => 'active',
     ]);
 
-    get("/{$page->slug}/products")
+    get(storeUrl($page->slug, '/products'))
         ->assertOk()
         ->assertDontSee('Secret Product');
 
-    get("/{$page->slug}/products/{$secret->slug}")->assertNotFound();
+    get(storeUrl($page->slug, "/products/{$secret->slug}"))->assertNotFound();
 });
 
 it('re-prices the cart server side and refuses tampered or unavailable items', function () {
@@ -336,7 +337,7 @@ it('re-prices the cart server side and refuses tampered or unavailable items', f
     ]);
 
     // The client only sends ids and quantities; a tampered price must be ignored.
-    $response = postJson("/{$page->slug}/checkout/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 2, 'price_kobo' => 1]],
     ])->assertOk()->assertJsonPath('total_kobo', 1000000);
 
@@ -344,29 +345,29 @@ it('re-prices the cart server side and refuses tampered or unavailable items', f
     expect($response->json('reference'))->toStartWith('MP');
     expect($response->json('url'))->toStartWith('https://wa.me/');
 
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => $foreign->id, 'qty' => 1]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => $foreign->id, 'qty' => 1]]])->assertStatus(422);
 
     // Ordering more than the tracked stock allows is refused too.
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => $product->id, 'qty' => 99]]])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => []])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => $product->id, 'qty' => 99]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => []])->assertStatus(422);
 });
 
 it('rejects a cart payload with invalid quantities or a missing item list', function () {
     $page = catalogPage();
 
     // Validation must fail before any pricing or stock logic runs.
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => 1, 'qty' => 0]]])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => 1, 'qty' => 'two']]])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => 'not-an-array'])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", [])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => 1, 'qty' => 0]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => 1, 'qty' => 'two']]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => 'not-an-array'])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), [])->assertStatus(422);
 });
 
 it('rejects a cart payload with a bad or unknown product id', function () {
     $page = catalogPage();
 
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => 'abc', 'qty' => 1]]])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['qty' => 1]]])->assertStatus(422);
-    postJson("/{$page->slug}/checkout/whatsapp", ['items' => [['id' => 999999, 'qty' => 1]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => 'abc', 'qty' => 1]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['qty' => 1]]])->assertStatus(422);
+    postJson(storeUrl($page->slug, '/checkout/whatsapp'), ['items' => [['id' => 999999, 'qty' => 1]]])->assertStatus(422);
 });
 
 it('ignores extra client fields such as a price or a spoofed name', function () {
@@ -380,7 +381,7 @@ it('ignores extra client fields such as a price or a spoofed name', function () 
         'status' => 'active',
     ]);
 
-    $response = postJson("/{$page->slug}/checkout/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [[
             'id' => $product->id,
             'qty' => 1,
@@ -405,7 +406,7 @@ it('builds a whatsapp order for a single product', function () {
         'status' => 'active',
     ]);
 
-    $response = postJson("/{$page->slug}/checkout/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $product->id, 'qty' => 1]],
     ])->assertOk();
 
@@ -437,7 +438,7 @@ it('totals every cart line server side', function () {
         'status' => 'active',
     ]);
 
-    $response = postJson("/{$page->slug}/checkout/whatsapp", [
+    $response = postJson(storeUrl($page->slug, '/checkout/whatsapp'), [
         'items' => [['id' => $first->id, 'qty' => 1], ['id' => $second->id, 'qty' => 2]],
     ])->assertOk()->assertJsonPath('total_kobo', 500000);
 

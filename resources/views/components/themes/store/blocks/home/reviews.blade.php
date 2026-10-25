@@ -68,7 +68,7 @@
             <div class="flex items-baseline gap-3 mb-6">
               <span class="text-4xl font-extrabold text-[var(--ink)] font-mono">{{ number_format($page->ratingLabel(), 2) }}</span>
               <div>
-                <div class="flex text-amber-500 text-sm" aria-label="Rating out of 5 stars">★★★★★</div>
+                <div class="flex text-[var(--rating)] text-sm" aria-label="Rating out of 5 stars">★★★★★</div>
                 <span class="t-meta">From {{ $page->review_count }} verified {{ \Illuminate\Support\Str::plural('order', $page->review_count) }}</span>
               </div>
             </div>
@@ -78,7 +78,7 @@
                 <div class="flex items-center gap-2">
                   <span class="w-12 text-[var(--ink-3)] tabular-nums">{{ $stars }} {{ \Illuminate\Support\Str::plural('star', $stars) }}</span>
                   <div class="flex-1 h-2 rounded-full bg-[var(--surface)] overflow-hidden border border-[var(--rule)]">
-                    <div class="h-full bg-amber-500 rounded-full" style="width: {{ $percent($stars) }}%"></div>
+                    <div class="h-full rounded-full bg-[var(--rating)]" style="width: {{ $percent($stars) }}%"></div>
                   </div>
                   <span class="w-8 text-right font-medium text-[var(--ink)] tabular-nums">{{ $percent($stars) }}%</span>
                 </div>
@@ -102,7 +102,7 @@
                     </div>
                   </div>
                   <div class="text-right shrink-0">
-                    <div class="text-amber-500 text-xs" aria-label="{{ $review->rating }} out of 5 stars">{{ str_repeat('★', $review->rating) }}</div>
+                    <div class="text-xs text-[var(--rating)]" aria-label="{{ $review->rating }} out of 5 stars">{{ str_repeat('★', $review->rating) }}</div>
                     <span class="t-meta text-[11px]">{{ $review->published_at?->diffForHumans() }}</span>
                   </div>
                 </div>
@@ -164,7 +164,7 @@
         </div>
 
         <x-ui.review-form
-            :action="route('storefront.review', ['slug' => $page->slug])"
+            :action="\App\Shared\Support\StoreUrl::path('storefront.review', ['slug' => $page->slug])"
             :reviewable="$page"
             :subject="$page->name" />
       </div>

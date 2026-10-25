@@ -67,10 +67,14 @@ class ReviewBadgeApplication
                 'store_page_id' => $page->getKey(),
                 'status' => BadgeStatus::Pending,
                 'business_name' => $data['business_name'],
+                'registered_legal_name' => $data['registered_legal_name'],
                 'document_type' => $data['document_type'] ?? 'cac',
+                'registration_number' => $data['registration_number'],
                 'document_path' => $stored,
+                'document_expires_at' => $data['document_expires_at'] ?? null,
                 'note' => $data['note'] ?? null,
                 'submitted_at' => now(),
+                'retention_until' => now()->addYears((int) config('legal.kyc_retention_years', 5)),
             ]);
         });
     }
@@ -110,6 +114,14 @@ class ReviewBadgeApplication
              */
             if ($status === BadgeStatus::Approved && $locked->store_page_id !== null) {
                 $locked->storePage?->forceFill(['verified_at' => now()])->save();
+
+                $locked->seller?->forceFill([
+                    'legal_name' => $locked->registered_legal_name,
+                    'legal_registration_type' => $locked->document_type,
+                    'legal_registration_number' => $locked->registration_number,
+                    'kyc_verified_at' => now(),
+                    'kyc_document_expires_at' => $locked->document_expires_at,
+                ])->save();
             }
 
             $this->audit->handle(

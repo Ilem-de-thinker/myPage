@@ -3,7 +3,9 @@
 namespace App\Domains\Billing\Actions;
 
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\SubscriptionCardExpiring;
 use App\Shared\Support\GatewayWebhookEvent;
+use Illuminate\Support\Carbon;
 
 /**
  * Mirrors a recurring billing lifecycle reported by the gateway.
@@ -22,6 +24,11 @@ class SyncGatewaySubscription
     public function handle(string $event, array $payload): void
     {
         $data = $payload['data'] ?? [];
+
+        // Expiring-cards events describe one or more cards in a list.
+        if ($event === GatewayWebhookEvent::SUBSCRIPTION_EXPIRING_CARDS && array_is_list($data)) {
+            $data = $data[0] ?? [];
+        }
 
         // A subscription event names its subscription; an invoice event nests it.
         $code = $data['subscription_code']
@@ -45,8 +52,45 @@ class SyncGatewaySubscription
                 ->attachGatewaySubscription($subscription, $this->subscriptionAttributes($data)),
             GatewayWebhookEvent::SUBSCRIPTION_NOT_RENEW, GatewayWebhookEvent::SUBSCRIPTION_DISABLE => $this->subscriptions->applyGatewayStatus($subscription, $this->statusFor($event, $data)),
             GatewayWebhookEvent::INVOICE_PAYMENT_FAILED => $this->subscriptions->markPastDue($subscription),
+            GatewayWebhookEvent::SUBSCRIPTION_EXPIRING_CARDS => $this->notifyExpiringCard($subscription, $data),
             default => null,
         };
+    }
+
+    /**
+     * Tell the seller once per week while the card is close to expiring. The
+     * gateway can send this event more than once, and both a database row and an
+     * email are too intrusive to repeat on every delivery.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function notifyExpiringCard(Subscription $subscription, array $data): void
+    {
+        $seller = $subscription->seller;
+
+        if ($seller === null) {
+            return;
+        }
+
+        $lastNotified = data_get($subscription->meta, 'card_expiry_notified_at');
+
+        if ($lastNotified !== null && Carbon::parse($lastNotified)->gt(now()->subDays(7))) {
+            return;
+        }
+
+        $nextPaymentDate = $data['next_payment_date']
+            ?? $subscription->next_payment_date
+            ?? $subscription->current_period_ends_at;
+
+        $formatted = $nextPaymentDate
+            ? Carbon::parse($nextPaymentDate)->format('j F Y')
+            : 'the next billing date';
+
+        $seller->notify(new SubscriptionCardExpiring($formatted));
+
+        $subscription->update([
+            'meta' => [...($subscription->meta ?? []), 'card_expiry_notified_at' => now()->toIso8601String()],
+        ]);
     }
 
     /**

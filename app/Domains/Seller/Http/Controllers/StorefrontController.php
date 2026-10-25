@@ -2,11 +2,17 @@
 
 namespace App\Domains\Seller\Http\Controllers;
 
+use App\Domains\Analytics\Services\RecordStoreEvent;
 use App\Domains\Booking\Actions\RecordServiceView;
+use App\Domains\Booking\Actions\RescheduleBooking;
 use App\Domains\Booking\Enums\ServiceSort;
+use App\Domains\Booking\Exceptions\OutsideCancellationWindow;
+use App\Domains\Booking\Exceptions\SlotUnavailable;
 use App\Domains\Booking\Http\Requests\ServiceFiltersRequest;
 use App\Domains\Booking\Models\Booking;
 use App\Domains\Booking\Models\Service;
+use App\Domains\Booking\Services\AvailabilityService;
+use App\Domains\Booking\Services\CancellationPolicy;
 use App\Domains\Booking\Services\ServiceCatalogQuery;
 use App\Domains\Catalog\Actions\RecordProductView;
 use App\Domains\Catalog\Actions\SubmitReview;
@@ -30,12 +36,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class StorefrontController extends Controller
 {
-    public function show(StorePage $page, BlockRenderer $blocks, RecordStorePageView $views): View
+    public function show(StorePage $page, BlockRenderer $blocks, RecordStorePageView $views, RecordStoreEvent $events, Request $request): View
     {
         // The home page's reviews block reads approved rows off the page, so they
         // are loaded here rather than lazily from inside the block — which has no
@@ -50,6 +58,7 @@ class StorefrontController extends Controller
         // products, cart and checkout, and a visit that never reaches the home
         // page is not what this counter is measuring.
         $views->handle($page);
+        $events->handle($page, 'view', $request);
 
         return view("themes.{$page->theme->value}.page", [
             'page' => $page,
@@ -118,7 +127,24 @@ class StorefrontController extends Controller
         ]);
     }
 
-    public function productShow(StorePage $page, string $productSlug, RecordProductView $views): View
+    public function search(StorePage $page, Request $request): JsonResponse
+    {
+        $query = trim((string) $request->query('q', ''));
+        abort_if($query === '' || mb_strlen($query) > 120, 422, 'Enter a search term.');
+
+        $products = Product::query()->active()->where('store_page_id', $page->id)->search($query)->with('images')->limit(12)->get()->map(fn (Product $product): array => [
+            'type' => 'product', 'name' => $product->name, 'slug' => $product->slug, 'description' => Str::limit(strip_tags((string) $product->description), 140), 'url' => StoreUrl::path('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]),
+        ]);
+        $services = $page->theme === Theme::Service
+            ? Service::withoutGlobalScopes()->where('store_page_id', $page->id)->where('is_active', true)->where(fn ($builder) => $builder->where('name', 'like', '%'.$query.'%')->orWhere('description', 'like', '%'.$query.'%'))->limit(12)->get()->map(fn (Service $service): array => [
+                'type' => 'service', 'name' => $service->name, 'slug' => $service->slug, 'description' => Str::limit(strip_tags((string) $service->description), 140), 'url' => StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]),
+            ])
+            : collect();
+
+        return response()->json(['query' => $query, 'mode' => 'keyword_fallback', 'results' => $products->concat($services)->values()]);
+    }
+
+    public function productShow(StorePage $page, string $productSlug, RecordProductView $views, RecordStoreEvent $events, Request $request): View
     {
         abort_unless($page->theme === Theme::Store, 404);
 
@@ -130,6 +156,7 @@ class StorefrontController extends Controller
             ->firstOrFail();
 
         $views->handle($product);
+        $events->handle($page, 'product_view', $request, ['product_id' => $product->id]);
 
         // Eager-loaded, and only the approved ones. The scope is here rather than
         // in the view so no template can be handed a pending row by accident —
@@ -244,7 +271,7 @@ class StorefrontController extends Controller
         ]);
     }
 
-    public function serviceShow(StorePage $page, string $serviceSlug, BlockRenderer $blocks, RecordServiceView $views): View
+    public function serviceShow(StorePage $page, string $serviceSlug, BlockRenderer $blocks, RecordServiceView $views, RecordStoreEvent $events, Request $request): View
     {
         abort_unless($page->theme === Theme::Service, 404);
 
@@ -253,6 +280,7 @@ class StorefrontController extends Controller
         abort_if($service === null, 404);
 
         $views->handle($service);
+        $events->handle($page, 'service_view', $request, ['service_id' => $service->id]);
 
         $service->load(['reviews' => fn ($query) => $query
             ->published()
@@ -372,7 +400,7 @@ class StorefrontController extends Controller
         ]);
     }
 
-    public function whatsappOrder(StorePage $page, Request $request, GenerateWhatsAppOrderLink $whatsappOrder): JsonResponse
+    public function whatsappOrder(StorePage $page, Request $request, GenerateWhatsAppOrderLink $whatsappOrder, RecordStoreEvent $events): JsonResponse
     {
         abort_unless($page->theme === Theme::Store, 404);
 
@@ -393,6 +421,7 @@ class StorefrontController extends Controller
         ], $data['items']);
 
         try {
+            $events->handle($page, 'whatsapp_tap', $request);
             // The order is saved before the buyer is sent to WhatsApp so the seller
             // has a pending record with the same reference the buyer quotes.
             $result = $whatsappOrder->handle($page, $cart, [
@@ -429,7 +458,6 @@ class StorefrontController extends Controller
         $searched = $reference !== '' && $contact !== '';
 
         $order = null;
-        $escrow = null;
 
         if ($searched) {
             $order = Order::withoutGlobalScopes()
@@ -437,11 +465,9 @@ class StorefrontController extends Controller
                 ->where('reference', $reference)
                 ->get()
                 ->first(fn (Order $candidate) => $this->contactMatches($candidate, $contact));
-
-            $escrow = $order?->escrow;
         }
 
-        return view('themes.store.order-tracking', compact('page', 'order', 'escrow', 'reference', 'contact', 'searched'));
+        return view('themes.store.order-tracking', compact('page', 'order', 'reference', 'contact', 'searched'));
     }
 
     /**
@@ -479,7 +505,76 @@ class StorefrontController extends Controller
             'reference' => $reference,
             'contact' => $contact,
             'searched' => $searched,
+            'viaLink' => false,
         ]);
+    }
+
+    public function rescheduleBookingForm(
+        StorePage $page,
+        Request $request,
+        AvailabilityService $availability,
+        CancellationPolicy $policy,
+    ): View|RedirectResponse {
+        abort_unless($page->theme === Theme::Service, 404);
+        $booking = $this->findBooking($page, $request);
+
+        if (! $booking) {
+            return redirect(StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]));
+        }
+
+        $timezone = $availability->timezoneFor($booking->service);
+        $date = (string) $request->query('date', $booking->starts_at->timezone($timezone)->toDateString());
+        $staff = $request->query('staff') ? $booking->storePage->staffMembers()->find($request->query('staff')) : $booking->staffMember;
+        $slots = $availability->slotsFor($booking->service, Carbon::parse($date, $timezone)->startOfDay(), $staff, (int) config('mypage.booking_slot_step_minutes', 30))
+            ->reject(fn (Carbon $slot): bool => $slot->equalTo($booking->starts_at->setTimezone($timezone)))
+            ->map(fn (Carbon $slot): array => ['starts_at' => $slot->toIso8601String(), 'label' => $slot->format('g:i A')])
+            ->values();
+
+        return view('themes.service.manage-booking', [
+            'page' => $page,
+            'booking' => $booking,
+            'reference' => $request->query('reference'),
+            'contact' => $request->query('contact'),
+            'searched' => true,
+            'reschedule' => true,
+            'slots' => $slots,
+            'selectedDate' => $date,
+            'locked' => $policy->isLocked($booking),
+            'hoursUntil' => $policy->hoursUntil($booking),
+            'windowHours' => $policy->windowHoursFor($page),
+        ]);
+    }
+
+    public function rescheduleBooking(
+        StorePage $page,
+        Request $request,
+        RescheduleBooking $reschedule,
+    ): RedirectResponse {
+        abort_unless($page->theme === Theme::Service, 404);
+        $data = $request->validate([
+            'reference' => ['required', 'string', 'max:40'],
+            'contact' => ['required', 'string', 'max:160'],
+            'starts_at' => ['required', 'date'],
+            'staff' => ['nullable', 'integer'],
+        ]);
+        $booking = $this->findBooking($page, $request);
+
+        if (! $booking) {
+            return redirect(StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]));
+        }
+
+        try {
+            $staff = ! empty($data['staff']) ? $booking->storePage->staffMembers()->find($data['staff']) : $booking->staffMember;
+            $reschedule->handle($booking, Carbon::parse($data['starts_at']), null, $staff);
+        } catch (OutsideCancellationWindow|SlotUnavailable $exception) {
+            throw ValidationException::withMessages(['starts_at' => $exception->getMessage()]);
+        }
+
+        return redirect(StoreUrl::path('storefront.manage-booking', [
+            'slug' => $page->slug,
+            'reference' => $booking->reference,
+            'contact' => $data['contact'],
+        ]))->with('status', 'Your appointment was moved.');
     }
 
     /**
@@ -506,7 +601,6 @@ class StorefrontController extends Controller
         return view('themes.store.order-tracking', [
             'page' => $page,
             'order' => $order,
-            'escrow' => $order->escrow,
             'reference' => $reference,
             'contact' => null,
             'searched' => true,
@@ -558,5 +652,22 @@ class StorefrontController extends Controller
         $given = PhoneNumber::normalize($contact);
 
         return $given !== null && $given === PhoneNumber::normalize($record->customer_phone);
+    }
+
+    private function findBooking(StorePage $page, Request $request): ?Booking
+    {
+        $reference = trim((string) $request->input('reference', $request->query('reference', '')));
+        $contact = trim((string) $request->input('contact', $request->query('contact', '')));
+
+        if ($reference === '' || $contact === '') {
+            return null;
+        }
+
+        return Booking::withoutGlobalScopes()
+            ->with(['service', 'staffMember', 'storePage'])
+            ->where('store_page_id', $page->getKey())
+            ->where('reference', $reference)
+            ->get()
+            ->first(fn (Booking $candidate): bool => $this->contactMatches($candidate, $contact));
     }
 }

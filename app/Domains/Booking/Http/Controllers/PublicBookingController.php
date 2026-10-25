@@ -10,8 +10,10 @@ use App\Domains\Booking\Models\Service;
 use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Booking\Services\AvailabilityService;
 use App\Domains\Payments\Actions\InitializePayment;
+use App\Domains\Payments\Exceptions\GatewayNotConfigured;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,11 +100,10 @@ class PublicBookingController
         }
 
         if ($booking->amountDueKobo() === 0) {
-            return redirect()
-                ->route('storefront.booking-confirmation', [
-                    'slug' => $page->slug,
-                    'booking' => $booking->reference,
-                ])
+            return redirect(StoreUrl::path('storefront.booking-confirmation', [
+                'slug' => $page->slug,
+                'booking' => $booking->reference,
+            ]))
                 ->with('status', 'Booked. We have your slot.');
         }
 
@@ -114,6 +115,12 @@ class PublicBookingController
          */
         try {
             $checkoutUrl = $initializePayment->handle($booking, $data['email'] ?? $data['phone']);
+        } catch (GatewayNotConfigured) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'starts_at' => 'This business has not connected a payment provider yet, so it cannot take deposits. Your slot is held for the next 15 minutes — message us on WhatsApp instead.',
+                ]);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -184,7 +191,7 @@ class PublicBookingController
             ->first();
 
         if ($booking === null) {
-            return redirect()->route('storefront.manage-booking', ['slug' => $page->slug]);
+            return redirect(StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]));
         }
 
         return view('themes.service.booking-confirmation', [

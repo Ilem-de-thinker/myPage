@@ -14,10 +14,11 @@ return [
 
     'csp' => [
         /*
-        | The first CSP stage is report-only. The storefront still uses Alpine
-        | expressions and inline event handlers, so enforcement first would
-        | trade an observability step for a production outage.
+        | Enforce the baseline policy now. The policy retains only the existing
+        | Blade component registrations still use inline scripts; Alpine itself
+        | uses the CSP build and no longer requires unsafe-eval.
         */
+        'enforce' => (bool) env('SECURITY_CSP_ENFORCE', true),
         'report_only' => (bool) env('SECURITY_CSP_REPORT_ONLY', true),
         'report_uri' => env('SECURITY_CSP_REPORT_URI', '/webhooks/csp-report'),
     ],

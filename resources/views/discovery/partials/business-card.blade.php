@@ -23,7 +23,7 @@
 
     $isService = $page->theme === Theme::Service;
     $where = $page->locationLabel();
-    $url = route('storefront.show', ['slug' => $page->slug]);
+    $url = \App\Shared\Support\StoreUrl::home($page);
 @endphp
 
 <article @class([

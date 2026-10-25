@@ -1,0 +1,2 @@
+@props(['title' => 'Nothing here yet', 'message' => null])
+<div {{ $attributes->merge(['class' => 'rounded-2xl border border-dashed border-rule-strong bg-card px-6 py-12 text-center']) }}><div class="mx-auto grid size-11 place-items-center rounded-2xl bg-brand-wash text-brand-text">{{ $icon ?? '·' }}</div><h2 class="mt-4 text-sm font-bold text-ink">{{ $title }}</h2>@if($message)<p class="mx-auto mt-2 max-w-md text-xs leading-5 text-ink-3">{{ $message }}</p>@endif<div class="mt-5">{{ $slot }}</div></div>

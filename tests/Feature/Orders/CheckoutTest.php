@@ -38,7 +38,7 @@ beforeEach(function () {
 it('renders a checkout page that posts the cart to the server', function () {
     [$page, $product] = checkoutStore();
 
-    get("/{$page->slug}/checkout")
+    get(storeUrl($page->slug, '/checkout'))
         ->assertOk()
         ->assertSee('Checkout')
         ->assertSee(route('checkout.store', ['slug' => $page->slug]), false)
@@ -49,7 +49,7 @@ it('renders a checkout page that posts the cart to the server', function () {
 it('creates a pending order and sends the buyer to the gateway', function () {
     [$page, $product] = checkoutStore();
 
-    $response = post("/{$page->slug}/checkout", [
+    $response = post(storeUrl($page->slug, '/checkout'), [
         'name' => 'Ada Buyer',
         'email' => 'ada@example.com',
         'phone' => '08030000000',
@@ -79,7 +79,7 @@ it('prices a variant line from the variant, ignoring anything the client sent', 
         'stock_qty' => 4,
     ]);
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [[
             'product_id' => $product->id,
@@ -99,9 +99,9 @@ it('prices a variant line from the variant, ignoring anything the client sent', 
 it('requires an email and at least one cart line', function () {
     [$page, $product] = checkoutStore();
 
-    post("/{$page->slug}/checkout", ['cart' => []])->assertSessionHasErrors('email');
+    post(storeUrl($page->slug, '/checkout'), ['cart' => []])->assertSessionHasErrors('email');
 
-    post("/{$page->slug}/checkout", ['email' => 'ada@example.com'])
+    post(storeUrl($page->slug, '/checkout'), ['email' => 'ada@example.com'])
         ->assertSessionHasErrors('cart');
 });
 
@@ -111,7 +111,7 @@ it('sends the buyer back to checkout when the cart cannot be priced', function (
         ['theme' => 'store', 'status' => 'published'],
     );
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [['product_id' => $product->id, 'quantity' => 99]],
     ])->assertSessionHasErrors('cart');
@@ -132,7 +132,7 @@ it('will not check out a product belonging to another store', function () {
         'track_stock' => false,
     ]);
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [['product_id' => $foreignProduct->id, 'quantity' => 1]],
     ])->assertSessionHasErrors('cart');
@@ -158,7 +158,7 @@ it('shows the thank-you page with the order lines', function () {
         'line_kobo' => 500000,
     ]);
 
-    get("/{$page->slug}/checkout/thanks/{$order->id}")
+    get(storeUrl($page->slug, "/checkout/thanks/{$order->id}"))
         ->assertOk()
         ->assertSee($order->reference)
         ->assertSee('order is confirmed')
@@ -170,13 +170,13 @@ it('will not show the thank-you page for another store\'s order', function () {
 
     $foreign = Order::factory()->platform()->create();
 
-    get("/{$page->slug}/checkout/thanks/{$foreign->id}")->assertNotFound();
+    get(storeUrl($page->slug, "/checkout/thanks/{$foreign->id}"))->assertNotFound();
 });
 
 it('settles the order when the gateway callback is verified', function () {
     [$page, $product] = checkoutStore();
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [['product_id' => $product->id, 'quantity' => 1]],
     ])->assertRedirect();
@@ -189,7 +189,7 @@ it('settles the order when the gateway callback is verified', function () {
         ]),
     ]);
 
-    get("/{$page->slug}/checkout/callback/{$transaction->reference}")
+    get(storeUrl($page->slug, "/checkout/callback/{$transaction->reference}"))
         ->assertRedirect(route('checkout.thanks', ['slug' => $page->slug, 'order' => $transaction->payable_id]));
 
     expect($transaction->fresh()->status->value)->toBe('paid')
@@ -203,7 +203,7 @@ it('closes the transaction out as failed when the gateway cannot be reached', fu
         'api.paystack.co/transaction/initialize' => Http::failedConnection(),
     ]);
 
-    post("/{$page->slug}/checkout", [
+    post(storeUrl($page->slug, '/checkout'), [
         'email' => 'ada@example.com',
         'cart' => [['product_id' => $product->id, 'quantity' => 1]],
     ])->assertSessionHasErrors('email');
@@ -220,7 +220,7 @@ it('tells the cart which store it belongs to', function () {
     // Every seller on the apex domain shares one host, so a cart keyed by host
     // alone belongs to whichever shop the buyer saw first — and its product ids
     // are then rejected by the next shop's checkout.
-    get("/{$page->slug}/checkout")
+    get(storeUrl($page->slug, '/checkout'))
         ->assertOk()
         ->assertSee('data-store="'.$page->slug.'"', escape: false);
 });
@@ -228,7 +228,7 @@ it('tells the cart which store it belongs to', function () {
 it('names the store on the storefront too, since the cart is filled there', function () {
     [$page, $product] = checkoutStore();
 
-    get("/{$page->slug}")
+    get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('data-store="'.$page->slug.'"', escape: false);
 });

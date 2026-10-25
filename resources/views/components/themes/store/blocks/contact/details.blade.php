@@ -13,6 +13,8 @@
     */
     $hours = $block?->field('hours');
     $where = collect([$page->address, $page->city, $page->state])->filter()->join(', ');
+    $coordinates = filled($page->latitude) && filled($page->longitude);
+    $mapQuery = $coordinates ? $page->latitude.','.$page->longitude : $where;
     $social = SocialLinks::forPage($page);
     $categories = $page->categories()->whereHas('products', fn ($query) => $query->active())->get();
 
@@ -26,11 +28,11 @@
         ? Str::before(WhatsApp::link($page, 'x'), '=').'='
         : null;
 
-    $mapsUrl = $where
-        ? 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($where)
+    $mapsUrl = $mapQuery
+        ? 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mapQuery)
         : null;
 
-    $hasAny = (bool) ($where || $page->public_email || $page->whatsapp_number || $social || $whatsapp);
+    $hasAny = (bool) ($where || $coordinates || $page->public_email || $page->whatsapp_number || $social || $whatsapp);
 @endphp
 
 @if ($hasAny)
@@ -70,6 +72,15 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </a>
             @endif
+
+            @if ($coordinates && config('services.google.maps_browser_key'))
+              <iframe
+                  src="https://www.google.com/maps/embed/v1/place?key={{ urlencode(config('services.google.maps_browser_key')) }}&q={{ urlencode($mapQuery) }}"
+                  class="h-56 w-full rounded-[var(--radius)] border border-[var(--rule)]"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="{{ $page->name }} location"></iframe>
+            @endif
           </div>
         @endif
 
@@ -80,17 +91,17 @@
             <a href="{{ $whatsapp }}"
                target="_blank"
                rel="noopener noreferrer"
-               class="flex items-center justify-between p-3 rounded-[var(--radius)] bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/15 transition-colors group">
+               class="flex items-center justify-between p-3 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] transition-colors group">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] flex items-center justify-center">
                   <x-ui.whatsapp-mark />
                 </div>
                 <div>
                   <p class="text-xs font-bold text-[var(--ink)]">Official WhatsApp Desk</p>
-                  <p class="t-meta text-[#15803d]">{{ $page->whatsapp_number }}</p>
+                  <p class="t-meta text-[var(--brand-text)]">{{ $page->whatsapp_number }}</p>
                 </div>
               </div>
-              <span class="text-xs font-semibold text-[#15803d] group-hover:translate-x-1 transition-transform">Chat &rarr;</span>
+              <span class="text-xs font-semibold text-[var(--brand-text)] group-hover:translate-x-1 transition-transform">Chat &rarr;</span>
             </a>
           @endif
 
@@ -132,8 +143,8 @@
         <div class="p-5 rounded-[var(--radius-lg)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] flex items-center gap-4">
           <svg class="w-8 h-8 text-[var(--brand-text)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <div class="text-xs">
-            <p class="font-bold text-[var(--ink)]">mypage.ng Escrow Protected</p>
-            <p class="text-[var(--ink-2)] mt-0.5">Deposits and retainers are held under safe escrow until the work is confirmed.</p>
+            <p class="font-bold text-[var(--ink)]">mypage.ng Secure Payment</p>
+            <p class="text-[var(--ink-2)] mt-0.5">Deposits and payments go straight to the seller's own payment account at checkout.</p>
           </div>
         </div>
       </div>
@@ -143,30 +154,11 @@
            wishes they had written and hands it to that channel. --}}
       <div class="lg:col-span-7">
         <div class="card p-8 rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-sm"
-             x-data="{
-                 formSubmitted: false,
-                 name: '',
-                 phone: '',
-                 date: '',
-                 service: @js($categories->first()?->name ?? ''),
-                 notes: '',
-                 endpoint: @js($waEndpoint),
-                 shop: @js($page->name),
-                 handleSubmit() {
-                     if (!this.endpoint) return;
-                     const body = [
-                         `Hello ${this.shop}, I would like to make an enquiry.`,
-                         this.name ? `Name: ${this.name}` : '',
-                         this.phone ? `WhatsApp: ${this.phone}` : '',
-                         this.date ? `Date needed: ${this.date}` : '',
-                         this.service ? `Interested in: ${this.service}` : '',
-                         this.notes ? `Notes: ${this.notes}` : '',
-                     ].filter(Boolean).join('\n');
-
-                     window.open(this.endpoint + encodeURIComponent(body), '_blank', 'noopener');
-                     this.formSubmitted = true;
-                 },
-             }">
+             x-data="storeContactForm(@jsExpr([
+                 'endpoint' => $waEndpoint,
+                 'shop' => $page->name,
+                 'service' => $categories->first()?->name ?? '',
+             ]))">
           <div class="mb-6">
             <h2 class="t-title text-[var(--ink)]">Request a Fitting or Custom Commission</h2>
             <p class="t-body text-xs text-[var(--ink-3)] mt-1">
@@ -176,9 +168,9 @@
 
           <div x-show="formSubmitted"
                x-transition
-               class="mb-6 p-4 rounded-[var(--radius)] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-3"
+               class="mb-6 flex items-center gap-3 rounded-[var(--radius)] border border-[var(--ok-edge)] bg-[var(--ok-wash)] p-4 text-xs text-[var(--ok-text)]"
                style="display: none;">
-            <svg class="w-5 h-5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg class="h-5 w-5 shrink-0 text-[var(--ok-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>Your request has been opened in WhatsApp. Send it and {{ $page->name }} will reply there.</span>
           </div>
 
@@ -270,7 +262,7 @@
 
   <div class="mt-8">
     <x-ui.review-form
-        :action="route('storefront.review', ['slug' => $page->slug])"
+        :action="\App\Shared\Support\StoreUrl::path('storefront.review', ['slug' => $page->slug])"
         :reviewable="$page"
         :subject="$page->name" />
   </div>

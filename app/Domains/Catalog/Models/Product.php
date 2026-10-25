@@ -3,6 +3,7 @@
 namespace App\Domains\Catalog\Models;
 
 use App\Domains\Catalog\Enums\ProductSort;
+use App\Domains\Directory\Jobs\SyncDirectorySearchIndex;
 use App\Domains\Orders\Models\OrderItem;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Money;
@@ -14,17 +15,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 /** @use HasFactory<ProductFactory> */
 class Product extends Model
 {
     use BelongsToSeller, HasFactory, HasRating;
 
+    protected static function booted(): void
+    {
+        static::saved(fn (Product $product): mixed => SyncDirectorySearchIndex::dispatch(self::class, $product->getKey()));
+        static::deleted(fn (Product $product): mixed => SyncDirectorySearchIndex::dispatch(self::class, $product->getKey()));
+    }
+
     protected $fillable = [
         'seller_id', 'store_page_id', 'category_id', 'name', 'slug', 'description',
-        'price_kobo', 'compare_at_kobo', 'sku', 'track_stock', 'stock_qty',
+        'price_kobo', 'compare_at_kobo', 'sku', 'track_stock', 'stock_qty', 'ai_metadata',
         'status', 'is_featured', 'view_count', 'rating', 'review_count',
+        'is_directory_listed',
     ];
 
     protected function casts(): array
@@ -37,6 +44,8 @@ class Product extends Model
             'view_count' => 'integer',
             'rating' => 'float',
             'review_count' => 'integer',
+            'is_directory_listed' => 'boolean',
+            'ai_metadata' => 'array',
         ];
     }
 
@@ -87,7 +96,7 @@ class Product extends Model
     {
         $image = $this->images->first();
 
-        return $image ? Storage::url($image->path) : null;
+        return $image?->thumbnailUrl();
     }
 
     /**

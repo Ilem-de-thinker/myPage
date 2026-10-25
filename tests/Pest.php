@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
@@ -59,6 +60,11 @@ function sellerWithPage(array $attributes = []): array
 {
     $seller = Seller::factory()->create();
     $page = StorePage::factory()->for($seller)->create($attributes);
+
+    // Buyer money settles in the seller's own gateway account, so a shop that
+    // can check out has a key. Tests that exercise the unconfigured path delete
+    // this row explicitly.
+    SellerGateway::factory()->for($seller)->create();
 
     return [$seller, $page];
 }
@@ -147,4 +153,15 @@ function bookableServicePage(): array
     ]);
 
     return [$seller, $page];
+}
+
+/**
+ * A storefront URL on the shop's own subdomain.
+ *
+ * The slug is the address, not a path segment, so a request to the apex never
+ * reaches a shop and a shop link always names the business.
+ */
+function storeUrl(string $slug, string $path = '/'): string
+{
+    return 'http://'.$slug.'.'.config('mypage.domain').($path === '' ? '/' : $path);
 }

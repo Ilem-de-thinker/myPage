@@ -5,6 +5,7 @@ namespace App\Domains\Orders\Models;
 use App\Domains\Orders\Enums\AbandonedCartStatus;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\PhoneNumber;
+use App\Shared\Support\StoreUrl;
 use App\Shared\Traits\BelongsToSeller;
 use Database\Factories\Domains\Orders\Models\AbandonedCartFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,10 +86,9 @@ class AbandonedCart extends Model
      */
     public function recoveryUrl(): string
     {
-        return route('storefront.cart', [
-            'slug' => $this->storePage?->slug,
-            'ref' => $this->reference,
-        ]);
+        return $this->storePage
+            ? StoreUrl::absolute($this->storePage, 'storefront.cart', ['ref' => $this->reference])
+            : route('home');
     }
 
     public static function generateReference(): string

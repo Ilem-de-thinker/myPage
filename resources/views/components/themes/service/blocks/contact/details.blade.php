@@ -7,6 +7,8 @@
     use Illuminate\Support\Carbon;
 
     $where = collect([$page->address, $page->city, $page->state])->filter()->join(', ');
+    $coordinates = filled($page->latitude) && filled($page->longitude);
+    $mapQuery = $coordinates ? $page->latitude.','.$page->longitude : $where;
     $email = $page->public_email;
     $social = SocialLinks::forPage($page);
     $whatsapp = $page->whatsapp_number
@@ -48,7 +50,7 @@
         ->take(2)
         ->get();
 
-    $mapsQuery = collect([$page->address, $page->city, $page->state])->filter()->join(', ');
+    $mapsQuery = $mapQuery;
 @endphp
 
 <div class="shell pb-12">
@@ -121,6 +123,32 @@
         </div>
       @endif
 
+      @if ($mapsQuery !== '')
+        <div class="card rounded-[var(--radius-lg)] border border-[var(--rule)] p-6 space-y-4">
+          <div>
+            <h2 class="t-title text-[var(--ink)]">Find the studio</h2>
+            <p class="text-xs text-[var(--ink-2)] mt-1">Use the pinned location for directions and arrival planning.</p>
+          </div>
+
+          @if ($coordinates && config('services.google.maps_browser_key'))
+            <iframe
+                src="https://www.google.com/maps/embed/v1/place?key={{ urlencode(config('services.google.maps_browser_key')) }}&q={{ urlencode($mapQuery) }}"
+                class="h-56 w-full rounded-[var(--radius)] border border-[var(--rule)]"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="{{ $page->name }} location"></iframe>
+          @endif
+
+          <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($mapQuery) }}"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
+            <span>Open Directions in Google Maps</span>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+      @endif
+
       {{-- Direct channels --}}
       @if ($whatsapp || $email || $social !== [])
         <div class="card p-6 rounded-[var(--radius-lg)] border border-[var(--rule)] space-y-4">
@@ -130,17 +158,17 @@
             <a href="{{ $whatsapp }}"
                target="_blank"
                rel="noopener noreferrer"
-               class="flex items-center justify-between p-3 rounded-[var(--radius)] bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/15 transition-colors group">
+               class="flex items-center justify-between p-3 rounded-[var(--radius)] bg-[var(--brand-wash)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] transition-colors group">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center">
+                <div class="w-8 h-8 rounded-full bg-[var(--brand)] text-[var(--brand-ink)] flex items-center justify-center">
                   <x-themes.shared.whatsapp-icon />
                 </div>
                 <div>
                   <p class="text-xs font-bold text-[var(--ink)]">Official WhatsApp Desk</p>
-                  <p class="t-meta text-[#15803d] dark:text-emerald-400">{{ $page->whatsapp_number }}</p>
+                  <p class="t-meta text-[var(--brand-text)]">{{ $page->whatsapp_number }}</p>
                 </div>
               </div>
-              <span class="text-xs font-semibold text-[#15803d] dark:text-emerald-400 group-hover:translate-x-1 transition-transform">Chat &rarr;</span>
+              <span class="text-xs font-semibold text-[var(--brand-text)] group-hover:translate-x-1 transition-transform">Chat &rarr;</span>
             </a>
           @endif
 
@@ -193,9 +221,9 @@
           {{-- Success notification --}}
           <div x-show="submitted"
                x-transition
-               class="mb-6 p-4 rounded-[var(--radius)] bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-3"
+               class="mb-6 flex items-center gap-3 rounded-[var(--radius)] border border-[var(--ok-edge)] bg-[var(--ok-wash)] p-4 text-xs text-[var(--ok-text)]"
                style="display: none;">
-            <svg class="w-5 h-5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg class="h-5 w-5 shrink-0 text-[var(--ok-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>Thank you! Your message has been sent to our WhatsApp desk.</span>
           </div>
 
@@ -256,7 +284,7 @@
             {{ $page->name }} has not published a WhatsApp number yet. Book a slot from the services page instead.
           </p>
 
-          <a href="{{ route('storefront.services', ['slug' => $page->slug]) }}"
+          <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.services', ['slug' => $page->slug]) }}"
              class="mt-6 inline-flex items-center rounded-[var(--radius)] px-8 py-3.5 bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-xs hover:opacity-95 transition-opacity">
             See the service menu
           </a>
@@ -300,15 +328,6 @@
             </p>
           </div>
 
-          @if ($mapsQuery !== '')
-            <a href="https://maps.google.com/?q={{ urlencode($mapsQuery) }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
-              <span>Open Directions in Google Maps</span>
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            </a>
-          @endif
         </div>
       </div>
     </div>
@@ -328,7 +347,7 @@
 
     <div class="mt-8">
       <x-ui.review-form
-          :action="route('storefront.review', ['slug' => $page->slug])"
+          :action="\App\Shared\Support\StoreUrl::path('storefront.review', ['slug' => $page->slug])"
           :reviewable="$page"
           :subject="$page->name" />
     </div>

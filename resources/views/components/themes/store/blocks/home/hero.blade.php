@@ -13,6 +13,13 @@
         ? WhatsApp::link($page, 'Hello '.$page->name.', I am browsing your storefront.')
         : null;
     $location = $page->locationLabel();
+    $slides = $page->carouselSlides()->where('is_active', true)->get();
+    $heroStyle = $page->settings['hero_style'] ?? 'immersive';
+    $heroAlignment = $page->settings['hero_alignment'] ?? 'center';
+    $heroOverlay = $page->settings['hero_overlay'] ?? 'deep';
+    $autoplay = (bool) ($page->settings['carousel_autoplay'] ?? false);
+    $overlay = ['deep' => 'from-[var(--ink)]/90 via-[var(--ink)]/65 to-[var(--ink)]/40', 'soft' => 'from-[var(--ink)]/65 via-[var(--ink)]/35 to-transparent', 'none' => 'from-transparent via-transparent to-transparent'][$heroOverlay] ?? 'from-[var(--ink)]/85 via-[var(--ink)]/62 to-[var(--ink)]/45';
+    $themePreset = $page->settings['theme_preset'] ?? 'catalog';
 @endphp
 
 {{--
@@ -27,7 +34,25 @@
   No cover and no hero image is a legitimate state, not a broken one: the
   headline simply takes the full measure on paper.
 --}}
-<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-16">
+@if ($slides->isEmpty() && $themePreset === 'boutique-warm')
+    <x-themes.store.blocks.home.hero-boutique :page="$page" :block="$block" />
+@elseif ($slides->isEmpty() && $themePreset === 'tech-pro')
+    <x-themes.store.blocks.home.hero-tech :page="$page" :block="$block" />
+@elseif ($slides->isEmpty() && $themePreset === 'editorial-luxe')
+    <x-themes.store.blocks.home.hero-editorial :page="$page" :block="$block" />
+@elseif ($slides->isEmpty() && $themePreset === 'minimal-swiss')
+    <x-themes.store.blocks.home.hero-structured :page="$page" :block="$block" />
+@elseif ($slides->isEmpty() && $themePreset === 'brutalist-soft')
+    <x-themes.store.blocks.home.hero-brutalist :page="$page" :block="$block" />
+@elseif ($slides->isEmpty() && $themePreset === 'catalog')
+    <x-themes.store.blocks.home.hero-catalog :page="$page" :block="$block" />
+@elseif ($slides->isEmpty())
+<section @class([
+    'relative flex items-center overflow-hidden pt-16',
+    'min-h-[85vh]' => $heroStyle === 'immersive',
+    'min-h-[70vh]' => $heroStyle !== 'immersive',
+    'justify-center' => $heroAlignment === 'center',
+])>
   @if ($image)
     <div class="absolute inset-0 -z-20">
       <img src="{{ \Illuminate\Support\Facades\Storage::url($image) }}"
@@ -37,13 +62,15 @@
 
       {{-- Three stops: heaviest under the words, lightest at the top so the nav
            can stay transparent over it. --}}
-      <div class="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/85 via-[var(--ink)]/62 to-[var(--ink)]/45"></div>
+      <div class="absolute inset-0 bg-gradient-to-t {{ $overlay }}"></div>
       <div class="grain" aria-hidden="true"></div>
     </div>
   @endif
 
   <div @class([
-      'shell text-center py-20 relative z-10 max-w-4xl',
+      'shell py-20 relative z-10 max-w-4xl',
+      'text-center' => $heroAlignment === 'center',
+      'text-left' => $heroAlignment === 'left',
       'text-white' => $image,
   ])>
     @if ($location || $page->isPublished())
@@ -54,7 +81,7 @@
       ])>
         <span @class([
             'w-2 h-2 rounded-full',
-            'bg-emerald-400' => $image,
+            'bg-[var(--brand)]' => $image,
             'bg-[var(--brand)]' => ! $image,
         ]) aria-hidden="true"></span>
         <span>{{ $location ? $location.' · ' : '' }}Verified Sovereign Store</span>
@@ -74,7 +101,7 @@
     @endif
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-      <a href="{{ route('storefront.products', ['slug' => $page->slug]) }}"
+      <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.products', ['slug' => $page->slug]) }}"
          class="h-12 px-8 rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] font-bold text-sm flex items-center justify-center hover:opacity-90 transition-opacity">
         {{ $button }} →
       </a>
@@ -88,12 +115,44 @@
     </div>
   </div>
 </section>
+@else
+<section class="relative overflow-hidden bg-[var(--ink)] pt-16 text-white"
+         x-data="{ activeSlide: 0 }"
+         @if ($autoplay) x-init="setInterval(() => { activeSlide = (activeSlide + 1) % {{ $slides->count() }}; $refs.track.children[activeSlide].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 7000)" @endif>
+  <div x-ref="track" class="flex snap-x snap-mandatory overflow-x-auto scroll-smooth">
+    @foreach ($slides as $index => $slide)
+      <article class="relative min-w-full snap-start">
+        @if ($slide->image_path)
+          <img src="{{ $slide->imageUrl() }}" alt="" class="absolute inset-0 h-full min-h-[70vh] w-full object-cover" loading="{{ $index === 0 ? 'eager' : 'lazy' }}">
+          <div class="absolute inset-0 bg-gradient-to-t {{ $overlay }}"></div>
+        @endif
+        <div class="shell relative flex min-h-[70vh] items-end py-24 {{ $heroAlignment === 'center' ? 'justify-center text-center' : 'justify-start text-left' }}">
+          <div class="max-w-3xl">
+            <span class="mb-5 inline-flex rounded-[var(--radius-pill)] border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md">Featured from {{ $page->name }}</span>
+            <h1 class="t-display-1 text-white">{{ $slide->headline }}</h1>
+            @if ($slide->subtext)<p class="t-body-lg mt-5 max-w-2xl text-white/85">{{ $slide->subtext }}</p>@endif
+            @if ($slide->button_label && $slide->button_url)
+              <a href="{{ $slide->button_url }}" class="mt-8 inline-flex h-12 items-center rounded-[var(--radius)] bg-[var(--brand)] px-8 text-sm font-bold text-[var(--brand-ink)]">{{ $slide->button_label }}</a>
+            @endif
+          </div>
+        </div>
+      </article>
+    @endforeach
+  </div>
+  <div class="pointer-events-none absolute inset-x-0 bottom-5 flex justify-center gap-2">
+    @foreach ($slides as $index => $slide)
+      <span class="size-2 rounded-full bg-white/60"></span>
+    @endforeach
+  </div>
+</section>
+@endif
 
 {{--
   The trust strip. Four standing promises every shop on the platform makes, so
   this is the platform's copy and not the seller's: it renders from the theme,
   with no block behind it, and none of it names a place, a price or a person.
 --}}
+@if ($page->settings['show_trust_strip'] ?? true)
 <section class="border-y border-[var(--rule)] bg-[var(--surface)]">
   <div class="shell">
     <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-[var(--rule)] border-x border-[var(--rule)]">
@@ -112,8 +171,8 @@
 
       <div class="p-6 text-center">
         <span class="t-meta block mb-1">03 / Security</span>
-        <h3 class="text-sm font-bold text-[var(--ink)]">Escrow Protected</h3>
-        <p class="text-xs text-[var(--ink-2)] mt-1">Payment held safely until you inspect the goods.</p>
+        <h3 class="text-sm font-bold text-[var(--ink)]">Secure Payment</h3>
+        <p class="text-xs text-[var(--ink-2)] mt-1">Payment goes straight to {{ $page->name }} at checkout.</p>
       </div>
 
       <div class="p-6 text-center">
@@ -125,3 +184,4 @@
     </div>
   </div>
 </section>
+@endif

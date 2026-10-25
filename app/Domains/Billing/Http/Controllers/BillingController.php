@@ -6,6 +6,7 @@ use App\Domains\Billing\Actions\ConfirmSubscriptionPayment;
 use App\Domains\Billing\Actions\SubscriptionManager;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
@@ -20,7 +21,7 @@ use Throwable;
  */
 class BillingController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, SubscriptionAvailability $availability): View
     {
         $seller = $request->user();
 
@@ -35,6 +36,7 @@ class BillingController extends Controller
             'history' => $subscription ? $this->historyFor($subscription) : collect(),
             'transfers' => config('billing.manual_transfers'),
             'graceDays' => (int) config('billing.grace_days', 7),
+            'subscriptionsEnabled' => $availability->enabled(),
         ]);
     }
 
@@ -42,7 +44,9 @@ class BillingController extends Controller
         Request $request,
         SubscriptionManager $subscriptions,
         InitializePayment $initializePayment,
+        SubscriptionAvailability $availability,
     ): RedirectResponse {
+        abort_unless($availability->enabled(), 503, 'Subscriptions are temporarily disabled by the platform.');
         $data = $request->validate([
             'plan' => ['required', 'string'],
             'email' => ['nullable', 'email', 'max:190'],
@@ -105,7 +109,9 @@ class BillingController extends Controller
     public function requestManualSubscription(
         Request $request,
         SubscriptionManager $subscriptions,
+        SubscriptionAvailability $availability,
     ): RedirectResponse {
+        abort_unless($availability->enabled(), 503, 'Subscriptions are temporarily disabled by the platform.');
         $data = $request->validate([
             'plan' => ['required', 'string'],
             'reference' => ['required', 'string', 'max:190'],

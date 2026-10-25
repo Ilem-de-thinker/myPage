@@ -1,12 +1,24 @@
 <?php
 
+$platformDomain = env('APP_DOMAIN') ?: parse_url(
+    (string) env('APP_URL', 'http://localhost'),
+    PHP_URL_HOST,
+) ?: 'localhost';
+
 return [
-    'domain' => env('APP_DOMAIN', 'mypage.test'),
-    'path_routes' => env('STOREFRONT_PATH_ROUTES', true),
+    /*
+     * APP_DOMAIN is useful when the app URL includes a port or when local DNS
+     * maps a wildcard domain separately. Otherwise the host is derived from
+     * APP_URL, so development and staging do not inherit a production domain.
+     */
+    'domain' => $platformDomain,
+    /*
+     * Retired. Storefronts live on {store}.{domain} and nowhere else, so the
+     * slug is never a path segment. Kept as a config key only because removing
+     * it would break config caching in environments that still set it.
+     */
+    'path_routes' => env('STOREFRONT_PATH_ROUTES', false),
     'gateway' => env('PAYMENT_GATEWAY', 'paystack'),
-    'commission_bps' => (int) env('PLATFORM_COMMISSION_BPS', 150),
-    'payout_minimum_kobo' => (int) env('PAYOUT_MINIMUM_KOBO', 500000),
-    'escrow_auto_release_days' => (int) env('ESCROW_AUTO_RELEASE_DAYS', 7),
     // How long a cart has to sit before the buyer is nudged once.
     'abandoned_cart_reminder_hours' => (int) env('ABANDONED_CART_REMINDER_HOURS', 24),
 
@@ -18,9 +30,8 @@ return [
     // How long an unpaid booking holds its slot before ExpirePendingBookings frees it.
     'booking_hold_minutes' => (int) env('BOOKING_HOLD_MINUTES', 15),
     'features' => [
-        'escrow' => env('FEATURE_ESCROW', false),
         'broadcasts' => env('FEATURE_BROADCASTS', false),
-        'directory' => env('FEATURE_DIRECTORY', false),
+        'directory' => env('FEATURE_DIRECTORY', true),
         // The discovery hub. Separate from the directory on purpose: the directory
         // is browsed by state and category, the hub is searched by what a buyer
         // needs. Switching one on should not put the other in front of the world.
@@ -67,7 +78,7 @@ return [
      | dashboard, so it can live in config rather than being hidden.
      */
     'custom_domain' => [
-        'cname_target' => env('CUSTOM_DOMAIN_CNAME_TARGET', 'domains.mypage.test'),
+        'cname_target' => env('CUSTOM_DOMAIN_CNAME_TARGET', 'domains.'.$platformDomain),
         'connect_timeout' => 3,
         'timeout' => 5,
         // How long to keep re-checking a domain nobody has finished pointing at

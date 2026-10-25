@@ -79,9 +79,9 @@ it('searches product names, descriptions and SKUs', function () {
 
     // The SKU is searchable because a seller prints it on the label and a buyer
     // reads it off the thing they already own.
-    expect(productNames(get("/{$page->slug}/products?q=TEE-900")->assertOk()))->toBe(['Plain Tee'])
-        ->and(productNames(get("/{$page->slug}/products?q=floor length")->assertOk()))->toBe(['Lace Gown'])
-        ->and(productNames(get("/{$page->slug}/products?q=ankara")->assertOk()))->toBe(['Ankara Print']);
+    expect(productNames(get(storeUrl($page->slug, '/products?q=TEE-900'))->assertOk()))->toBe(['Plain Tee'])
+        ->and(productNames(get(storeUrl($page->slug, '/products?q=floor length'))->assertOk()))->toBe(['Lace Gown'])
+        ->and(productNames(get(storeUrl($page->slug, '/products?q=ankara'))->assertOk()))->toBe(['Ankara Print']);
 });
 
 it('is not fooled by a wildcard in a product search term', function () {
@@ -92,7 +92,7 @@ it('is not fooled by a wildcard in a product search term', function () {
 
     // An unescaped % matches every row, which turns the search into a no-op and
     // looks to a buyer like "search is broken" rather than "you found everything".
-    expect(productNames(get("/{$page->slug}/products?q=%25")->assertOk()))->toBe([]);
+    expect(productNames(get(storeUrl($page->slug, '/products?q=%25'))->assertOk()))->toBe([]);
 });
 
 it('filters by several categories at once', function () {
@@ -111,9 +111,9 @@ it('filters by several categories at once', function () {
 
     // The multi-select is the array form; a single id from an older shared link
     // is still understood.
-    expect(productNames(get("/{$page->slug}/products?category[]={$fabrics->id}&category[]={$beads->id}")->assertOk()))
+    expect(productNames(get(storeUrl($page->slug, "/products?category[]={$fabrics->id}&category[]={$beads->id}"))->assertOk()))
         ->toEqualCanonicalizing(['Ankara Print', 'Glass Beads'])
-        ->and(productNames(get("/{$page->slug}/products?category={$fabrics->id}")->assertOk()))
+        ->and(productNames(get(storeUrl($page->slug, "/products?category={$fabrics->id}"))->assertOk()))
         ->toBe(['Ankara Print']);
 });
 
@@ -125,7 +125,7 @@ it('filters products by a price band', function () {
     productOn($page, ['name' => 'Dear Item', 'slug' => 'dear', 'price_kobo' => 9000000]);
 
     // Naira on the wire, kobo in the query.
-    expect(productNames(get("/{$page->slug}/products?min=2000&max=10000")->assertOk()))
+    expect(productNames(get(storeUrl($page->slug, '/products?min=2000&max=10000'))->assertOk()))
         ->toBe(['Mid Item']);
 });
 
@@ -136,9 +136,9 @@ it('sorts products by price in both directions', function () {
     productOn($page, ['name' => 'Dear Item', 'slug' => 'dear', 'price_kobo' => 9000000]);
     productOn($page, ['name' => 'Mid Item', 'slug' => 'mid', 'price_kobo' => 500000]);
 
-    expect(productNames(get("/{$page->slug}/products?sort=price_low")->assertOk()))
+    expect(productNames(get(storeUrl($page->slug, '/products?sort=price_low'))->assertOk()))
         ->toBe(['Cheap Item', 'Mid Item', 'Dear Item'])
-        ->and(productNames(get("/{$page->slug}/products?sort=price_high")->assertOk()))
+        ->and(productNames(get(storeUrl($page->slug, '/products?sort=price_high'))->assertOk()))
         ->toBe(['Dear Item', 'Mid Item', 'Cheap Item']);
 });
 
@@ -156,7 +156,7 @@ it('sorts products by units actually sold, ignoring cancelled orders', function 
     Order::factory()->create(['store_page_id' => $page->id, 'status' => OrderStatus::Cancelled])
         ->items()->create(['product_id' => $disputed->id, 'name' => 'Cancelled Item', 'unit_kobo' => 100, 'quantity' => 9, 'line_kobo' => 900]);
 
-    $response = get("/{$page->slug}/products?sort=popular")->assertOk();
+    $response = get(storeUrl($page->slug, '/products?sort=popular'))->assertOk();
 
     expect(productNames($response))->toBe(['Sold Item', 'Cancelled Item'])
         // The count is shown so "best seller" is a claim a buyer can weigh.
@@ -169,7 +169,7 @@ it('falls back to a real ordering when the sort key is nonsense', function () {
     productOn($page, ['name' => 'Ankara Print', 'slug' => 'ankara']);
 
     // A stale bookmark or a hand-edited URL must land on a page, not an error.
-    get("/{$page->slug}/products?sort=cheapest_ever")->assertOk()->assertSee('Ankara Print');
+    get(storeUrl($page->slug, '/products?sort=cheapest_ever'))->assertOk()->assertSee('Ankara Print');
 });
 
 it('keeps every active filter on the pagination links', function () {
@@ -196,7 +196,7 @@ it('keeps every active filter on the pagination links', function () {
 
     // Without withQueryString() page two is the whole catalogue again, which is
     // the single most common bug in a filtered list.
-    $html = get("/{$page->slug}/products?q=ankara&category[]={$fabrics->id}&sort=price_low&page=2")
+    $html = get(storeUrl($page->slug, "/products?q=ankara&category[]={$fabrics->id}&sort=price_low&page=2"))
         ->assertOk()
         ->getContent();
 
@@ -219,7 +219,7 @@ it('offers price bounds taken from the catalogue, not from the filter', function
     // Bounds derived from the filtered set would collapse to one value the moment
     // a narrow filter was applied, and the buyer could no longer widen the range
     // without first clearing the filter they were using.
-    $html = get("/{$page->slug}/products?q=cheap")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products?q=cheap'))->assertOk()->getContent();
 
     expect($html)->toContain('₦500')
         ->and($html)->toContain('₦90,000');
@@ -237,7 +237,7 @@ it('does not offer a category with nothing in it', function () {
 
     productOn($page, ['name' => 'Ankara Print', 'slug' => 'ankara', 'category_id' => $full->id]);
 
-    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
     expect($html)->toContain('Fabrics')->not->toContain('Empty Shelf');
 });
@@ -258,7 +258,7 @@ it('keeps counting the other categories while one is selected', function () {
     // A panel that counted only what is already selected shows every other
     // category as empty, which reads as "there is nothing else here" and buries
     // the way out of the filter the buyer is currently in.
-    $html = get("/{$page->slug}/products?category[]={$fabrics->id}")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, "/products?category[]={$fabrics->id}"))->assertOk()->getContent();
 
     expect($html)->toContain('Beads');
 });
@@ -268,7 +268,7 @@ it('tells a shopper who is browsing an empty shop apart from one whose filter mi
 
     // Nothing listed at all: no filter would help, so offering "Clear all
     // filters" would be offering a fix for a problem the shopper does not have.
-    get("/{$page->slug}/products")
+    get(storeUrl($page->slug, '/products'))
         ->assertOk()
         ->assertSee('Nothing listed yet')
         ->assertDontSee('Clear all filters');
@@ -276,7 +276,7 @@ it('tells a shopper who is browsing an empty shop apart from one whose filter mi
     productOn($page, ['name' => 'Ankara Print', 'slug' => 'ankara']);
 
     // Something listed, but not what was asked for: the filter is the problem.
-    get("/{$page->slug}/products?q=zzzznothing")
+    get(storeUrl($page->slug, '/products?q=zzzznothing'))
         ->assertOk()
         ->assertSee('Nothing matched')
         ->assertSee('Clear all filters');
@@ -297,7 +297,7 @@ it('shows the strikethrough only when the compare-at price is genuinely higher',
         'price_kobo' => 1000000, 'compare_at_kobo' => 700000,
     ]);
 
-    $html = get("/{$page->slug}/products")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
     expect($html)->toContain('−30%')->not->toContain('−-30%');
 });
@@ -312,11 +312,11 @@ it('searches services and keeps a billing unit on the price', function () {
     ]);
     serviceOn($page, ['name' => 'Deep Tissue Massage', 'slug' => 'massage', 'price_kobo' => 3000000]);
 
-    expect(resultNames(get("/{$page->slug}/services?q=bridal")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services?q=bridal'))->assertOk()))
         ->toBe(['Bridal Makeup']);
 
     // A price with no unit is a number a buyer has to email about.
-    get("/{$page->slug}/services")->assertOk()->assertSee('/project');
+    get(storeUrl($page->slug, '/services'))->assertOk()->assertSee('/project');
 });
 
 it('filters services by how long they take', function () {
@@ -325,7 +325,7 @@ it('filters services by how long they take', function () {
     serviceOn($page, ['name' => 'Quick Fix', 'slug' => 'quick', 'duration_min' => 30]);
     serviceOn($page, ['name' => 'Full Day Bridal', 'slug' => 'bridal', 'duration_min' => 300]);
 
-    expect(resultNames(get("/{$page->slug}/services?duration=60")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services?duration=60'))->assertOk()))
         ->toBe(['Quick Fix']);
 });
 
@@ -335,7 +335,7 @@ it('filters services by billing unit', function () {
     serviceOn($page, ['name' => 'Retainer Work', 'slug' => 'retainer', 'billing_unit' => BillingUnit::PerMonth]);
     serviceOn($page, ['name' => 'One Off Job', 'slug' => 'oneoff', 'billing_unit' => BillingUnit::PerProject]);
 
-    expect(resultNames(get("/{$page->slug}/services?unit=per_month")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services?unit=per_month'))->assertOk()))
         ->toBe(['Retainer Work']);
 });
 
@@ -345,7 +345,7 @@ it('never lists a paused service', function () {
     serviceOn($page, ['name' => 'Live Service', 'slug' => 'live']);
     serviceOn($page, ['name' => 'Paused Service', 'slug' => 'paused', 'is_active' => false]);
 
-    expect(resultNames(get("/{$page->slug}/services")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services'))->assertOk()))
         ->toBe(['Live Service']);
 });
 
@@ -357,7 +357,7 @@ it('puts a featured service above the rest', function () {
 
     // Featured outranks the seller's own position: it is a promotion, and a
     // promotion that lands fifth is not one.
-    expect(resultNames(get("/{$page->slug}/services?sort=featured")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services?sort=featured'))->assertOk()))
         ->toBe(['Showcase Service', 'Ordinary Service']);
 });
 
@@ -370,7 +370,7 @@ it('lists the deliverables a service actually carries', function () {
         'turnaround_label' => 'Same day',
     ]);
 
-    $html = get("/{$page->slug}/services")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/services'))->assertOk()->getContent();
 
     expect($html)->toContain('Trial session')
         ->and($html)->toContain('Touch-up kit')
@@ -385,7 +385,7 @@ it('ignores an empty deliverable rather than rendering a blank tick', function (
 
     serviceOn($page, ['name' => 'Sloppy Service', 'slug' => 'sloppy', 'deliverables' => ['Real item', '', '   ']]);
 
-    get("/{$page->slug}/services")->assertOk()->assertSee('Real item');
+    get(storeUrl($page->slug, '/services'))->assertOk()->assertSee('Real item');
 });
 
 it('sorts services by price and keeps the filter on the pagination links', function () {
@@ -394,12 +394,12 @@ it('sorts services by price and keeps the filter on the pagination links', funct
     serviceOn($page, ['name' => 'Cheap Service', 'slug' => 'cheap', 'price_kobo' => 500000]);
     serviceOn($page, ['name' => 'Dear Service', 'slug' => 'dear', 'price_kobo' => 9000000]);
 
-    expect(resultNames(get("/{$page->slug}/services?sort=price_low")->assertOk()))
+    expect(resultNames(get(storeUrl($page->slug, '/services?sort=price_low'))->assertOk()))
         ->toBe(['Cheap Service', 'Dear Service'])
-        ->and(resultNames(get("/{$page->slug}/services?sort=price_high")->assertOk()))
+        ->and(resultNames(get(storeUrl($page->slug, '/services?sort=price_high'))->assertOk()))
         ->toBe(['Dear Service', 'Cheap Service']);
 
-    $html = get("/{$page->slug}/services?q=service&sort=price_high&page=2")->assertOk()->getContent();
+    $html = get(storeUrl($page->slug, '/services?q=service&sort=price_high&page=2'))->assertOk()->getContent();
 
     expect($html)->toContain('q=service')->and($html)->toContain('sort=price_high');
 });

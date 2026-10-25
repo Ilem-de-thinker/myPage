@@ -15,7 +15,7 @@
     $where = $page->locationLabel();
     $deposit = $service->depositKobo();
     $balance = max(0, $service->price_kobo - $deposit);
-    $bookUrl = route('storefront.book', ['slug' => $page->slug, 'service' => $service->id]);
+    $bookUrl = \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug, 'service' => $service->id]);
 @endphp
 
 <section class="section-y border-b border-[var(--rule)]">
@@ -23,9 +23,9 @@
 
         {{-- Breadcrumb: the grid this was reached from. --}}
         <nav class="mb-8 text-xs text-[var(--ink-3)]" aria-label="Breadcrumb">
-            <a href="{{ route('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">{{ $page->name }}</a>
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.show', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">{{ $page->name }}</a>
             <span aria-hidden="true"> / </span>
-            <a href="{{ route('storefront.services', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Services</a>
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.services', ['slug' => $page->slug]) }}" class="hover:text-[var(--ink)] transition-colors">Services</a>
             <span aria-hidden="true"> / </span>
             <span class="text-[var(--ink)]">{{ $service->name }}</span>
         </nav>
@@ -43,6 +43,8 @@
                             @if ($service->image_path)
                                 <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
                                      alt="{{ $service->name }}"
+                                     width="1200" height="675"
+                                     fetchpriority="high" decoding="async"
                                      class="h-full w-full object-cover">
                             @else
                                 <span class="flex h-full w-full items-center justify-center font-[family-name:var(--font-heading)] text-6xl font-extrabold"
@@ -86,7 +88,7 @@
                             <span class="t-meta block">Deposit Required</span>
                             <span class="font-semibold text-[var(--brand-text)] mt-0.5 block">
                                 @if ($service->hasDeposit())
-                                    {{ \App\Shared\Support\Money::format($deposit) }} (Escrow)
+                                    {{ \App\Shared\Support\Money::format($deposit) }} (Deposit)
                                 @else
                                     None — paid in full
                                 @endif
@@ -132,14 +134,14 @@
                         @endif
                     </div>
 
-                    {{-- Escrow Guarantee Badge --}}
+                    {{-- Secure Payment Badge --}}
                     <div class="p-3.5 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] flex items-start gap-2.5 text-xs text-[var(--ink-2)]">
                         <svg class="w-4 h-4 text-[var(--brand)] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                        <span>100% Escrow Protection: deposit held securely until the session is completed.</span>
+                        <span>Secure Payment: your deposit is processed through {{ $page->name }}'s configured gateway.</span>
                     </div>
 
                     <p class="t-meta text-center mt-4">
-                        Protected by the mypage.ng verified sovereign booking protocol.
+                        Payment is confirmed by the seller's gateway before your appointment is reserved.
                     </p>
 
                     <a href="{{ $bookUrl }}"

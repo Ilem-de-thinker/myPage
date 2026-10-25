@@ -11,6 +11,7 @@
         ->get();
 
     $heading = $block->field('heading');
+    $preset = $page->settings['theme_preset'] ?? 'minimal-swiss';
 @endphp
 
 @if ($photos->isNotEmpty())
@@ -21,13 +22,13 @@
 
     {{-- No caption bar laid over the picture: the name sits under the frame,
          so the photograph is never half covered by a dark rectangle. --}}
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5">
+    <div data-gallery-style="{{ $preset }}" class="theme-gallery grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5">
       @foreach ($photos as $service)
-        <a href="{{ route('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]) }}"
+        <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]) }}"
            class="plate group block">
           <div class="plate-media bg-[var(--brand-wash)]">
             <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
-                 alt="{{ $service->name }}" class="aspect-square w-full object-cover" loading="lazy" decoding="async">
+                 alt="{{ $service->name }}" width="600" height="600" class="aspect-square w-full object-cover" loading="lazy" decoding="async">
           </div>
           <p class="t-title mt-3">{{ $service->name }}</p>
         </a>
