@@ -13,7 +13,7 @@
 <div
     x-data="platformSupport"
     x-on:support-open.window="openSupport()"
-    @ai.open.window="closeSupport()"
+    @ai-open.window="closeSupport()"
     class="relative z-50"
 >
     @if ($standalone)

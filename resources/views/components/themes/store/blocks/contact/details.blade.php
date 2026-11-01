@@ -28,9 +28,10 @@
         ? Str::before(WhatsApp::link($page, 'x'), '=').'='
         : null;
 
-    $mapsUrl = $mapQuery
-        ? 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mapQuery)
-        : null;
+    $latitude = $coordinates ? (float) $page->latitude : null;
+    $longitude = $coordinates ? (float) $page->longitude : null;
+    $mapsUrl = \App\Shared\Support\MapProvider::externalUrl($latitude, $longitude, $mapQuery);
+    $mapEmbedUrl = \App\Shared\Support\MapProvider::embedUrl($latitude, $longitude, $mapQuery);
 
     $hasAny = (bool) ($where || $coordinates || $page->public_email || $page->whatsapp_number || $social || $whatsapp);
 @endphp
@@ -68,14 +69,14 @@
             @if ($mapsUrl)
               <a href="{{ $mapsUrl }}" target="_blank" rel="noopener noreferrer"
                  class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
-                <span>Open in Google Maps</span>
+                <span>Open in {{ \App\Shared\Support\MapProvider::label() }}</span>
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </a>
             @endif
 
-            @if ($coordinates && config('services.google.maps_browser_key'))
+            @if ($mapEmbedUrl)
               <iframe
-                  src="https://www.google.com/maps/embed/v1/place?key={{ urlencode(config('services.google.maps_browser_key')) }}&q={{ urlencode($mapQuery) }}"
+                  src="{{ $mapEmbedUrl }}"
                   class="h-56 w-full rounded-[var(--radius)] border border-[var(--rule)]"
                   loading="lazy"
                   referrerpolicy="no-referrer-when-downgrade"

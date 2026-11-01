@@ -47,6 +47,14 @@
   --platform-support-wash-strong: #d6e6da;
   --platform-support-border: #b7cfbf;
 
+  /* ── Accents on the flipping ink band ───────────────────────────────────── */
+  --platform-accent-on-ink: #e58a5c;
+  --platform-support-on-ink: #5cbb90;
+
+  /* ── Accents on fixed dark surfaces ─────────────────────────────────────── */
+  --platform-accent-on-dark: #e58a5c;
+  --platform-support-on-dark: #5cbb90;
+
   /* ── Lines & focus ──────────────────────────────────────────────────────── */
   --platform-line: #e2dacb;
   --platform-line-strong: #cdc2ad;
@@ -172,6 +180,9 @@
   --platform-support-wash: #10261c;
   --platform-support-wash-strong: #143326;
   --platform-support-border: #24503c;
+
+  --platform-accent-on-ink: #9c3c1b;
+  --platform-support-on-ink: #173e2e;
 
   --platform-line: #243029;
   --platform-line-strong: #35443a;

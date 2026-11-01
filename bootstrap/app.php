@@ -1,6 +1,8 @@
 <?php
 
 use App\Domains\Admin\Middleware\EnsureUserIsAdmin;
+use App\Domains\Admin\Middleware\EnsureUserIsCoreAdmin;
+use App\Domains\Shared\Middleware\EnsureStoreIsOpen;
 use App\Domains\Shared\Middleware\EnsureSubscriptionValid;
 use App\Shared\Middleware\EnsureApexHost;
 use App\Shared\Middleware\EnsureFeatureIsEnabled;
@@ -31,11 +33,11 @@ return Application::configure(basePath: dirname(__DIR__))
              | constraint does not match at all, so nothing here can swallow a
              | platform path.
              */
-            Route::middleware(['web', 'resolve.store'])
+            Route::middleware(['web', 'resolve.store', 'store.open'])
                 ->domain('{slug}.'.config('mypage.domain'))
                 ->group(base_path('routes/storefront.php'));
 
-            Route::middleware(['web', 'resolve.store'])
+            Route::middleware(['web', 'resolve.store', 'store.open'])
                 ->domain('{slug}.'.config('mypage.domain'))
                 ->group(base_path('routes/checkout.php'));
 
@@ -92,8 +94,10 @@ return Application::configure(basePath: dirname(__DIR__))
              */
             'business.verified' => EnsureSellerIsVerified::class,
             'resolve.store' => ResolveStorePage::class,
+            'store.open' => EnsureStoreIsOpen::class,
             'subscription.valid' => EnsureSubscriptionValid::class,
             'admin' => EnsureUserIsAdmin::class,
+            'admin.core' => EnsureUserIsCoreAdmin::class,
             'feature' => EnsureFeatureIsEnabled::class,
             'forward.custom.domain' => ForwardCustomDomainToStorefront::class,
             'apex.host' => EnsureApexHost::class,
@@ -110,6 +114,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             SubstituteBindings::class,
             EnsureUserIsAdmin::class,
+        );
+
+        // The core check must also win over binding: a staff admin who guesses
+        // an id should get 403, not a 404 from a tenant scope that is about to
+        // be lifted for somebody allowed to be here.
+        $middleware->prependToPriorityList(
+            SubstituteBindings::class,
+            EnsureUserIsCoreAdmin::class,
         );
 
         /*

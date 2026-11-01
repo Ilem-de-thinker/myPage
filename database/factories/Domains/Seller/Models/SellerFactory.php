@@ -2,6 +2,7 @@
 
 namespace Database\Factories\Domains\Seller\Models;
 
+use App\Domains\Admin\Enums\AdminRole;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -43,6 +44,22 @@ class SellerFactory extends Factory
      */
     public function admin(): static
     {
-        return $this->state(fn () => ['is_admin' => true]);
+        return $this->state(fn () => [
+            'is_admin' => true,
+            'admin_role' => AdminRole::CoreAdmin,
+        ]);
+    }
+
+    public function coreAdmin(): static
+    {
+        return $this->admin();
+    }
+
+    public function staffAdmin(): static
+    {
+        return $this->state(fn () => [
+            'is_admin' => true,
+            'admin_role' => AdminRole::StaffAdmin,
+        ]);
     }
 }

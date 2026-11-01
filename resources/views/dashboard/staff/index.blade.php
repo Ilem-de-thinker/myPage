@@ -151,5 +151,9 @@
                 </p>
             </div>
         @endforelse
+
+        @if ($staff->hasPages())
+            <div class="mt-4">{{ $staff->links() }}</div>
+        @endif
     </div>
 @endsection

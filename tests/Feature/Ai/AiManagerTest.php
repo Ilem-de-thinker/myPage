@@ -62,3 +62,44 @@ it('enforces the configured monthly credit limit', function () {
     expect(fn () => app(AiManager::class)->run('copy_rewrite', ['text' => 'Hello'], $page))
         ->toThrow(HttpException::class);
 });
+
+it('passes every structured result through the shared format guard', function () {
+    $fake = Prism::fake([
+        StructuredResponseFake::make()->withStructured([
+            'name' => 'Ankara tote bag',
+            'description' => 'A structured tote bag with a lined interior.',
+            'category' => 'Bags',
+            'tags' => ['ankara', 'tote'],
+            'price_hint' => '',
+            'seo_title' => 'Ankara tote bag',
+            'seo_description' => 'A structured ankara tote bag for everyday use.',
+            'variants' => [],
+            'unexpected' => 'This field is not part of the schema.',
+        ]),
+    ]);
+
+    $result = app(AiManager::class)->run('listing_copy', ['text' => 'Ankara tote bag']);
+
+    expect($result)
+        ->toBeArray()
+        ->toHaveKeys(['name', 'description', 'category', 'tags', 'price_hint', 'seo_title', 'seo_description', 'variants'])
+        ->not->toHaveKey('unexpected')
+        ->and($result['price_hint'])->toBe('')
+        ->and($result['tags'])->toBe(['ankara', 'tote'])
+        ->and($result['variants'])->toBe([]);
+
+    $fake->assertRequest(function (array $requests): void {
+        expect($requests[0]->systemPrompts())->toHaveCount(1)
+            ->and($requests[0]->systemPrompts()[0]->content)->toContain('Shared AI guardrails');
+    });
+});
+
+it('rejects a non-object structured result instead of returning it', function () {
+    Prism::fake([
+        StructuredResponseFake::make()->withStructured(['text' => 'not a listing']),
+        StructuredResponseFake::make()->withStructured(['text' => 'still not a listing']),
+    ]);
+
+    expect(fn () => app(AiManager::class)->run('listing_copy', ['text' => 'Ankara tote bag']))
+        ->toThrow(ValidationException::class);
+});

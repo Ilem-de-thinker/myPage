@@ -70,7 +70,7 @@
   </div>
 
   {{-- Editorial Authentic Badge in corner --}}
-  <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full border border-[var(--platform-line)] bg-white/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--platform-ink-muted)] backdrop-blur-xs">
+  <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full border border-[var(--platform-line)] bg-[var(--platform-paper)]/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--platform-ink-muted)] backdrop-blur-xs">
     <span>Direct</span>
   </div>
 </div>

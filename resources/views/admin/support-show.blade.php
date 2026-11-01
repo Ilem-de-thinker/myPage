@@ -4,7 +4,7 @@
 
     <div class="mt-5 flex flex-col justify-between gap-4 border-b border-rule pb-5 sm:flex-row sm:items-end">
       <div>
-        <p class="text-[11px] font-bold tracking-wide text-brand">{{ $supportRequest->ticket_number }}</p>
+        <p class="text-[11px] font-bold tracking-wide text-brand-text">{{ $supportRequest->ticket_number }}</p>
         <h1 class="mt-1 font-display text-2xl font-extrabold tracking-tight">{{ $supportRequest->subject }}</h1>
         <p class="mt-1 text-xs text-ink-3">{{ ucfirst($supportRequest->source) }} · {{ $supportRequest->requester_name ?: ($supportRequest->seller?->name ?? 'Anonymous') }} · {{ $supportRequest->requester_contact ?: 'No contact supplied' }}</p>
       </div>

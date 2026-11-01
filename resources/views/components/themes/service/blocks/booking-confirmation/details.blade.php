@@ -19,6 +19,9 @@
     $service = $booking?->service;
     $totalKobo = (int) ($booking?->price_kobo ?? 0);
     $depositKobo = (int) ($booking?->deposit_kobo ?? 0);
+    $travelFeeKobo = (int) ($booking?->travel_fee_kobo ?? 0);
+    // The fee is paid at booking, so the balance at the studio is only the
+    // unpaid part of the package.
     $balanceKobo = max(0, $totalKobo - $depositKobo);
 
     $desk = $booking
@@ -173,8 +176,8 @@
 
           <div>
             <span class="text-[var(--ink-3)] block">Paid at Booking</span>
-            @if ($depositKobo > 0)
-              <p class="t-price-sm text-[var(--ok-text)]">{{ Money::format($depositKobo) }} (Paid)</p>
+            @if ($depositKobo > 0 || $travelFeeKobo > 0)
+              <p class="t-price-sm text-[var(--ok-text)]">{{ Money::format($depositKobo + $travelFeeKobo) }} (Paid)</p>
             @else
               <p class="t-price-sm">{{ $totalKobo > 0 ? 'Nothing paid' : 'Nothing owed' }}</p>
             @endif
@@ -185,6 +188,12 @@
             <p class="t-price-sm text-[var(--ink)]">{{ Money::format($balanceKobo) }}</p>
           </div>
         </div>
+
+        @if ($travelFeeKobo > 0)
+          <p class="text-[11px] text-[var(--ink-2)] border-t border-[var(--brand-edge)] pt-3 leading-relaxed">
+            {{ Money::format($travelFeeKobo) }} travel fee was charged at booking and went straight to {{ $page->name }}.
+          </p>
+        @endif
 
         @if ($depositKobo > 0)
           <p class="text-[11px] text-[var(--ink-2)] border-t border-[var(--brand-edge)] pt-3 leading-relaxed">

@@ -4,6 +4,7 @@ namespace App\Domains\Admin\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 
 class PlatformSetting extends Model
 {
@@ -22,6 +23,7 @@ class PlatformSetting extends Model
                 'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
                 'integer' => (int) $setting->value,
                 'json' => json_decode((string) $setting->value, true) ?? $default,
+                'encrypted' => static::decrypt($setting->value, $default),
                 default => $setting->value,
             };
         });
@@ -33,6 +35,7 @@ class PlatformSetting extends Model
             'boolean' => $value ? '1' : '0',
             'integer' => (string) ((int) $value),
             'json' => json_encode($value, JSON_THROW_ON_ERROR),
+            'encrypted' => Crypt::encryptString((string) $value),
             default => (string) $value,
         };
 
@@ -50,5 +53,18 @@ class PlatformSetting extends Model
     {
         static::query()->where('key', $key)->delete();
         Cache::forget("platform-setting:{$key}");
+    }
+
+    private static function decrypt(?string $value, mixed $default): mixed
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable) {
+            return $default;
+        }
     }
 }

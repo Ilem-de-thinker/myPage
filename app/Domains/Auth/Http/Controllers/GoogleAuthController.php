@@ -179,7 +179,7 @@ class GoogleAuthController
 
         $seller->forceFill(['last_login_at' => now()])->save();
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended($seller->isAdmin() ? route('admin.index') : route('dashboard'));
     }
 
     private function failed(string $message): RedirectResponse

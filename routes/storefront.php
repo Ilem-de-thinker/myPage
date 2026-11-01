@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Ai\Http\Controllers\AssistantController;
+use App\Domains\Ai\Http\Controllers\StoreSearchController;
 use App\Domains\Analytics\Http\Controllers\StoreEventController;
 use App\Domains\Booking\Http\Controllers\PublicBookingController;
 use App\Domains\Chat\Http\Controllers\PublicChatController;
@@ -19,6 +20,9 @@ Route::get('/about', [StorefrontController::class, 'about'])->name('storefront.a
 Route::get('/contact', [StorefrontController::class, 'contact'])->name('storefront.contact');
 Route::get('/products', [StorefrontController::class, 'products'])->name('storefront.products');
 Route::get('/search', [StorefrontController::class, 'search'])->middleware('throttle:30,1')->name('storefront.search');
+// The header's AI search: public and unauthenticated, so throttled — each hit
+// can spend a provider call before the query ever reaches the catalogue.
+Route::post('/search/ai', [StoreSearchController::class, '__invoke'])->middleware('throttle:20,1')->name('storefront.ai.search');
 Route::get('/products/{productSlug}', [StorefrontController::class, 'productShow'])->name('storefront.product');
 Route::get('/services', [StorefrontController::class, 'services'])->name('storefront.services');
 Route::get('/services/{serviceSlug}', [StorefrontController::class, 'serviceShow'])->name('storefront.service');

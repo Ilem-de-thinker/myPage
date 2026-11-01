@@ -18,7 +18,7 @@ class PublicChatController extends Controller
         $opened = $chat->openGuestThread($page, $data);
         $chat->send($opened['thread'], 'buyer', null, $data['body']);
 
-        return response()->json(['thread_id' => $opened['thread']->id, 'token' => $opened['token']]);
+        return response()->json(['thread_id' => $opened['thread']->id, 'token' => $opened['token']], 201);
     }
 
     public function show(Request $request, StorePage $page, int $thread, ChatService $chat): View|JsonResponse

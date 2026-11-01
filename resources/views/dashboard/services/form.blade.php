@@ -8,6 +8,9 @@
         $depositValue = old('deposit_value', $editing
             ? ($service->deposit_type?->value === 'percent' ? $service->deposit_value : $service->deposit_value / 100)
             : null);
+        $compareAt = old('compare_at', $editing && $service->compare_at_kobo ? $service->compare_at_kobo / 100 : null);
+        $saleStartsAt = old('sale_starts_at', $editing ? $service->sale_starts_at?->format('Y-m-d\TH:i') : null);
+        $saleEndsAt = old('sale_ends_at', $editing ? $service->sale_ends_at?->format('Y-m-d\TH:i') : null);
     @endphp
 
     <x-ui.page-header
@@ -59,7 +62,7 @@
             <label class="block">
                 <span class="mb-1 flex items-center justify-between gap-3 text-xs font-semibold text-ink">
                     <span>Name</span>
-                    <button type="button" @click.prevent="draftCopy" :disabled="aiLoading || !name && !description" class="rounded-lg border border-brand-edge bg-brand-wash px-2.5 py-1.5 text-[11px] font-bold text-brand-text disabled:opacity-50"><span x-text="aiLoading ? 'Drafting…' : 'Draft with AI'"></span></button>
+                    <button type="button" @click.prevent="draftCopy" :disabled="aiLoading || !name && !description" class="rounded-lg border border-brand-edge bg-brand-wash px-2.5 py-1.5 text-[11px] font-bold text-brand-text disabled:opacity-50"><span x-text="aiLoading ? 'Drafting…' : 'Draft with Mercho'"></span></button>
                 </span>
                 <input type="text" name="name" required x-model="name"
                        class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none"
@@ -136,6 +139,43 @@
         </div>
 
         <div class="bg-card rounded-2xl border border-rule p-6">
+            <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">Sale pricing</h2>
+            <p class="text-xs text-ink-3 mb-3">
+                The price above is what the customer pays. Enter your normal price here to show it crossed out
+                while the sale runs. Leave the window blank to keep it on until you remove the original price.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">Original price (₦)</span>
+                    <input type="number" name="compare_at" min="0" step="0.01"
+                           value="{{ $compareAt }}"
+                           placeholder="Leave blank for no sale"
+                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                    @error('compare_at') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">Starts</span>
+                    <input type="datetime-local" name="sale_starts_at"
+                           value="{{ $saleStartsAt }}"
+                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                    <span class="mt-1 block text-[11px] text-ink-3">Blank means already started.</span>
+                    @error('sale_starts_at') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">Ends</span>
+                    <input type="datetime-local" name="sale_ends_at"
+                           value="{{ $saleEndsAt }}"
+                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                    <span class="mt-1 block text-[11px] text-ink-3">Blank means no end date.</span>
+                    @error('sale_ends_at') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                </label>
+            </div>
+        </div>
+
+        <div class="bg-card rounded-2xl border border-rule p-6">
             <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">What is included</h2>
             <p class="text-xs text-ink-3 mb-3">
                 One per line. These become the tick-list on your service card, and they are how a
@@ -178,9 +218,50 @@
             </div>
         </div>
 
+        <div class="bg-card rounded-2xl border border-rule p-6">
+            <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">Where you deliver it</h2>
+            <p class="text-xs text-ink-3 mb-3">
+                A haircut happens at your place; a make-up booking might happen at theirs. Set this
+                per service so the right option is offered when someone books.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">This service is</span>
+                    <select name="service_mode"
+                            class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                        <option value="" @selected(old('service_mode', $service?->service_mode?->value ?? '') === '')>Use my store settings</option>
+                        <option value="at_location" @selected(old('service_mode', $service?->service_mode?->value) === 'at_location')>At my place</option>
+                        <option value="home" @selected(old('service_mode', $service?->service_mode?->value) === 'home')>I travel to them</option>
+                        <option value="remote" @selected(old('service_mode', $service?->service_mode?->value) === 'remote')>Remote / online</option>
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">Travel fee (₦)</span>
+                    <input type="number" name="travel_fee" min="0" step="0.01" inputmode="decimal"
+                           value="{{ old('travel_fee', $service?->travel_fee_kobo ? number_format($service->travel_fee_kobo / 100, 2, '.', '') : '') }}"
+                           placeholder="Leave blank for free"
+                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold text-ink">Travel radius (km)</span>
+                    <input type="number" name="travel_radius_km" min="0" max="1000" inputmode="numeric"
+                           value="{{ old('travel_radius_km', $service?->travel_radius_km) }}"
+                           placeholder="e.g. 15"
+                           class="mt-1 w-full rounded-xl border border-rule px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                    <span class="mt-1 block text-[11px] text-ink-3">How far you will travel for this service.</span>
+                </label>
+            </div>
+
+            @error('service_mode') <p class="mt-2 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+            @error('travel_fee') <p class="mt-2 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+            @error('travel_radius_km') <p class="mt-2 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+        </div>
+
         {{-- The staff list arrives as id => name, an array. A collection method
-             on it is a fatal, and the form is the only place that renders it. --}}
-        @if (! empty($staff))
+             on it is a fatal, and the form is the only place that renders it. --}}        @if (! empty($staff))
             <div class="bg-card rounded-2xl border border-rule p-6">
                 <h2 class="text-[11px] uppercase tracking-wide text-ink-3 mb-2">Who can do this</h2>
                 <p class="text-xs text-ink-3 mb-3">Leave all unticked to let anyone free take the booking.</p>

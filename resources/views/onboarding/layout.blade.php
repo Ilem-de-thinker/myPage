@@ -36,7 +36,10 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <a href="{{ route('dashboard') }}" class="text-xs font-semibold text-ink-3 hover:text-ink">Skip setup</a>
+                <form method="POST" action="{{ route('onboarding.skip') }}">
+                    @csrf
+                    <button type="submit" class="text-xs font-semibold text-ink-3 hover:text-ink">Skip setup</button>
+                </form>
                 <x-ui.theme-toggle />
             </div>
         </div>

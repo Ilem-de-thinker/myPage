@@ -3,6 +3,7 @@
 use App\Domains\Admin\Models\AdminAuditLog;
 use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Admin\Models\BadgeStatus;
+use App\Domains\Admin\Models\PlatformSetting;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Seller\Enums\StoreStatus;
@@ -96,6 +97,10 @@ it('shows the badge on the storefront once an admin approves it', function () {
     $admin = adminUser();
 
     [$seller, $page] = sellerWithPage(['status' => 'published', 'slug' => 'badge-seller']);
+    // The factory page starts verified for dashboard tests; this test is about
+    // the approval action being what earns the storefront tick.
+    $page->forceFill(['verified_at' => null])->save();
+
     $application = BadgeApplication::factory()->create([
         'seller_id' => $seller->id,
         'store_page_id' => $page->id,
@@ -116,6 +121,7 @@ it('shows the badge on the storefront once an admin approves it', function () {
 
 it('never badges a page whose application was rejected', function () {
     [$seller, $page] = sellerWithPage(['status' => 'published', 'slug' => 'rejected-badge']);
+    $page->forceFill(['verified_at' => null])->save();
 
     BadgeApplication::factory()->rejected()->create([
         'seller_id' => $seller->id,
@@ -171,6 +177,8 @@ it('lets a seller apply with a document', function () {
     actingAs($seller)
         ->post(route('badge.submit'), [
             'business_name' => 'Ada Textiles Limited',
+            'registered_legal_name' => 'Ada Textiles Limited',
+            'registration_number' => 'RC-1234567',
             'document_type' => 'cac',
             'document' => UploadedFile::fake()->create('cac.pdf', 120, 'application/pdf'),
         ])
@@ -193,6 +201,8 @@ it('refuses a document that is not a pdf or an image', function () {
     actingAs($seller)
         ->post(route('badge.submit'), [
             'business_name' => 'Ada Textiles Limited',
+            'registered_legal_name' => 'Ada Textiles Limited',
+            'registration_number' => 'RC-1234567',
             'document_type' => 'cac',
             'document' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php'),
         ])
@@ -209,6 +219,8 @@ it('will not take a second application while one is waiting', function () {
 
     actingAs($seller)->post(route('badge.submit'), [
         'business_name' => 'Ada Textiles Limited',
+        'registered_legal_name' => 'Ada Textiles Limited',
+        'registration_number' => 'RC-1234567',
         'document_type' => 'cac',
         'document' => UploadedFile::fake()->create('cac.pdf', 120, 'application/pdf'),
     ])->assertSessionHasErrors('document');
@@ -223,6 +235,8 @@ it('never shows one seller another seller\'s applications', function () {
     actingAs($seller)->get(route('badge.apply'))->assertOk()->assertDontSee('Secret Ltd');
     actingAs($seller)->post(route('badge.submit'), [
         'business_name' => $foreign->business_name,
+        'registered_legal_name' => $foreign->business_name,
+        'registration_number' => 'RC-7654321',
         'document_type' => 'cac',
         'document' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf'),
     ]);
@@ -325,4 +339,43 @@ it('filters the transaction browser by status and reference', function () {
 
 it('keeps the admin panel out of search engines', function () {
     actingAs(adminUser())->get('/admin')->assertOk()->assertSee('noindex, nofollow', false);
+});
+
+it('renders the map provider setting with the default selected', function () {
+    actingAs(adminUser())
+        ->get(route('admin.settings'))
+        ->assertOk()
+        ->assertSee('Maps')
+        ->assertSee('OpenStreetMap (Leaflet)')
+        ->assertSee('Google Maps');
+});
+
+it('saves the chosen map provider', function () {
+    actingAs(adminUser())
+        ->withHeaders(['HTTP_REFERER' => 'http://localhost:8000/admin/settings'])
+        ->post(route('admin.settings.update'), [
+            'platform_name' => 'mypage.ng',
+            'platform_tagline' => 'Sovereign storefronts for Nigerian businesses.',
+            'store_theme_enabled' => '1',
+            'service_theme_enabled' => '1',
+            'map_provider' => 'google',
+        ])
+        ->assertRedirect();
+
+    expect(PlatformSetting::value('platform.map_provider'))->toBe('google');
+});
+
+it('falls back to openstreetmap when the provider is unknown', function () {
+    actingAs(adminUser())
+        ->withHeaders(['HTTP_REFERER' => 'http://localhost:8000/admin/settings'])
+        ->post(route('admin.settings.update'), [
+            'platform_name' => 'mypage.ng',
+            'platform_tagline' => 'Sovereign storefronts for Nigerian businesses.',
+            'store_theme_enabled' => '1',
+            'service_theme_enabled' => '1',
+            'map_provider' => 'bogus',
+        ])
+        ->assertSessionHasErrors(['map_provider']);
+
+    expect(PlatformSetting::value('platform.map_provider', 'openstreetmap'))->toBe('openstreetmap');
 });

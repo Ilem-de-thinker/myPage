@@ -2,17 +2,21 @@
 
 namespace App\Domains\Admin\Http\Controllers;
 
+use App\Domains\Admin\Actions\RecordAdminAction;
 use App\Domains\Admin\Models\PlatformSetting;
+use App\Domains\Billing\Services\GracePeriod;
 use App\Domains\Billing\Services\SubscriptionAvailability;
+use App\Shared\Support\MapProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PlatformSettingsController extends Controller
 {
-    public function edit(SubscriptionAvailability $availability): View
+    public function edit(SubscriptionAvailability $availability, GracePeriod $grace): View
     {
         return view('admin.settings', [
             'settings' => [
@@ -25,14 +29,19 @@ class PlatformSettingsController extends Controller
                 'service_carousel_enabled' => PlatformSetting::value('theme.service.carousel', true),
                 'store_hero_styles_enabled' => PlatformSetting::value('theme.store.hero_styles', true),
                 'service_hero_styles_enabled' => PlatformSetting::value('theme.service.hero_styles', true),
+                'map_provider' => MapProvider::selection(),
             ],
             'logoPath' => PlatformSetting::value('platform_logo_path'),
             'subscriptionsEnabled' => $availability->enabled(),
+            'graceDays' => $grace->days(),
         ]);
     }
 
-    public function update(Request $request, SubscriptionAvailability $availability): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        SubscriptionAvailability $availability,
+        RecordAdminAction $audit,
+    ): RedirectResponse {
         $data = $request->validate([
             'platform_name' => ['required', 'string', 'max:80'],
             'support_email' => ['nullable', 'email', 'max:190'],
@@ -46,6 +55,8 @@ class PlatformSettingsController extends Controller
             'store_hero_styles_enabled' => ['sometimes', 'boolean'],
             'service_hero_styles_enabled' => ['sometimes', 'boolean'],
             'subscriptions_enabled' => ['sometimes', 'boolean'],
+            'grace_days' => ['sometimes', 'integer', 'min:0', 'max:90'],
+            'map_provider' => ['sometimes', Rule::in([MapProvider::OPENSTREETMAP, MapProvider::GOOGLE])],
         ]);
 
         if (! $request->boolean('store_theme_enabled') && ! $request->boolean('service_theme_enabled')) {
@@ -58,6 +69,10 @@ class PlatformSettingsController extends Controller
         PlatformSetting::put('support_email', trim((string) ($data['support_email'] ?? '')));
         PlatformSetting::put('platform_tagline', trim($data['platform_tagline']));
 
+        if (isset($data['map_provider'])) {
+            PlatformSetting::put('platform.map_provider', $data['map_provider']);
+        }
+
         foreach ([
             'store_theme_enabled' => 'theme.store.enabled',
             'service_theme_enabled' => 'theme.service.enabled',
@@ -67,6 +82,10 @@ class PlatformSettingsController extends Controller
             'service_hero_styles_enabled' => 'theme.service.hero_styles',
         ] as $input => $key) {
             PlatformSetting::put($key, $request->boolean($input), 'boolean');
+        }
+
+        if (array_key_exists('grace_days', $data)) {
+            PlatformSetting::put('billing.grace_days', (int) $data['grace_days'], 'integer');
         }
 
         if ($request->boolean('subscriptions_enabled')) {
@@ -84,6 +103,8 @@ class PlatformSettingsController extends Controller
                 $request->file('platform_logo')->store('platform/brand', 'public'),
             );
         }
+
+        $audit->handle($request->user(), 'platform.settings.updated', null, 'Platform settings saved.');
 
         return back()->with('status', 'Platform settings saved.');
     }

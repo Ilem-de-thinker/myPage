@@ -2,7 +2,7 @@
 
 @section('content')
     <x-ui.page-header title="Services" subtitle="What customers can book, and for how long.">
-        <div class="flex flex-wrap items-center gap-2"><button type="button" @click="$dispatch('ai.open', { text: '' })" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-edge bg-brand-wash px-4 py-2.5 text-xs font-semibold text-brand-text"><x-ui.icon name="spark" class="size-4" /> Use AI</button><a href="{{ route('services.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover"><x-ui.icon name="briefcase" class="size-4" /> Add a service</a></div>
+        <div class="flex flex-wrap items-center gap-2"><button type="button" @click="$dispatch('ai-open', { text: '' })" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-edge bg-brand-wash px-4 py-2.5 text-xs font-semibold text-brand-text"><x-ui.icon name="spark" class="size-4" /> Use Mercho</button><a href="{{ route('services.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover"><x-ui.icon name="briefcase" class="size-4" /> Add a service</a></div>
     </x-ui.page-header>
 
     @if ($daysOpen === 0)
@@ -33,6 +33,9 @@
                         @unless ($service->is_active)
                             <span class="rounded-full bg-tint px-2 py-0.5 text-[10px] font-semibold text-ink-3">Hidden</span>
                         @endunless
+                        @if ($service->isOnSale())
+                            <span class="rounded-full bg-brand-wash px-2 py-0.5 text-[10px] font-semibold text-brand-text">Sale −{{ $service->discountPercent() }}%</span>
+                        @endif
                     </div>
                     <p class="mt-0.5 truncate text-xs text-ink-3">
                         {{ $service->durationLabel() }}
@@ -44,7 +47,12 @@
                 </div>
 
                 <div class="text-right">
-                    <p class="text-sm font-bold text-ink">{{ $service->priceLabel() }}</p>
+                    <div class="flex items-baseline justify-end gap-1.5">
+                        <p class="text-sm font-bold text-ink">{{ $service->priceLabel() }}</p>
+                        @if ($service->isOnSale())
+                            <del class="text-[11px] text-ink-3 tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }}</del>
+                        @endif
+                    </div>
                     @if ($service->hasDeposit())
                         <p class="text-[11px] text-ink-3">{{ \App\Shared\Support\Money::format($service->amountDueKobo()) }} to book</p>
                     @endif

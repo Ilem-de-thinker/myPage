@@ -11,9 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Gates dashboard writes on a live subscription.
  *
- * Deliberately narrow: it never touches the public storefront. A seller's page
- * stays up through a failed debit, because silently taking a shop offline is
- * worse than the unpaid month, and they keep trading while they sort it out.
+ * Reads stay open so a lapsed seller can export their data and pay. The public
+ * storefront is handled separately by EnsureStoreIsOpen: it stays visible but
+ * stops accepting orders once both the period and the grace window are over.
  */
 class EnsureSubscriptionValid
 {

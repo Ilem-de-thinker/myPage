@@ -36,8 +36,9 @@ class DomainBindingController extends Controller
 
         return view('dashboard.domains.index', [
             'bindings' => DomainBinding::where('seller_id', $seller->getKey())
-                ->latest()
-                ->get(),
+                ->latest('id')
+                ->paginate(20)
+                ->withQueryString(),
             'cnameTarget' => config('mypage.custom_domain.cname_target'),
             'eligible' => $this->planAllows($seller),
             'requiredPlan' => $this->requiredPlanName(),

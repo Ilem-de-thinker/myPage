@@ -345,6 +345,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     // past this has no page to verify, and business.verified would make the
     // platform impossible to sign up for.
     Route::prefix('onboarding')->name('onboarding.')->middleware('verified')->group(function () {
+        Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
         Route::get('/{step}', [OnboardingController::class, 'show'])->name('show')->whereIn('step', ['business', 'theme', 'brand', 'review']);
         Route::post('/{step}', [OnboardingController::class, 'store'])->name('store')->whereIn('step', ['business', 'theme', 'brand', 'review']);
         Route::post('/ai', [OnboardingController::class, 'aiCreate'])->name('ai');

@@ -12,10 +12,20 @@
       and not the design.
     */
     $deliverables = $service->deliverableList();
-    $where = $page->locationLabel();
     $deposit = $service->depositKobo();
-    $balance = max(0, $service->price_kobo - $deposit);
+    $fulfilment = app(\App\Domains\Booking\Actions\QuoteServiceFulfilment::class)
+        ->handle($service, $page->deliveryProfile()->first());
+    $travelFee = $fulfilment['travel_fee_kobo'];
+    $depositDue = $service->hasDeposit() ? $deposit + $travelFee : $service->price_kobo + $travelFee;
+    // Travel is paid at booking, so it never sits in the balance owed on the day.
+    $balance = $service->hasDeposit() ? max(0, $service->price_kobo - $deposit) : 0;
+    $where = match ($fulfilment['mode']) {
+        \App\Domains\Booking\Enums\ServiceMode::Home => 'We come to you',
+        \App\Domains\Booking\Enums\ServiceMode::Remote => 'Remote / online',
+        default => $page->locationLabel(),
+    };
     $bookUrl = \App\Shared\Support\StoreUrl::path('storefront.book', ['slug' => $page->slug, 'service' => $service->id]);
+    $onSale = $service->isOnSale();
 @endphp
 
 <section class="section-y border-b border-[var(--rule)]">
@@ -59,7 +69,24 @@
                         <span class="text-xs text-[var(--ink-3)] font-medium">{{ $where ?: '—' }}</span>
                     </div>
 
-                    <h1 class="t-display-2 text-[var(--ink)] mb-4">{{ $service->name }}</h1>
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <h1 class="t-display-2 text-[var(--ink)]">{{ $service->name }}</h1>
+                        @if ($onSale)
+                            <span class="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--paper)]">
+                                Sale −{{ $service->discountPercent() }}%
+                            </span>
+                        @endif
+                    </div>
+
+                    @if ($onSale)
+                        <div class="flex flex-wrap items-baseline gap-2 mb-1">
+                            <span class="t-price-sm">{{ $service->priceWithUnitLabel() }}</span>
+                            <del class="text-xs text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }} {{ $service->billingUnit()->suffix() }}</del>
+                        </div>
+                        @if ($service->saleEndsLabel())
+                            <p class="t-meta mb-2">{{ $service->saleEndsLabel() }}</p>
+                        @endif
+                    @endif
 
                     @if ($service->description)
                         <p class="t-body text-[var(--ink-2)] leading-relaxed mb-6">{{ $service->description }}</p>
@@ -122,9 +149,24 @@
                             <span class="text-[var(--ink-3)]">Location</span>
                             <span class="font-semibold text-[var(--ink)] text-right">{{ $where ?: '—' }}</span>
                         </div>
+                        @if ($onSale)
+                            <div class="flex items-center justify-between">
+                                <span class="text-[var(--ink-3)]">Sale price</span>
+                                <span class="text-right">
+                                    <del class="text-[11px] text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }}</del>
+                                    <span class="font-semibold text-[var(--ink)]">{{ $service->priceWithUnitLabel() }}</span>
+                                </span>
+                            </div>
+                        @endif
+                        @if ($travelFee > 0)
+                            <div class="flex items-center justify-between">
+                                <span class="text-[var(--ink-3)]">Travel fee</span>
+                                <span class="font-semibold text-[var(--ink)] text-right">{{ \App\Shared\Support\Money::format($travelFee) }}</span>
+                            </div>
+                        @endif
                         <div class="flex items-center justify-between pt-3 border-t border-[var(--rule)]">
                             <span class="font-semibold text-[var(--ink)]">{{ $service->hasDeposit() ? 'Deposit Due Now' : 'Total Due Now' }}</span>
-                            <span class="t-price-sm">{{ $service->hasDeposit() ? \App\Shared\Support\Money::format($deposit) : $service->priceLabel() }}</span>
+                            <span class="t-price-sm">{{ \App\Shared\Support\Money::format($depositDue) }}</span>
                         </div>
                         @if ($service->hasDeposit() && $balance > 0)
                             <div class="flex items-center justify-between text-[11px]">

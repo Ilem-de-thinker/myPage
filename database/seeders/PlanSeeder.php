@@ -31,6 +31,7 @@ class PlanSeeder extends Seeder
                 'description' => $definition['description'] ?? null,
                 'trial_days' => $definition['trial_days'] ?? null,
                 'max_products' => $definition['max_products'] ?? null,
+                'max_staff' => $definition['max_staff'] ?? null,
                 'is_default' => (bool) ($definition['is_default'] ?? false),
                 'is_featured' => (bool) ($definition['is_featured'] ?? false),
                 'is_active' => true,

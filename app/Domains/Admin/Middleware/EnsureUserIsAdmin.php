@@ -18,7 +18,7 @@ class EnsureUserIsAdmin
     {
         $seller = $request->user();
 
-        abort_unless($seller?->is_admin, 404);
+        abort_unless($seller?->isAdmin(), 404);
 
         // From here the panel reads every seller's rows, not just the admin's.
         CrossTenant::enable();

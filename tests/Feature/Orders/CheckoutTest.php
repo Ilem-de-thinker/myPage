@@ -1,10 +1,13 @@
 <?php
 
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Orders\Enums\FulfilmentMode;
 use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Enums\OrderStatus;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Payments\Models\Transaction;
+use App\Domains\Seller\Models\DeliveryProfile;
+use App\Domains\Seller\Models\DeliveryZone;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Facades\Http;
 
@@ -231,4 +234,90 @@ it('names the store on the storefront too, since the cart is filled there', func
     get(storeUrl($page->slug, ''))
         ->assertOk()
         ->assertSee('data-store="'.$page->slug.'"', escape: false);
+});
+
+it('adds the chosen delivery zone fee to the order total', function () {
+    [$page, $product] = checkoutStore();
+    $profile = DeliveryProfile::factory()->create(['store_page_id' => $page->id]);
+    $zone = DeliveryZone::factory()->create([
+        'delivery_profile_id' => $profile->id,
+        'name' => 'Lekki',
+        'fee_kobo' => 120000,
+    ]);
+
+    post(storeUrl($page->slug, '/checkout'), [
+        'email' => 'ada@example.com',
+        'fulfilment' => 'delivery',
+        'delivery_zone_id' => $zone->id,
+        'note' => '12 Admiralty Way',
+        'cart' => [['product_id' => $product->id, 'quantity' => 1]],
+    ])->assertRedirect();
+
+    $order = Order::sole();
+
+    expect($order->total_kobo)->toBe(370000)
+        ->and($order->delivery_fee_kobo)->toBe(120000)
+        ->and($order->delivery_mode)->toBe(FulfilmentMode::Delivery)
+        ->and($order->delivery_zone)->toBe('Lekki')
+        ->and($order->delivery_address)->toBe('12 Admiralty Way');
+});
+
+it('does not reject a buyer who sends no delivery zone', function () {
+    [$page, $product] = checkoutStore();
+    $profile = DeliveryProfile::factory()->create(['store_page_id' => $page->id]);
+    DeliveryZone::factory()->create([
+        'delivery_profile_id' => $profile->id,
+        'name' => 'Ikeja',
+        'fee_kobo' => 100000,
+    ]);
+
+    post(storeUrl($page->slug, '/checkout'), [
+        'email' => 'ada@example.com',
+        'cart' => [['product_id' => $product->id, 'quantity' => 1]],
+    ])->assertRedirect('https://checkout.paystack.com/test-checkout');
+
+    $order = Order::sole();
+
+    expect($order->delivery_zone)->toBe('Ikeja')
+        ->and($order->total_kobo)->toBe(350000);
+});
+
+it('records a pickup order without a delivery fee', function () {
+    [$page, $product] = checkoutStore();
+    $profile = DeliveryProfile::factory()->create([
+        'store_page_id' => $page->id,
+        'offers_pickup' => true,
+    ]);
+    $zone = DeliveryZone::factory()->create([
+        'delivery_profile_id' => $profile->id,
+        'fee_kobo' => 120000,
+    ]);
+
+    post(storeUrl($page->slug, '/checkout'), [
+        'email' => 'ada@example.com',
+        'fulfilment' => 'pickup',
+        'delivery_zone_id' => $zone->id,
+        'cart' => [['product_id' => $product->id, 'quantity' => 1]],
+    ])->assertRedirect();
+
+    $order = Order::sole();
+
+    expect($order->delivery_mode)->toBe(FulfilmentMode::Pickup)
+        ->and($order->delivery_fee_kobo)->toBe(0)
+        ->and($order->total_kobo)->toBe(250000);
+});
+
+it('shows the shop delivery areas on the checkout page', function () {
+    [$page] = checkoutStore();
+    $profile = DeliveryProfile::factory()->create(['store_page_id' => $page->id]);
+    DeliveryZone::factory()->create([
+        'delivery_profile_id' => $profile->id,
+        'name' => 'Lekki Phase 1',
+        'fee_kobo' => 120000,
+    ]);
+
+    get(storeUrl($page->slug, '/checkout'))
+        ->assertOk()
+        ->assertSee('Lekki Phase 1')
+        ->assertSee('₦1,200');
 });

@@ -10,8 +10,18 @@ class EnsureOnboardingComplete
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->user()->storePages()->doesntExist()) {
-            return redirect()->route('onboarding.show', 'business');
+        $seller = $request->user();
+
+        if ($seller === null || $seller->isAdmin()) {
+            return $next($request);
+        }
+
+        if ($seller->storePages()->doesntExist()) {
+            $skippedToDashboard = $request->routeIs('dashboard') && $seller->onboarding_skipped_at !== null;
+
+            if (! $skippedToDashboard) {
+                return redirect()->route('onboarding.show', 'business');
+            }
         }
 
         return $next($request);

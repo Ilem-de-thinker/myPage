@@ -4,10 +4,13 @@ namespace App\Domains\Booking\Models;
 
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
+use App\Domains\Booking\Enums\ServiceMode;
 use App\Domains\Booking\Enums\ServiceSort;
 use App\Domains\Directory\Jobs\SyncDirectorySearchIndex;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\HasSalePrice;
 use App\Shared\Support\Money;
+use App\Shared\Support\SearchQueryParser;
 use App\Shared\Traits\BelongsToSeller;
 use App\Shared\Traits\HasRating;
 use Database\Factories\Domains\Booking\Models\ServiceFactory;
@@ -22,7 +25,7 @@ use Illuminate\Support\Str;
 /** @use HasFactory<ServiceFactory> */
 class Service extends Model
 {
-    use BelongsToSeller, HasFactory, HasRating;
+    use BelongsToSeller, HasFactory, HasRating, HasSalePrice;
 
     protected $fillable = [
         'seller_id',
@@ -35,6 +38,9 @@ class Service extends Model
         'duration_min',
         'buffer_min',
         'price_kobo',
+        'compare_at_kobo',
+        'sale_starts_at',
+        'sale_ends_at',
         'deposit_type',
         'deposit_value',
         'is_active',
@@ -47,11 +53,15 @@ class Service extends Model
         'deliverables',
         'rating',
         'review_count',
+        'service_mode',
+        'travel_fee_kobo',
+        'travel_radius_km',
     ];
 
     protected function casts(): array
     {
         return [
+            ...$this->salePriceCasts(),
             'duration_min' => 'integer',
             'buffer_min' => 'integer',
             'price_kobo' => 'integer',
@@ -71,6 +81,9 @@ class Service extends Model
             // An array cast also matches social_links and settings, so a reader
             // of this file sees one way to store json here and not two.
             'deliverables' => 'array',
+            'service_mode' => ServiceMode::class,
+            'travel_fee_kobo' => 'integer',
+            'travel_radius_km' => 'integer',
         ];
     }
 
@@ -165,20 +178,23 @@ class Service extends Model
      * @param  Builder<Service>  $query
      * @return Builder<Service>
      */
+    /**
+     * Every word of the term must appear in the title or the description, so a
+     * buyer's phrase matches wherever its words actually live. LOWER(...) on
+     * both sides keeps the comparison case-insensitive on every engine.
+     */
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
-        $term = trim((string) $term);
+        foreach (SearchQueryParser::tokens((string) $term) as $token) {
+            $needle = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $token).'%';
 
-        if ($term === '') {
-            return $query;
+            $query->where(function (Builder $inner) use ($needle): void {
+                $inner->whereRaw('LOWER(services.name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(services.description) LIKE ?', [$needle]);
+            });
         }
 
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
-
-        return $query->where(function (Builder $inner) use ($like): void {
-            $inner->where('name', 'like', $like)
-                ->orWhere('description', 'like', $like);
-        });
+        return $query;
     }
 
     /**

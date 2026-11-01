@@ -128,5 +128,9 @@
                 </p>
             @endif
         @endforelse
+
+        @if ($bindings->hasPages())
+            <div>{{ $bindings->links() }}</div>
+        @endif
     </div>
 @endsection

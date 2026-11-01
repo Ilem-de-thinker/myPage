@@ -290,7 +290,7 @@ it('opens the product page on the reviews tab after a submission', function () {
 
     $html = get(storeUrl($page->slug, '/products/ankara-print'))->assertOk()->getContent();
 
-    expect($html)->toContain("tab: 'reviews'")
+    expect($html)->toContain('&quot;tab&quot;:&quot;reviews&quot;')
         ->and($html)->toContain('Thank you. Your review will appear once the seller has read it.');
 });
 
@@ -307,7 +307,7 @@ it('opens the product page on the reviews tab when the submission was rejected',
 
     $html = get(storeUrl($page->slug, '/products/ankara-print'))->assertOk()->getContent();
 
-    expect($html)->toContain("tab: 'reviews'")
+    expect($html)->toContain('&quot;tab&quot;:&quot;reviews&quot;')
         ->and($html)->toContain('role="alert"');
 });
 

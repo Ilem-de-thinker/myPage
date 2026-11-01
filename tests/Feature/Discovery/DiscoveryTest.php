@@ -244,9 +244,9 @@ it('distinguishes a store from a bookable business on the card', function () {
 
     $html = get('/discover')->assertOk()->getContent();
 
-    // Emoji, not colour alone: a moving list is not a place a subtle shade
+    // Words, not colour alone: a moving list is not a place a subtle shade
     // difference survives being read at speed.
-    expect($html)->toContain('🛍️')->toContain('📅');
+    expect($html)->toContain('Direct WhatsApp ordering')->toContain('By appointment');
 });
 
 it('returns the results fragment for a live filter request', function () {

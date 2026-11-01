@@ -35,6 +35,7 @@ class Booking extends Model
         'status',
         'price_kobo',
         'deposit_kobo',
+        'travel_fee_kobo',
         'expires_at',
         'reminded_24h_at',
         'reminded_2h_at',
@@ -56,6 +57,7 @@ class Booking extends Model
             'reminded_2h_at' => 'datetime',
             'price_kobo' => 'integer',
             'deposit_kobo' => 'integer',
+            'travel_fee_kobo' => 'integer',
         ];
     }
 
@@ -141,9 +143,15 @@ class Booking extends Model
 
     /**
      * What the buyer owes to secure this booking. A free service owes nothing.
+     *
+     * The travel fee sits on its own column rather than inside price_kobo, so
+     * the deposit logic never double charges it. It is added on top of whatever
+     * the deposit or the whole price is.
      */
     public function amountDueKobo(): int
     {
-        return $this->deposit_kobo ?: $this->price_kobo;
+        $base = $this->deposit_kobo ?: $this->price_kobo;
+
+        return $base + ($this->travel_fee_kobo ?? 0);
     }
 }

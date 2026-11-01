@@ -120,6 +120,7 @@ class StructuredData
                 'price' => self::priceString($product->price_kobo),
                 'priceCurrency' => 'NGN',
                 'availability' => self::availability($product),
+                'priceValidUntil' => $product->saleEndsAt()?->toDateString(),
                 'url' => self::pageUrl($page, 'products/'.$product->slug),
             ]))->all();
         }
@@ -166,14 +167,15 @@ class StructuredData
             $data['hasOfferCatalog'] = [
                 '@type' => 'OfferCatalog',
                 'name' => 'Services',
-                'itemListElement' => $services->map(fn (Service $service) => [
+                'itemListElement' => $services->map(fn (Service $service) => array_filter([
                     '@type' => 'Offer',
                     'name' => $service->name,
                     'description' => Str::limit(strip_tags((string) $service->description), 200),
                     'priceCurrency' => 'NGN',
-                    'price' => self::priceString($service->price_kobo),
+                    'price' => self::priceString($service->effectivePriceKobo()),
+                    'priceValidUntil' => $service->saleEndsAt()?->toDateString(),
                     'url' => self::pageUrl($page, 'services/'.$service->slug),
-                ])->all(),
+                ]))->all(),
             ];
         }
 

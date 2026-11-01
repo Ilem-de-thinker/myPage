@@ -49,7 +49,7 @@ return [
         'pages' => [
             'home' => [
                 'label' => 'Home',
-                'blocks' => ['hero', 'featured', 'categories', 'products', 'reviews', 'about', 'faq', 'contact'],
+                'blocks' => ['hero', 'delivery_band', 'featured', 'categories', 'products', 'reviews', 'about', 'faq', 'contact'],
             ],
             'about' => ['label' => 'About', 'blocks' => ['story']],
             'contact' => ['label' => 'Contact', 'blocks' => ['intro']],
@@ -78,6 +78,19 @@ return [
                 'fields' => [
                     'heading' => ['type' => 'text', 'label' => 'Heading', 'default' => 'New arrivals'],
                 ],
+            ],
+
+            /*
+             | Data, not words: the band reads the seller's delivery profile and
+             | renders nothing when they have not set one up. `always` keeps it in
+             | the render pipeline; the component decides whether there is a fact
+             | worth showing. No fields means it never appears in the editor.
+             */
+            'home_delivery_band' => [
+                'label' => 'Delivery band',
+                'always' => true,
+                'help' => 'Shown automatically once you set up delivery or pickup.',
+                'fields' => [],
             ],
 
             'home_categories' => [
@@ -186,7 +199,7 @@ return [
         'pages' => [
             'home' => [
                 'label' => 'Home',
-                'blocks' => ['hero', 'services', 'team', 'booking', 'gallery', 'reviews', 'about', 'faq', 'contact'],
+                'blocks' => ['hero', 'delivery_band', 'services', 'team', 'booking', 'gallery', 'reviews', 'about', 'faq', 'contact'],
             ],
             'about' => ['label' => 'About', 'blocks' => ['story']],
             'contact' => ['label' => 'Contact', 'blocks' => ['intro']],
@@ -219,6 +232,17 @@ return [
                 'fields' => [
                     'heading' => ['type' => 'text', 'label' => 'Heading', 'default' => 'What we do'],
                 ],
+            ],
+
+            /*
+             | Reads the store's delivery profile: home service, coverage and
+             | travel radius. Renders nothing until the seller turns one on.
+             */
+            'home_delivery_band' => [
+                'label' => 'Service area band',
+                'always' => true,
+                'help' => 'Shown automatically once you offer home service.',
+                'fields' => [],
             ],
             'home_team' => [
                 'label' => 'Team',

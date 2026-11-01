@@ -78,18 +78,18 @@
 
       {{-- Section Navigation Chips (Stores, Products, Services) --}}
       <nav class="mt-8 flex flex-wrap items-center gap-2 border-t border-[var(--platform-line)] pt-6" aria-label="Directory sections">
-        <a href="{{ route('directory.stores') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'stores' ? 'bg-[var(--platform-ink)] text-white shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
+        <a href="{{ route('directory.stores') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'stores' ? 'bg-[var(--platform-ink)] text-[var(--platform-ink-invert)] shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
           <span>Stores &amp; Studios</span>
         </a>
-        <a href="{{ route('directory.products') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'products' ? 'bg-[var(--platform-ink)] text-white shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
+        <a href="{{ route('directory.products') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'products' ? 'bg-[var(--platform-ink)] text-[var(--platform-ink-invert)] shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
           <span>Products</span>
         </a>
-        <a href="{{ route('directory.services') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'services' ? 'bg-[var(--platform-ink)] text-white shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
+        <a href="{{ route('directory.services') }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold transition-all {{ $kind === 'services' ? 'bg-[var(--platform-ink)] text-[var(--platform-ink-invert)] shadow-sm' : 'border border-[var(--platform-line)] bg-[var(--platform-card)] text-[var(--platform-ink)] hover:bg-[var(--platform-surface)]' }}">
           <span>Services &amp; Appointments</span>
         </a>
 
         <div class="ml-auto hidden sm:flex items-center gap-2">
-          <button type="button" @click="$dispatch('marketplace-open')" class="btn-magnetic inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] px-4 text-xs font-bold text-[var(--platform-accent)] hover:bg-[var(--platform-accent)] hover:text-white transition-all">
+          <button type="button" @click="$dispatch('marketplace-open')" class="btn-magnetic inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] px-4 text-xs font-bold text-[var(--platform-accent)] hover:bg-[var(--platform-accent)] hover:text-[var(--platform-ink-invert)] transition-all">
             <x-ui.icon name="spark" class="size-3.5" />
             <span>Need advice? “Help me buy”</span>
           </button>
@@ -152,7 +152,7 @@
             <label class="flex h-11 items-center gap-2 rounded-xl border border-[var(--platform-line)] bg-[var(--platform-card)] px-3 text-xs font-semibold"><input type="checkbox" name="verified" value="1" @checked(request()->boolean('verified')) class="accent-[var(--platform-brand)]"> Verified</label>
           @endif
 
-          <button type="submit" class="btn-magnetic h-11 rounded-xl bg-[var(--platform-brand)] px-5 text-xs font-bold text-white hover:bg-[var(--platform-brand-hover)] transition-all">
+          <button type="submit" class="btn-magnetic h-11 rounded-xl bg-[var(--platform-brand)] px-5 text-xs font-bold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-brand-hover)] transition-all">
             Filter
           </button>
         </div>
@@ -207,7 +207,7 @@
           We couldn’t find any verified listings matching your exact search. Try browsing all categories or ask “Help me buy” to find nearby alternatives.
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <a href="{{ route('directory.'.$kind) }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl bg-[var(--platform-ink)] px-5 text-xs font-bold text-white">
+          <a href="{{ route('directory.'.$kind) }}" class="btn-magnetic inline-flex h-10 items-center rounded-xl bg-[var(--platform-ink)] px-5 text-xs font-bold text-[var(--platform-ink-invert)]">
             Reset search
           </a>
           <button type="button" @click="$dispatch('marketplace-open')" class="btn-magnetic inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--platform-line)] px-5 text-xs font-bold text-[var(--platform-brand)]">
@@ -307,7 +307,7 @@
           <a href="{{ route('directory.'.$kind) }}" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-[var(--platform-line)] text-xs font-bold text-[var(--platform-ink)]">
             Reset
           </a>
-          <button type="submit" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--platform-brand)] text-xs font-bold text-white">
+          <button type="submit" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--platform-brand)] text-xs font-bold text-[var(--platform-ink-invert)]">
             Apply Filters
           </button>
         </div>

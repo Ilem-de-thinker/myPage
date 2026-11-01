@@ -33,7 +33,25 @@
       <p class="mt-2 font-display text-xl font-bold">
         {{ $metrics['suspended_stores'] }} {{ \Illuminate\Support\Str::plural('store', $metrics['suspended_stores']) }} suspended
       </p>
-      <a href="{{ route('admin.stores') }}" class="mt-1 inline-block text-[11px] font-semibold text-brand hover:underline">Review stores</a>
+      <a href="{{ route('admin.stores') }}" class="mt-1 inline-block text-[11px] font-semibold text-brand-text hover:underline">Review stores</a>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-rule bg-card p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-[11px] uppercase tracking-wide text-ink-3">AI</p>
+        <p class="mt-2 text-sm font-semibold">
+          {{ $ai['enabled'] ? 'Enabled' : 'Disabled' }}
+          <span class="text-ink-3">·</span>
+          {{ $ai['provider'] }} / {{ $ai['model'] }}
+          <span class="text-ink-3">·</span>
+          {{ $ai['configured'] ? 'Key configured' : 'No key configured' }}
+        </p>
+      </div>
+      @if (auth()->user()->isCoreAdmin())
+        <a href="{{ route('admin.ai-settings') }}" class="text-xs font-semibold text-brand-text hover:underline">Manage AI settings</a>
+      @endif
     </div>
   </div>
 </x-admin.layout>

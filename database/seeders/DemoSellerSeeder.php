@@ -19,6 +19,7 @@ use App\Domains\Booking\Models\TimeOff;
 use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Catalog\Models\ProductImage;
 use App\Domains\Catalog\Models\Review;
 use App\Domains\Customers\Actions\UpsertCustomerFromBooking;
 use App\Domains\Customers\Actions\UpsertCustomerFromOrder;
@@ -43,6 +44,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Two realistic sellers, one per theme, with enough history that every screen has
@@ -413,7 +415,7 @@ class DemoSellerSeeder extends Seeder
         ];
 
         foreach ($catalogue as [$name, $categoryName, $priceKobo, $stock, $featured]) {
-            Product::factory()->create([
+            $product = Product::factory()->create([
                 'seller_id' => $seller->id,
                 'store_page_id' => $page->id,
                 'category_id' => $categories[$categoryName]->id,
@@ -427,6 +429,40 @@ class DemoSellerSeeder extends Seeder
                 'status' => 'active',
                 'is_featured' => $featured,
             ]);
+
+            $this->attachSeededImage($product, 'ada-'.Str::slug($name));
+        }
+
+        // A little more catalogue, so a single store has enough rows to exercise
+        // pagination, filters and the bulk actions on the product screen.
+        $extraCatalogue = [
+            ['Adire Wrap Dress', 'Ankara', 2100000, 7, false],
+            ['Office Blazer', 'Silk', 3800000, 3, true],
+            ['Bridal Lace', 'Lace', 5200000, 2, true],
+            ['Casual Kaftan', 'Ankara', 1250000, 15, false],
+            ['Evening Clutch', 'Silk', 650000, 18, false],
+            ['Aso Ebi Headtie', 'Lace', 350000, 40, false],
+            ['Senator Agbada', 'Silk', 4100000, 4, true],
+            ['Ready-to-wear Gown', 'Ankara', 2750000, 6, false],
+        ];
+
+        foreach ($extraCatalogue as [$name, $categoryName, $priceKobo, $stock, $featured]) {
+            $product = Product::factory()->create([
+                'seller_id' => $seller->id,
+                'store_page_id' => $page->id,
+                'category_id' => $categories[$categoryName]->id,
+                'name' => $name,
+                'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
+                'description' => "{$name} from our Lekki studio, finished and ready to ship.",
+                'price_kobo' => $priceKobo,
+                'sku' => 'ADA-'.strtoupper(Str::random(6)),
+                'track_stock' => true,
+                'stock_qty' => $stock,
+                'status' => 'active',
+                'is_featured' => $featured,
+            ]);
+
+            $this->attachSeededImage($product, 'ada-'.Str::slug($name));
         }
 
         $this->orderHistory($seller, $page);
@@ -688,7 +724,10 @@ class DemoSellerSeeder extends Seeder
 
     private function page(Seller $seller, string $slug, string $theme, array $attributes): StorePage
     {
-        $page = StorePage::factory()->for($seller)->create(array_merge([
+        // Both demo pages start unverified. trustAndFlags() stamps only the seller
+        // whose badge application was approved, so the pending application cannot
+        // accidentally ship with a verified storefront.
+        $page = StorePage::factory()->unverified()->for($seller)->create(array_merge([
             'slug' => $slug,
             'theme' => $theme,
             'status' => 'published',
@@ -797,6 +836,50 @@ class DemoSellerSeeder extends Seeder
             return;
         }
 
-        app(SubscriptionManager::class)->start($seller, $plan, 'gateway', 'SUB_DEMO_'.Str::upper(Str::random(6)));
+        app(SubscriptionManager::class)->start($seller, $plan, 'manual', 'SUB_DEMO_'.Str::upper(Str::random(6)));
+    }
+
+    /**
+     * Download a small image with curl and attach it to the product, so the
+     * storefront and the directory have something real to render.
+     */
+    private function attachSeededImage(Product $product, string $seed): void
+    {
+        $directory = 'products/seeded';
+        $filename = $seed.'.jpg';
+        $relativePath = $directory.'/'.$filename;
+
+        if (! Storage::disk('public')->exists($relativePath)) {
+            $url = 'https://picsum.photos/seed/'.rawurlencode($seed).'/800/800';
+            $handle = curl_init($url);
+
+            if ($handle === false) {
+                return;
+            }
+
+            curl_setopt_array($handle, [
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+            ]);
+
+            $contents = curl_exec($handle);
+            $status = curl_getinfo($handle, CURLINFO_HTTP_CODE);
+            curl_close($handle);
+
+            if ($contents === false || $status < 200 || $status >= 300) {
+                return;
+            }
+
+            Storage::disk('public')->put($relativePath, $contents);
+        }
+
+        if (Storage::disk('public')->exists($relativePath)) {
+            $product->images()->create([
+                'path' => $relativePath,
+                'position' => 0,
+                'alt' => $product->name,
+            ]);
+        }
     }
 }

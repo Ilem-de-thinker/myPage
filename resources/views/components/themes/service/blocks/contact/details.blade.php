@@ -51,6 +51,10 @@
         ->get();
 
     $mapsQuery = $mapQuery;
+    $latitude = $coordinates ? (float) $page->latitude : null;
+    $longitude = $coordinates ? (float) $page->longitude : null;
+    $mapEmbedUrl = \App\Shared\Support\MapProvider::embedUrl($latitude, $longitude, $mapsQuery);
+    $directionsUrl = \App\Shared\Support\MapProvider::externalUrl($latitude, $longitude, $mapsQuery);
 @endphp
 
 <div class="shell pb-12">
@@ -130,22 +134,24 @@
             <p class="text-xs text-[var(--ink-2)] mt-1">Use the pinned location for directions and arrival planning.</p>
           </div>
 
-          @if ($coordinates && config('services.google.maps_browser_key'))
+          @if ($mapEmbedUrl)
             <iframe
-                src="https://www.google.com/maps/embed/v1/place?key={{ urlencode(config('services.google.maps_browser_key')) }}&q={{ urlencode($mapQuery) }}"
+                src="{{ $mapEmbedUrl }}"
                 class="h-56 w-full rounded-[var(--radius)] border border-[var(--rule)]"
                 loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade"
                 title="{{ $page->name }} location"></iframe>
           @endif
 
-          <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($mapQuery) }}"
-             target="_blank"
-             rel="noopener noreferrer"
-             class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
-            <span>Open Directions in Google Maps</span>
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </a>
+          @if ($directionsUrl)
+            <a href="{{ $directionsUrl }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 text-xs font-bold text-[var(--brand-text)] hover:underline">
+              <span>Open Directions in {{ \App\Shared\Support\MapProvider::label() }}</span>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          @endif
         </div>
       @endif
 

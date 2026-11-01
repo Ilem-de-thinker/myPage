@@ -114,3 +114,13 @@ it('keeps support queue access for admins only and lets admins update requests',
     expect($supportRequest->fresh()->status)->toBe(SupportRequestStatus::Resolved)
         ->and($supportRequest->fresh()->resolved_at)->not->toBeNull();
 });
+
+it('paginates the seller support queue', function () {
+    [$seller] = sellerWithPage();
+
+    SupportRequest::factory()->count(21)->create(['seller_id' => $seller->id]);
+
+    actingAs($seller)->get(route('support.index'))
+        ->assertOk()
+        ->assertSee('page=2');
+});

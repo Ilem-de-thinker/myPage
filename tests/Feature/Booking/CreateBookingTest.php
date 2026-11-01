@@ -12,6 +12,7 @@ use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Orders\Actions\CreateOrderFromCheckout;
+use App\Domains\Seller\Models\DeliveryProfile;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Carbon;
 
@@ -259,4 +260,71 @@ it('never books another store page\'s service', function () {
     // The foreign service has no working hours of its own, so nothing is bookable.
     expect(fn () => app(CreateBooking::class)->handle($foreign, futureSlot(), null, ['email' => 'a@b.co']))
         ->toThrow(SlotUnavailable::class);
+});
+
+it('adds a home service travel fee to what the buyer pays at booking time', function () {
+    [$service] = bookableStore([
+        'price_kobo' => 500000,
+        'deposit_type' => DepositType::None,
+        'service_mode' => 'home',
+        'travel_fee_kobo' => 150000,
+    ]);
+
+    $booking = app(CreateBooking::class)->handle($service, futureSlot(), null, ['email' => 'a@b.co']);
+
+    // The travel fee is snapshotted on its own column. amountDueKobo() adds it
+    // on top of whatever the deposit or the whole price is, so the payment flow
+    // charges the same figure the storefront showed.
+    expect($booking->price_kobo)->toBe(500000)
+        ->and($booking->deposit_kobo)->toBe(0)
+        ->and($booking->travel_fee_kobo)->toBe(150000)
+        ->and($booking->amountDueKobo())->toBe(650000)
+        ->and($booking->status)->toBe(BookingStatus::PendingPayment);
+});
+
+it('charges only the deposit for a home service with a travel fee', function () {
+    [$service] = bookableStore([
+        'price_kobo' => 500000,
+        'deposit_type' => DepositType::Percent,
+        'deposit_value' => 30,
+        'service_mode' => 'home',
+        'travel_fee_kobo' => 150000,
+    ]);
+
+    $booking = app(CreateBooking::class)->handle($service, futureSlot(), null, ['email' => 'a@b.co']);
+
+    // 30% of 500000 is 150000; the travel fee is added on top and charged now.
+    expect($booking->deposit_kobo)->toBe(150000)
+        ->and($booking->travel_fee_kobo)->toBe(150000)
+        ->and($booking->amountDueKobo())->toBe(300000);
+});
+
+it('inherits home service from the store profile', function () {
+    [$service, $page] = bookableStore([
+        'price_kobo' => 500000,
+        'deposit_type' => DepositType::None,
+        'service_mode' => null,
+        'travel_fee_kobo' => 150000,
+    ]);
+
+    DeliveryProfile::factory()->for($page)->create(['offers_home_service' => true]);
+
+    $booking = app(CreateBooking::class)->handle($service, futureSlot(), null, ['email' => 'a@b.co']);
+
+    expect($booking->travel_fee_kobo)->toBe(150000)
+        ->and($booking->amountDueKobo())->toBe(650000);
+});
+
+it('never charges travel for a service at the seller location', function () {
+    [$service] = bookableStore([
+        'price_kobo' => 500000,
+        'deposit_type' => DepositType::None,
+        'service_mode' => 'at_location',
+        'travel_fee_kobo' => 150000,
+    ]);
+
+    $booking = app(CreateBooking::class)->handle($service, futureSlot(), null, ['email' => 'a@b.co']);
+
+    expect($booking->travel_fee_kobo)->toBe(0)
+        ->and($booking->amountDueKobo())->toBe(500000);
 });

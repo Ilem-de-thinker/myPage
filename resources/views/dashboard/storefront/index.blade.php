@@ -11,7 +11,7 @@
 
     {{-- Tabs: the page settings first, then one per editable page. --}}
     @php
-        $allTabs = ['brand' => 'Brand', 'details' => 'Details'] + $tabs;
+        $allTabs = ['brand' => 'Brand', 'details' => 'Details', 'delivery' => 'Delivery'] + $tabs;
 
         if ($discoveryOn) {
             $allTabs['listing'] = 'Directory';
@@ -39,21 +39,23 @@
           ]))">
         @csrf
 
-        <div class="rounded-2xl border border-brand-edge bg-brand-wash/50 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-xs font-bold text-ink">AI for this page</p>
-                    <p class="mt-1 text-[11px] text-ink-3">Get a copy suggestion for the {{ $allTabs[$tab] ?? $tab }} page. Review and paste only what you want to keep.</p>
+        @if ($tab !== 'delivery')
+            <div class="rounded-2xl border border-brand-edge bg-brand-wash/50 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-bold text-ink">Mercho for this page</p>
+                        <p class="mt-1 text-[11px] text-ink-3">Get a copy suggestion for the {{ $allTabs[$tab] ?? $tab }} page. Review and paste only what you want to keep.</p>
+                    </div>
+                    <button type="button" @click="draftPageCopy" :disabled="aiLoading" class="min-h-10 rounded-xl bg-brand px-3.5 text-xs font-bold text-brand-ink disabled:opacity-50">
+                        <span x-text="aiLoading ? 'Preparing…' : 'Improve with Mercho'"></span>
+                    </button>
                 </div>
-                <button type="button" @click="draftPageCopy" :disabled="aiLoading" class="min-h-10 rounded-xl bg-brand px-3.5 text-xs font-bold text-brand-ink disabled:opacity-50">
-                    <span x-text="aiLoading ? 'Preparing…' : 'Improve with AI'"></span>
-                </button>
+                <div x-show="aiDraft" x-cloak class="mt-3 rounded-xl border border-brand-edge bg-card p-3">
+                    <pre x-text="format(aiDraft)" class="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-5 text-ink"></pre>
+                </div>
+                <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
             </div>
-            <div x-show="aiDraft" x-cloak class="mt-3 rounded-xl border border-brand-edge bg-card p-3">
-                <pre x-text="format(aiDraft)" class="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-5 text-ink"></pre>
-            </div>
-            <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
-        </div>
+        @endif
 
         @if ($tab === 'details')
             <div class="rounded-2xl border border-rule bg-card p-6">
@@ -107,12 +109,19 @@
                                     Customers will see this location on your contact page.
                                 </p>
                             </div>
-                            @if (config('services.google.maps_browser_key'))
+                            @php
+                                $mapSelection = \App\Shared\Support\MapProvider::selection();
+                                $hasGoogleKey = \App\Shared\Support\MapProvider::googleKey() !== null;
+                                $useGoogle = \App\Shared\Support\MapProvider::isGoogle();
+                            @endphp
+                            @if ($useGoogle)
                                 <span class="rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-brand-text">Google Maps</span>
+                            @else
+                                <span class="rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-ink-2">OpenStreetMap</span>
                             @endif
                         </div>
 
-                        @if (config('services.google.maps_browser_key'))
+                        @if ($useGoogle)
                             <label class="mt-4 block">
                                 <span class="text-[11px] font-semibold text-ink">Search the map</span>
                                 <div id="location-search" class="mt-1 min-h-11 overflow-hidden rounded-xl border border-rule-strong bg-card"></div>
@@ -121,9 +130,17 @@
                             <div id="location-map" class="mt-3 h-72 overflow-hidden rounded-xl border border-rule-strong bg-tint" aria-label="Business location map"></div>
                             <p class="mt-2 text-[11px] text-ink-3">The pin is the source of truth. The address above remains editable for customers who need the written directions.</p>
                         @else
-                            @if (auth()->user()?->is_admin)
-                                <p class="mt-3 rounded-xl border border-warn-edge bg-warn-wash px-3 py-2.5 text-[11px] leading-relaxed text-warn-text">
-                                    Add <code class="font-semibold">GOOGLE_MAPS_BROWSER_KEY</code> to the environment to enable address search and the map picker.
+                            <label class="mt-4 block">
+                                <span class="text-[11px] font-semibold text-ink">Search the map</span>
+                                <input id="osm-location-search" type="text" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none" placeholder="Search an address, landmark or business">
+                                <div id="osm-search-results" class="mt-2 space-y-1"></div>
+                            </label>
+
+                            <div id="location-map-osm" class="mt-3 h-72 overflow-hidden rounded-xl border border-rule-strong bg-tint" aria-label="Business location map"></div>
+                            <p class="mt-2 text-[11px] text-ink-3">The pin is the source of truth. The address above remains editable for customers who need the written directions.</p>
+                            @if ($mapSelection === 'google' && ! $hasGoogleKey)
+                                <p class="mt-2 rounded-xl border border-warn-edge bg-warn-wash px-3 py-2.5 text-[11px] leading-relaxed text-warn-text">
+                                    Google Maps was selected but no <code class="font-semibold">GOOGLE_MAPS_BROWSER_KEY</code> is configured — falling back to OpenStreetMap.
                                 </p>
                             @endif
                         @endif
@@ -178,6 +195,147 @@
                     These appear in the footer of your page and tell search engines where else
                     to find you.
                 </p>
+            </div>
+        @endif
+
+        @if ($tab === 'delivery')
+            @php
+                $zoneRows = ($deliveryProfile?->zones ?? collect())
+                    ->map(fn ($zone): array => [
+                        'name' => $zone->name,
+                        'state' => (string) $zone->state,
+                        'fee' => $zone->fee_kobo > 0 ? number_format($zone->fee_kobo / 100, 2, '.', '') : '',
+                    ])
+                    ->values()
+                    ->all();
+
+                if ($zoneRows === []) {
+                    $zoneRows = [['name' => '', 'state' => '', 'fee' => '']];
+                }
+            @endphp
+
+            <div class="rounded-2xl border border-rule bg-card p-6">
+                <h2 class="text-sm font-bold text-ink">Delivery &amp; pickup</h2>
+                <p class="mt-1 text-xs leading-relaxed text-ink-3">
+                    Store-wide defaults. Each product or service can still override the fee
+                    or opt out on its own form.
+                </p>
+
+                <div class="mt-5 space-y-3">
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-rule p-4 hover:border-rule-strong">
+                        <input type="checkbox" name="offers_delivery" value="1" class="mt-0.5 rounded" @checked(old('offers_delivery', $deliveryProfile?->offers_delivery))>
+                        <span>
+                            <span class="block text-xs font-semibold text-ink">Deliver orders</span>
+                            <span class="mt-1 block text-[11px] text-ink-3">Customers choose an area at checkout and pay that area's fee.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-rule p-4 hover:border-rule-strong">
+                        <input type="checkbox" name="offers_pickup" value="1" class="mt-0.5 rounded" @checked(old('offers_pickup', $deliveryProfile?->offers_pickup))>
+                        <span>
+                            <span class="block text-xs font-semibold text-ink">Allow pickup</span>
+                            <span class="mt-1 block text-[11px] text-ink-3">Customers collect from you at no delivery fee.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-rule p-4 hover:border-rule-strong">
+                        <input type="checkbox" name="offers_home_service" value="1" class="mt-0.5 rounded" @checked(old('offers_home_service', $deliveryProfile?->offers_home_service))>
+                        <span>
+                            <span class="block text-xs font-semibold text-ink">Offer home service</span>
+                            <span class="mt-1 block text-[11px] text-ink-3">For services you travel to the customer. Add the travel fee on each service.</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label class="block">
+                        <span class="text-xs font-semibold text-ink">Free delivery over (₦)</span>
+                        <input type="number" name="free_over" min="0" step="0.01" inputmode="decimal"
+                               value="{{ old('free_over', $deliveryProfile?->free_over_kobo ? number_format($deliveryProfile->free_over_kobo / 100, 2, '.', '') : '') }}"
+                               placeholder="Leave blank for no threshold"
+                               class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                        @error('free_over') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </label>
+
+                    <label class="block">
+                        <span class="text-xs font-semibold text-ink">Service radius (km)</span>
+                        <input type="number" name="radius_km" min="0" max="1000" inputmode="numeric"
+                               value="{{ old('radius_km', $deliveryProfile?->radius_km) }}"
+                               placeholder="e.g. 15"
+                               class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                        <span class="mt-1 block text-[11px] text-ink-3">How far you travel for home service. Shown to customers.</span>
+                        @error('radius_km') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </label>
+
+                    <label class="block sm:col-span-2">
+                        <span class="text-xs font-semibold text-ink">Delivery note</span>
+                        <input type="text" name="notes" maxlength="255"
+                               value="{{ old('notes', $deliveryProfile?->notes) }}"
+                               placeholder="e.g. Same-day within Lagos, next day outside"
+                               class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                        @error('notes') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </label>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-rule bg-card p-6"
+                 x-data="{
+                     rows: @js($zoneRows),
+                     addRow() { this.rows.push({ name: '', state: '', fee: '' }); },
+                     removeRow(index) { this.rows.splice(index, 1); },
+                 }">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-ink">Delivery areas</h2>
+                        <p class="mt-1 text-xs leading-relaxed text-ink-3">
+                            The places you deliver to and what you charge. Use the town or LGA
+                            people would recognise, not a full address.
+                        </p>
+                    </div>
+                    <button type="button" @click="addRow()" class="min-h-10 rounded-xl border border-rule-strong px-3.5 text-xs font-bold text-ink">
+                        Add area
+                    </button>
+                </div>
+
+                <div class="mt-5 space-y-3">
+                    <template x-for="(row, index) in rows" :key="index">
+                        <div class="grid gap-3 sm:grid-cols-[1.4fr_1fr_0.8fr_auto] sm:items-end">
+                            <label class="block">
+                                <span class="text-[11px] font-semibold text-ink">Area</span>
+                                <input type="text" :name="'zones['+index+'][name]'" x-model="row.name" maxlength="80"
+                                       placeholder="e.g. Ikeja"
+                                       class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                            </label>
+
+                            <label class="block">
+                                <span class="text-[11px] font-semibold text-ink">State</span>
+                                <input type="text" :name="'zones['+index+'][state]'" x-model="row.state" maxlength="80"
+                                       placeholder="e.g. Lagos"
+                                       class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                            </label>
+
+                            <label class="block">
+                                <span class="text-[11px] font-semibold text-ink">Fee (₦)</span>
+                                <input type="number" :name="'zones['+index+'][fee]'" x-model="row.fee" min="0" step="0.01" inputmode="decimal"
+                                       placeholder="0 = free"
+                                       class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+                            </label>
+
+                            <button type="button" @click="removeRow(index)" class="min-h-10 rounded-xl px-3 text-[11px] font-bold text-danger-text hover:bg-danger-wash">
+                                Remove
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <p class="mt-4 text-[11px] text-ink-3">
+                    Leave the fee at 0 to make that area free. Areas left blank are ignored
+                    when you save.
+                </p>
+
+                @error('zones') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                @error('zones.*.name') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                @error('zones.*.fee') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
             </div>
         @endif
 
@@ -492,8 +650,8 @@
 
                         @if (($field['type'] ?? 'text') === 'richtext')
                             <label class="block">
-                                <span class="flex items-center justify-between gap-2 text-xs font-semibold text-ink"><span>{{ $field['label'] }}</span><button type="button" @click="openAiForField($event)" class="text-[11px] font-bold text-brand-text">Improve with AI</button></span>
-                                <textarea name="blocks[{{ $block->key }}][{{ $name }}]" rows="6" @ai.result.window="if ($event.detail.feature === 'content') $el.value = $event.detail.text"
+                                <span class="flex items-center justify-between gap-2 text-xs font-semibold text-ink"><span>{{ $field['label'] }}</span><button type="button" @click="openAiForField($event)" class="text-[11px] font-bold text-brand-text">Improve with Mercho</button></span>
+                                <textarea name="blocks[{{ $block->key }}][{{ $name }}]" rows="6" @ai-result.window="if ($event.detail.feature === 'content') $el.value = $event.detail.text"
                                           class="mt-1 w-full rounded-xl border border-rule-strong px-3 py-2 text-sm focus:border-brand focus:outline-none">{{ old($name, $value) }}</textarea>
                             </label>
 
@@ -690,87 +848,184 @@
     @endonce
 @endsection
 
-@if ($tab === 'details' && config('services.google.maps_browser_key'))
+@if ($tab === 'details')
+    @php
+        $useGoogle = \App\Shared\Support\MapProvider::isGoogle();
+    @endphp
     @section('scripts')
-        <script>
-            window.initLocationPicker = async function () {
-                const mapElement = document.getElementById('location-map');
-                const searchElement = document.getElementById('location-search');
-                const latitudeElement = document.getElementById('location-latitude');
-                const longitudeElement = document.getElementById('location-longitude');
+        @if ($useGoogle)
+            <script>
+                window.initLocationPicker = async function () {
+                    const mapElement = document.getElementById('location-map');
+                    const searchElement = document.getElementById('location-search');
+                    const latitudeElement = document.getElementById('location-latitude');
+                    const longitudeElement = document.getElementById('location-longitude');
 
-                if (!mapElement || !searchElement || !latitudeElement || !longitudeElement) {
-                    return;
-                }
-
-                const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
-
-                const fallback = { lat: 6.5244, lng: 3.3792 };
-                const initial = {
-                    lat: Number(latitudeElement.value) || fallback.lat,
-                    lng: Number(longitudeElement.value) || fallback.lng,
-                };
-                const map = new google.maps.Map(mapElement, {
-                    center: initial,
-                    zoom: latitudeElement.value && longitudeElement.value ? 16 : 11,
-                    mapTypeControl: false,
-                    streetViewControl: false,
-                    fullscreenControl: false,
-                });
-                const marker = new google.maps.Marker({
-                    map,
-                    position: initial,
-                    draggable: true,
-                    title: 'Business location',
-                });
-
-                const setLocation = (location, zoom = 16) => {
-                    const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-                    const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-
-                    latitudeElement.value = Number(lat).toFixed(7);
-                    longitudeElement.value = Number(lng).toFixed(7);
-                    marker.setPosition({ lat: Number(lat), lng: Number(lng) });
-                    map.setCenter({ lat: Number(lat), lng: Number(lng) });
-                    map.setZoom(zoom);
-                };
-
-                map.addListener('click', (event) => setLocation(event.latLng));
-                marker.addListener('dragend', (event) => setLocation(event.latLng));
-
-                const autocomplete = new PlaceAutocompleteElement({
-                    includedRegionCodes: ['ng'],
-                });
-                autocomplete.placeholder = 'Search an address, landmark or business';
-                searchElement.appendChild(autocomplete);
-
-                autocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
-                    const place = placePrediction.toPlace();
-                    await place.fetchFields({
-                        fields: ['formattedAddress', 'location', 'addressComponents'],
-                    });
-
-                    if (!place.location) {
+                    if (!mapElement || !searchElement || !latitudeElement || !longitudeElement) {
                         return;
                     }
 
-                    setLocation(place.location);
+                    const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
 
-                    if (place.formattedAddress) {
-                        document.querySelector('input[name="address"]').value = place.formattedAddress;
+                    const fallback = { lat: 6.5244, lng: 3.3792 };
+                    const initial = {
+                        lat: Number(latitudeElement.value) || fallback.lat,
+                        lng: Number(longitudeElement.value) || fallback.lng,
+                    };
+                    const map = new google.maps.Map(mapElement, {
+                        center: initial,
+                        zoom: latitudeElement.value && longitudeElement.value ? 16 : 11,
+                        mapTypeControl: false,
+                        streetViewControl: false,
+                        fullscreenControl: false,
+                    });
+                    const marker = new google.maps.Marker({
+                        map,
+                        position: initial,
+                        draggable: true,
+                        title: 'Business location',
+                    });
+
+                    const setLocation = (location, zoom = 16) => {
+                        const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+                        const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+
+                        latitudeElement.value = Number(lat).toFixed(7);
+                        longitudeElement.value = Number(lng).toFixed(7);
+                        marker.setPosition({ lat: Number(lat), lng: Number(lng) });
+                        map.setCenter({ lat: Number(lat), lng: Number(lng) });
+                        map.setZoom(zoom);
+                    };
+
+                    map.addListener('click', (event) => setLocation(event.latLng));
+                    marker.addListener('dragend', (event) => setLocation(event.latLng));
+
+                    const autocomplete = new PlaceAutocompleteElement({
+                        includedRegionCodes: ['ng'],
+                    });
+                    autocomplete.placeholder = 'Search an address, landmark or business';
+                    searchElement.appendChild(autocomplete);
+
+                    autocomplete.addEventListener('gmp-select', async ({ placePrediction }) => {
+                        const place = placePrediction.toPlace();
+                        await place.fetchFields({
+                            fields: ['formattedAddress', 'location', 'addressComponents'],
+                        });
+
+                        if (!place.location) {
+                            return;
+                        }
+
+                        setLocation(place.location);
+
+                        if (place.formattedAddress) {
+                            document.querySelector('input[name="address"]').value = place.formattedAddress;
+                        }
+
+                        const components = Object.fromEntries((place.addressComponents || []).flatMap((component) =>
+                            component.types.map((type) => [type, component.longText])
+                        ));
+                        const city = components.locality || components.postal_town || components.administrative_area_level_2;
+                        const state = components.administrative_area_level_1;
+
+                        if (city) document.querySelector('input[name="city"]').value = city;
+                        if (state) document.querySelector('input[name="state"]').value = state;
+                    });
+                };
+            </script>
+            <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google.maps_browser_key')) }}&libraries=places&v=weekly&callback=initLocationPicker" async defer></script>
+        @else
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const mapElement = document.getElementById('location-map-osm');
+                    const searchInput = document.getElementById('osm-location-search');
+                    const resultsEl = document.getElementById('osm-search-results');
+                    const latitudeElement = document.getElementById('location-latitude');
+                    const longitudeElement = document.getElementById('location-longitude');
+                    const addressInput = document.querySelector('input[name="address"]');
+                    const cityInput = document.querySelector('input[name="city"]');
+                    const stateInput = document.querySelector('input[name="state"]');
+
+                    if (!mapElement || !latitudeElement || !longitudeElement || !window.L) {
+                        return;
                     }
 
-                    const components = Object.fromEntries((place.addressComponents || []).flatMap((component) =>
-                        component.types.map((type) => [type, component.longText])
-                    ));
-                    const city = components.locality || components.postal_town || components.administrative_area_level_2;
-                    const state = components.administrative_area_level_1;
+                    const fallback = [6.5244, 3.3792];
+                    const initialLat = Number(latitudeElement.value) || fallback[0];
+                    const initialLng = Number(longitudeElement.value) || fallback[1];
+                    const map = L.map('location-map-osm').setView([initialLat, initialLng], latitudeElement.value && longitudeElement.value ? 16 : 11);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
 
-                    if (city) document.querySelector('input[name="city"]').value = city;
-                    if (state) document.querySelector('input[name="state"]').value = state;
+                    const marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+
+                    const setLocation = (lat, lng, zoom = 16) => {
+                        latitudeElement.value = Number(lat).toFixed(7);
+                        longitudeElement.value = Number(lng).toFixed(7);
+                        marker.setLatLng([lat, lng]);
+                        map.setView([lat, lng], zoom);
+                    };
+
+                    map.on('click', function (e) {
+                        setLocation(e.latlng.lat, e.latlng.lng);
+                    });
+                    marker.on('dragend', function () {
+                        const pos = marker.getLatLng();
+                        setLocation(pos.lat, pos.lng);
+                    });
+
+                    if (searchInput) {
+                        searchInput.addEventListener('keydown', async function (e) {
+                            if (e.key !== 'Enter') {
+                                return;
+                            }
+                            e.preventDefault();
+                            const query = searchInput.value.trim();
+                            if (!query || !resultsEl) {
+                                return;
+                            }
+                            resultsEl.innerHTML = '<p class="text-[11px] text-ink-3">Searching…</p>';
+                            try {
+                                const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&countrycodes=ng&addressdetails=1&limit=5';
+                                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                                const data = await res.json();
+                                resultsEl.innerHTML = '';
+                                if (!Array.isArray(data) || data.length === 0) {
+                                    resultsEl.innerHTML = '<p class="text-[11px] text-ink-3">No results found.</p>';
+                                    return;
+                                }
+                                data.forEach(function (item) {
+                                    const btn = document.createElement('button');
+                                    btn.type = 'button';
+                                    btn.className = 'w-full text-left rounded-lg border border-rule px-2 py-1.5 text-[11px] hover:bg-tint';
+                                    btn.textContent = item.display_name;
+                                    btn.addEventListener('click', function () {
+                                        const lat = parseFloat(item.lat);
+                                        const lng = parseFloat(item.lon);
+                                        setLocation(lat, lng, 16);
+                                        if (addressInput && item.display_name) {
+                                            addressInput.value = item.display_name;
+                                        }
+                                        if (cityInput && item.address) {
+                                            cityInput.value = item.address.city || item.address.town || item.address.village || item.address.county || '';
+                                        }
+                                        if (stateInput && item.address) {
+                                            stateInput.value = item.address.state || '';
+                                        }
+                                        resultsEl.innerHTML = '';
+                                    });
+                                    resultsEl.appendChild(btn);
+                                });
+                            } catch (err) {
+                                resultsEl.innerHTML = '<p class="text-[11px] text-danger-text">Search failed.</p>';
+                            }
+                        });
+                    }
                 });
-            };
-        </script>
-        <script src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google.maps_browser_key')) }}&libraries=places&v=weekly&callback=initLocationPicker" async defer></script>
+            </script>
+        @endif
     @endsection
 @endif

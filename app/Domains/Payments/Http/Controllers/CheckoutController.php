@@ -28,6 +28,8 @@ class CheckoutController
             'email' => ['required', 'email', 'max:190'],
             'phone' => ['nullable', 'string', 'max:32'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'fulfilment' => ['nullable', 'string', 'in:delivery,pickup'],
+            'delivery_zone_id' => ['nullable', 'integer'],
             'cart' => ['required', 'array', 'min:1', 'max:50'],
             'cart.*.product_id' => ['required', 'integer'],
             'cart.*.variant_id' => ['nullable', 'integer'],
@@ -40,6 +42,10 @@ class CheckoutController
                 $data['cart'],
                 $data,
                 OrderSource::Platform,
+                [
+                    'zone_id' => $data['delivery_zone_id'] ?? null,
+                    'fulfilment' => $data['fulfilment'] ?? 'delivery',
+                ],
             );
         } catch (InvalidCart $exception) {
             return back()->withInput()->withErrors(['cart' => $exception->getMessage()]);

@@ -26,14 +26,18 @@ class PrismAiManager implements AiManager
     /** @var array{in:int,out:int} */
     private array $lastUsage = ['in' => 0, 'out' => 0];
 
-    public function __construct(private readonly AiCreditService $credits) {}
+    public function __construct(
+        private readonly AiCreditService $credits,
+        private readonly AiSettings $settings,
+    ) {}
 
     public function run(string $task, array $input, ?StorePage $page = null): string|array
     {
-        abort_unless((bool) config('ai.enabled'), 503, 'AI is disabled for this environment.');
-        $this->credits->assertAvailable($page);
+        $this->settings->apply();
+        abort_unless($this->settings->enabled(), 503, 'Mercho is disabled for this environment.');
         $definition = config("ai.tasks.{$task}");
-        abort_unless(is_array($definition), 422, "Unknown AI task [{$task}].");
+        abort_unless(is_array($definition), 422, "Unknown Mercho task [{$task}].");
+        $this->credits->assertAvailable($page, $task);
 
         $attempts = array_merge([['provider' => $definition['provider'], 'model' => $definition['model']]], $definition['fallback'] ?? []);
         $last = null;
@@ -55,7 +59,7 @@ class PrismAiManager implements AiManager
             }
         }
 
-        throw $last ?? new \RuntimeException("AI task [{$task}] failed.");
+        throw $last ?? new \RuntimeException("Mercho task [{$task}] failed.");
     }
 
     private function request(string $task, array $definition, array $attempt, array $input, ?StorePage $page): string|array
@@ -80,8 +84,8 @@ class PrismAiManager implements AiManager
             ->withPrompt($prompt, $media)
             ->usingTemperature($definition['temperature'])
             ->withMaxTokens($definition['max_tokens'])
-            ->withClientOptions(['timeout' => $definition['timeout']])
-            ->withClientRetry((int) config('ai.default_retries'), 200);
+            ->withClientOptions(['timeout' => $this->settings->timeoutFor((int) $definition['timeout'])])
+            ->withClientRetry($this->settings->retries(), 200);
 
         if (isset($definition['provider_options'])) {
             $builder = $builder->withProviderOptions($definition['provider_options']);
@@ -106,7 +110,7 @@ class PrismAiManager implements AiManager
         $response = $definition['structured'] ? $builder->asStructured() : $builder->asText();
 
         if ($response->finishReason !== FinishReason::Stop) {
-            throw new \RuntimeException("AI task stopped with {$response->finishReason->value}.");
+            throw new \RuntimeException("Mercho task stopped with {$response->finishReason->value}.");
         }
 
         $this->lastUsage = [
@@ -128,12 +132,12 @@ class PrismAiManager implements AiManager
                 ->withPrompt($retryPrompt)
                 ->usingTemperature($definition['temperature'])
                 ->withMaxTokens($definition['max_tokens'])
-                ->withClientOptions(['timeout' => $definition['timeout']])
-                ->withClientRetry((int) config('ai.default_retries'), 200)
+                ->withClientOptions(['timeout' => $this->settings->timeoutFor((int) $definition['timeout'])])
+                ->withClientRetry($this->settings->retries(), 200)
                 ->asStructured();
 
             if ($retry->finishReason !== FinishReason::Stop) {
-                throw new \RuntimeException("AI validation retry stopped with {$retry->finishReason->value}.");
+                throw new \RuntimeException("Mercho validation retry stopped with {$retry->finishReason->value}.");
             }
 
             $this->lastUsage['in'] += $retry->usage->promptTokens;
@@ -147,14 +151,14 @@ class PrismAiManager implements AiManager
     {
         if (! $structured) {
             if (! is_string($result) || trim($result) === '') {
-                throw new \RuntimeException("AI task [{$task}] returned an empty text response.");
+                throw new \RuntimeException("Mercho task [{$task}] returned an empty text response.");
             }
 
             return trim($result);
         }
 
         if (! is_array($result)) {
-            throw ValidationException::withMessages(['result' => 'AI returned a non-object structured response.']);
+            throw ValidationException::withMessages(['result' => 'Mercho returned a non-object structured response.']);
         }
 
         $normalized = $this->normalizeStructuredResult($task, $result);
@@ -239,7 +243,7 @@ class PrismAiManager implements AiManager
             'order_chat_assist' => ['strings' => ['suggested_reply', 'summary', 'status_draft']],
             'insights_digest' => ['strings' => ['summary'], 'string_arrays' => ['recommendations']],
             'ask_your_data' => ['strings' => ['answer', 'caveat'], 'string_arrays' => ['metrics_used']],
-            'marketplace_intent' => ['strings' => ['intent', 'kind', 'category', 'budget_min', 'budget_max', 'location', 'urgency'], 'string_arrays' => ['preferences', 'questions']],
+            'marketplace_intent' => ['strings' => ['intent', 'kind', 'category', 'budget_min', 'budget_max', 'location', 'urgency', 'search_term'], 'string_arrays' => ['preferences', 'questions']],
             'marketplace_rank' => ['object_arrays' => ['results' => ['id' => 'string', 'reason' => 'string']]],
             'smart_search' => ['strings' => ['intent', 'kind', 'category', 'budget_min', 'budget_max', 'location', 'urgency'], 'string_arrays' => ['preferences', 'questions']],
             'site_builder' => [
@@ -296,7 +300,7 @@ class PrismAiManager implements AiManager
             'insights_digest' => new ObjectSchema('insights', 'Analytics digest', [new StringSchema('summary', 'Summary'), new ArraySchema('recommendations', 'Recommendations', new StringSchema('recommendation', 'Recommendation'))], ['summary', 'recommendations']),
             'translate' => new ObjectSchema('translation', 'Translation', [new StringSchema('text', 'Translated text')], ['text']),
             'ask_your_data' => new ObjectSchema('data_answer', 'Tenant-scoped analytics answer', [new StringSchema('answer', 'Answer grounded in the returned metrics'), new ArraySchema('metrics_used', 'Metrics used', new StringSchema('metric', 'Metric name')), new StringSchema('caveat', 'Short caveat when data is insufficient')], ['answer', 'metrics_used', 'caveat']),
-            'marketplace_intent' => new ObjectSchema('marketplace_intent', 'Buyer intent', [new StringSchema('intent', 'Short description of the buyer need'), new StringSchema('kind', 'product, service, or any'), new StringSchema('category', 'Best matching category or empty string'), new StringSchema('budget_min', 'Minimum budget in naira or empty string'), new StringSchema('budget_max', 'Maximum budget in naira or empty string'), new StringSchema('location', 'City or state or empty string'), new StringSchema('urgency', 'Urgency or timing or empty string'), new ArraySchema('preferences', 'Buyer preferences', new StringSchema('preference', 'Preference')), new ArraySchema('questions', 'At most two short follow-up questions', new StringSchema('question', 'Question'))], ['intent', 'kind', 'category', 'budget_min', 'budget_max', 'location', 'urgency', 'preferences', 'questions']),
+            'marketplace_intent' => new ObjectSchema('marketplace_intent', 'Buyer intent', [new StringSchema('intent', 'Short description of the buyer need'), new StringSchema('search_term', 'Core product or service search term (e.g. ankara, bag, haircut) or empty string'), new StringSchema('kind', 'product, service, or any'), new StringSchema('category', 'Best matching category or empty string'), new StringSchema('budget_min', 'Minimum budget in naira or empty string'), new StringSchema('budget_max', 'Maximum budget in naira or empty string'), new StringSchema('location', 'City or state or empty string'), new StringSchema('urgency', 'Urgency or timing or empty string'), new ArraySchema('preferences', 'Buyer preferences', new StringSchema('preference', 'Preference')), new ArraySchema('questions', 'At most two short follow-up questions', new StringSchema('question', 'Question'))], ['intent', 'search_term', 'kind', 'category', 'budget_min', 'budget_max', 'location', 'urgency', 'preferences', 'questions']),
             'marketplace_rank' => new ObjectSchema('marketplace_rank', 'Grounded result ranking', [new ArraySchema('results', 'Only supplied candidate ids', new ObjectSchema('result', 'Ranked candidate', [new StringSchema('id', 'Candidate id'), new StringSchema('reason', 'One line reason grounded in candidate data')], ['id', 'reason']))], ['results']),
             'site_builder' => new ObjectSchema('site_builder', 'Reviewable site configuration', [
                 new StringSchema('business_type', 'store, service, or both'),
@@ -396,6 +400,7 @@ class PrismAiManager implements AiManager
             ],
             'marketplace_intent' => [
                 'intent' => ['required', 'string', 'max:500'],
+                'search_term' => ['present', 'string', 'max:120'],
                 'kind' => ['required', 'in:product,service,any'],
                 'category' => ['present', 'string', 'max:120'],
                 'budget_min' => ['present', 'string', 'max:30'],

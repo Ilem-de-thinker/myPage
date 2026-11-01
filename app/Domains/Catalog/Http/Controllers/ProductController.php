@@ -4,6 +4,7 @@ namespace App\Domains\Catalog\Http\Controllers;
 
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Catalog\Actions\AdjustStock;
+use App\Domains\Catalog\Enums\DeliveryMode;
 use App\Domains\Catalog\Exceptions\OutOfStock;
 use App\Domains\Catalog\Jobs\ProcessProductImage;
 use App\Domains\Catalog\Models\Category;
@@ -12,7 +13,10 @@ use App\Shared\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -163,11 +167,16 @@ class ProductController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'numeric', 'min:0'],
+            'compare_at' => ['nullable', 'numeric', 'min:0'],
+            'sale_starts_at' => ['nullable', 'date'],
+            'sale_ends_at' => ['nullable', 'date'],
             'sku' => ['nullable', 'string', 'max:64'],
             'status' => ['required', 'in:draft,active,archived'],
             'track_stock' => ['sometimes', 'boolean'],
             'stock_qty' => ['nullable', 'integer', 'min:0'],
             'is_featured' => ['sometimes', 'boolean'],
+            'delivery_mode' => ['nullable', Rule::enum(DeliveryMode::class)],
+            'delivery_fee' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
             'images.*' => ['nullable', 'image', 'max:4096'],
         ]);
 
@@ -175,6 +184,47 @@ class ProductController extends Controller
         $data['track_stock'] = $request->boolean('track_stock');
         $data['is_featured'] = $request->boolean('is_featured');
         $data['price'] = $request->input('price');
+        // Blank means "inherit the store profile"; a typed fee is the override,
+        // stored in kobo like every other price.
+        $data['delivery_mode'] = filled($data['delivery_mode'] ?? null) ? $data['delivery_mode'] : null;
+        $data['delivery_fee_kobo'] = filled($data['delivery_fee'] ?? null)
+            ? Money::toKobo($data['delivery_fee'])
+            : null;
+        unset($data['delivery_fee']);
+
+        $priceKobo = Money::toKobo($data['price']);
+        $compareAtKobo = filled($data['compare_at'] ?? null)
+            ? Money::toKobo($data['compare_at'])
+            : null;
+        $saleStartsAt = filled($data['sale_starts_at'] ?? null)
+            ? Carbon::parse($data['sale_starts_at'])
+            : null;
+        $saleEndsAt = filled($data['sale_ends_at'] ?? null)
+            ? Carbon::parse($data['sale_ends_at'])
+            : null;
+
+        if ($compareAtKobo !== null && $compareAtKobo <= $priceKobo) {
+            throw ValidationException::withMessages([
+                'compare_at' => 'The original price must be higher than the price the buyer pays.',
+            ]);
+        }
+
+        if ($saleStartsAt !== null && $saleEndsAt !== null && $saleEndsAt->lessThanOrEqualTo($saleStartsAt)) {
+            throw ValidationException::withMessages([
+                'sale_ends_at' => 'The sale must end after it starts.',
+            ]);
+        }
+
+        // Dates without an original price have nothing to compare against.
+        if ($compareAtKobo === null) {
+            $saleStartsAt = null;
+            $saleEndsAt = null;
+        }
+
+        unset($data['compare_at'], $data['sale_starts_at'], $data['sale_ends_at']);
+        $data['compare_at_kobo'] = $compareAtKobo;
+        $data['sale_starts_at'] = $saleStartsAt;
+        $data['sale_ends_at'] = $saleEndsAt;
 
         return $data;
     }

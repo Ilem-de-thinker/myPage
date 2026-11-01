@@ -208,7 +208,8 @@ it('exposes add-to-cart controls backed by browser storage', function () {
     $html = get(storeUrl($page->slug, '/products'))->assertOk()->getContent();
 
     expect($html)->toContain('Add to cart')
-        ->toContain('$store.cart.add')
+        ->toContain('addToCartButton')
+        ->toContain('$store.cart.items')
         ->toContain(StoreUrl::path('storefront.cart', ['slug' => $page->slug]));
 });
 

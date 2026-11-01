@@ -4,6 +4,7 @@ namespace App\Domains\Seller\Http\Controllers;
 
 use App\Domains\Admin\Models\PlatformSetting;
 use App\Domains\Ai\Contracts\AiManager;
+use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Models\Service;
@@ -44,7 +45,7 @@ class OnboardingController extends Controller
         ]);
     }
 
-    public function store(Request $request, string $step, CreateStorePage $createStorePage): RedirectResponse
+    public function store(Request $request, string $step, CreateStorePage $createStorePage, SubscriptionEntitlements $entitlements): RedirectResponse
     {
         abort_unless(in_array($step, self::STEPS, true), 404);
 
@@ -89,7 +90,9 @@ class OnboardingController extends Controller
                 }
 
                 $page = $createStorePage->handle($request->user(), $data);
-                $this->createStarterDrafts($page, $data['ai_result']['listings'] ?? []);
+                $listings = $data['ai_result']['listings'] ?? [];
+                $limit = $entitlements->listingLimit($page);
+                $this->createStarterDrafts($page, $limit === null ? $listings : array_slice($listings, 0, $limit));
                 $request->session()->forget('onboarding');
 
                 return redirect()->route('dashboard')->with('status', "Your page {$page->name} is ready as a draft.");
@@ -100,16 +103,33 @@ class OnboardingController extends Controller
         return redirect()->route('onboarding.show', self::STEPS[array_search($step, self::STEPS, true) + 1]);
     }
 
+    public function skip(Request $request): RedirectResponse
+    {
+        $request->user()->forceFill(['onboarding_skipped_at' => now()])->save();
+        $request->session()->forget('onboarding');
+
+        return redirect()->route('dashboard')->with('status', 'You can finish setting up your page any time.');
+    }
+
     public function aiCreate(Request $request, AiManager $ai): RedirectResponse
     {
         $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'description' => ['required', 'string', 'max:3000']]);
-        $result = $ai->run('site_builder', [
-            'name' => $data['name'],
-            'description' => $data['description'],
-            'theme_registry' => collect(Theme::cases())
-                ->map(fn (Theme $theme): array => ['key' => $theme->value, 'label' => $theme->label()])
-                ->all(),
-        ]);
+
+        try {
+            $result = $ai->run('site_builder', [
+                'name' => $data['name'],
+                'description' => $data['description'],
+                'theme_registry' => collect(Theme::cases())
+                    ->map(fn (Theme $theme): array => ['key' => $theme->value, 'label' => $theme->label()])
+                    ->all(),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withErrors(['description' => 'Mercho is unavailable right now. Fill in your details manually and continue.'])
+                ->withInput();
+        }
         $businessType = $result['business_type'] ?? 'store';
         $theme = $businessType === 'service' ? Theme::Service : Theme::Store;
         $onboarding = array_merge($request->session()->get('onboarding', []), [

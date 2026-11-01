@@ -2,6 +2,7 @@
 
 namespace App\Domains\Seller\Models;
 
+use App\Domains\Admin\Enums\AdminRole;
 use App\Domains\Auth\Notifications\EmailOtpNotification;
 use App\Domains\Billing\Models\Subscription;
 use Database\Factories\Domains\Seller\Models\SellerFactory;
@@ -27,6 +28,7 @@ class Seller extends Authenticatable implements MustVerifyEmail
         'password',
         'status',
         'is_admin',
+        'admin_role',
         'last_login_at',
         'email_otp_hash',
         'email_otp_expires_at',
@@ -46,7 +48,9 @@ class Seller extends Authenticatable implements MustVerifyEmail
     {
         return [
             'is_admin' => 'boolean',
+            'admin_role' => AdminRole::class,
             'email_verified_at' => 'datetime',
+            'onboarding_skipped_at' => 'datetime',
             'last_login_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
             'password' => 'hashed',
@@ -70,6 +74,34 @@ class Seller extends Authenticatable implements MustVerifyEmail
         return filled($this->google_id);
     }
 
+    /**
+     * Legacy rows only carry the boolean flag. Treat them as core admins so a
+     * half-migrated database never hands somebody a weaker role than they had.
+     */
+    public function adminRole(): ?AdminRole
+    {
+        if ($this->admin_role !== null) {
+            return $this->admin_role;
+        }
+
+        return $this->is_admin ? AdminRole::CoreAdmin : null;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->adminRole() !== null;
+    }
+
+    public function isCoreAdmin(): bool
+    {
+        return $this->adminRole() === AdminRole::CoreAdmin;
+    }
+
+    public function isStaffAdmin(): bool
+    {
+        return $this->adminRole() === AdminRole::StaffAdmin;
+    }
+
     public function storePages(): HasMany
     {
         return $this->hasMany(StorePage::class);
@@ -83,6 +115,26 @@ class Seller extends Authenticatable implements MustVerifyEmail
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    protected static function booted(): void
+    {
+        // During the transition the role is the source of truth, and the old
+        // boolean has to agree with it for code that has not been updated yet.
+        static::saving(function (Seller $seller): void {
+            if (! $seller->isDirty('admin_role')) {
+                return;
+            }
+
+            if ($seller->admin_role !== null) {
+                $seller->is_admin = true;
+            } elseif ($seller->getOriginal('admin_role') !== null) {
+                // A real demotion clears the old access flag. A new row that
+                // merely sets the column to null must not erase is_admin=true,
+                // which is how legacy admin rows still enter.
+                $seller->is_admin = false;
+            }
+        });
     }
 
     public function sendEmailVerificationNotification(): void

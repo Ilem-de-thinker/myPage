@@ -14,9 +14,9 @@
             <div class="flex justify-between p-4"><dt class="text-ink-2">WhatsApp</dt><dd class="font-semibold text-ink">{{ $data['whatsapp'] ?? 'Add later' }}</dd></div>
             <div class="flex justify-between p-4"><dt class="text-ink-2">Location</dt><dd class="font-semibold text-ink">{{ trim(($data['city'] ?? '').', '.($data['state'] ?? ''), ', ') }}</dd></div>
             <div class="flex justify-between p-4"><dt class="text-ink-2">Brand colour</dt><dd><span class="inline-block w-5 h-5 rounded-md border border-rule" style="background: {{ $data['brand_color'] ?? '#16a34a' }}"></span></dd></div>
-            <div class="flex justify-between gap-4 p-4"><dt class="text-ink-2">AI setup</dt><dd class="text-right font-semibold text-ink">{{ ($data['ai_enabled'] ?? true) ? 'Enabled' : 'Disabled' }}{{ ! empty($data['ai_goal']) ? ' · '.str_replace('_', ' ', $data['ai_goal']) : '' }}</dd></div>
+            <div class="flex justify-between gap-4 p-4"><dt class="text-ink-2">Mercho setup</dt><dd class="text-right font-semibold text-ink">{{ ($data['ai_enabled'] ?? true) ? 'Enabled' : 'Disabled' }}{{ ! empty($data['ai_goal']) ? ' · '.str_replace('_', ' ', $data['ai_goal']) : '' }}</dd></div>
             @if (! empty($data['ai_result']))
-                <div class="p-4"><dt class="text-ink-2">AI review</dt><dd class="mt-2 text-xs leading-5 text-ink-2">{{ ucfirst($data['ai_result']['business_type'] ?? 'store') }} direction · {{ $data['ai_result']['tagline'] ?? 'No tagline' }}<div class="mt-3 grid gap-2 sm:grid-cols-2"><p class="rounded-lg bg-surface p-3">{{ $data['ai_result']['about'] ?? 'No about copy' }}</p><p class="rounded-lg bg-surface p-3">{{ count($data['ai_result']['categories'] ?? []) }} categories proposed</p></div></dd></div>
+                <div class="p-4"><dt class="text-ink-2">Mercho review</dt><dd class="mt-2 text-xs leading-5 text-ink-2">{{ ucfirst($data['ai_result']['business_type'] ?? 'store') }} direction · {{ $data['ai_result']['tagline'] ?? 'No tagline' }}<div class="mt-3 grid gap-2 sm:grid-cols-2"><p class="rounded-lg bg-surface p-3">{{ $data['ai_result']['about'] ?? 'No about copy' }}</p><p class="rounded-lg bg-surface p-3">{{ count($data['ai_result']['categories'] ?? []) }} categories proposed</p></div></dd></div>
             @endif
         </dl>
 

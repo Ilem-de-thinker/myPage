@@ -23,6 +23,7 @@ class PlanFactory extends Factory
             'interval' => 'monthly',
             'trial_days' => 14,
             'max_products' => 100,
+            'max_staff' => null,
             'is_default' => false,
             'is_featured' => false,
             'is_active' => true,

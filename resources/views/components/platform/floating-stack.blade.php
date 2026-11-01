@@ -8,7 +8,7 @@
     <button
         type="button"
         @click="$dispatch('marketplace-open')"
-        class="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--platform-accent)] px-4 text-sm font-extrabold text-white shadow-[var(--platform-shadow-lg)] transition hover:-translate-y-0.5 hover:bg-[var(--platform-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--platform-accent)] focus:ring-offset-2"
+        class="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--platform-accent)] px-4 text-sm font-extrabold text-[var(--platform-ink-invert)] shadow-[var(--platform-shadow-lg)] transition hover:-translate-y-0.5 hover:bg-[var(--platform-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--platform-accent)] focus:ring-offset-2"
         aria-label="Open Help me buy"
     >
         <x-ui.icon name="spark" class="size-4" aria-hidden="true" />

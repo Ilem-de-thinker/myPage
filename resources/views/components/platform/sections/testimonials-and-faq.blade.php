@@ -160,7 +160,7 @@
         </p>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a href="{{ route('directory.stores') }}" class="btn-magnetic inline-flex h-12 items-center justify-center rounded-xl bg-[var(--platform-ink)] px-7 text-sm font-bold text-[var(--platform-ink-invert)] shadow-[var(--platform-shadow-md)]">Explore the directory</a>
-          <a href="{{ route('register') }}" class="btn-magnetic inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--platform-support)] px-7 text-sm font-bold text-white shadow-[var(--platform-shadow-md)]">
+          <a href="{{ route('register') }}" class="btn-magnetic inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--platform-support)] px-7 text-sm font-bold text-[var(--platform-ink-invert)] shadow-[var(--platform-shadow-md)]">
             <span>Create your store</span>
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>

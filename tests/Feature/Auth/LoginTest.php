@@ -20,6 +20,15 @@ it('logs a seller in and out', function () {
     $this->assertGuest();
 });
 
+it('sends an admin to the admin panel after login', function () {
+    $admin = Seller::factory()->admin()->create(['password' => 'password123']);
+
+    post('/login', ['email' => $admin->email, 'password' => 'password123'])
+        ->assertRedirect(route('admin.index'));
+
+    $this->assertAuthenticatedAs($admin);
+});
+
 it('rejects bad credentials', function () {
     $seller = Seller::factory()->create(['password' => 'password123']);
 

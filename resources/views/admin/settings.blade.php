@@ -50,6 +50,31 @@
           <input type="checkbox" name="subscriptions_enabled" value="1" @checked(old('subscriptions_enabled', $subscriptionsEnabled)) class="mt-0.5 size-4 accent-brand">
           <span><span class="block text-sm font-semibold">Allow seller subscriptions</span><span class="mt-1 block text-xs text-ink-3">Turn this back on to restore plan selection, payment and plan-based restrictions.</span></span>
         </label>
+
+        <label class="mt-4 block max-w-xs">
+          <span class="text-xs font-semibold">Grace period (days)</span>
+          <input type="number" name="grace_days" min="0" max="90" required
+                 value="{{ old('grace_days', $graceDays) }}"
+                 class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+          <span class="mt-1 block text-xs text-ink-3">How long a merchant keeps writing access after a payment fails or a period ends. An individual merchant can be extended on the Stores screen.</span>
+          @error('grace_days') <span class="mt-1 block text-xs text-danger-text">{{ $message }}</span> @enderror
+        </label>
+      </section>
+
+      <section class="rounded-2xl border border-rule bg-card p-6">
+        <h2 class="text-base font-bold">Maps</h2>
+        <p class="mt-1 text-sm text-ink-3">Choose the map provider used for the business location picker.</p>
+
+        <div class="mt-5 grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2">
+            <span class="text-xs font-semibold">Map provider</span>
+            <select name="map_provider" class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+              <option value="openstreetmap" @selected(old('map_provider', $settings['map_provider'] ?? 'openstreetmap') === 'openstreetmap')>OpenStreetMap (Leaflet)</option>
+              <option value="google" @selected(old('map_provider', $settings['map_provider'] ?? 'openstreetmap') === 'google')>Google Maps</option>
+            </select>
+            <span class="mt-1 block text-xs text-ink-3">Google renders only when <code class="font-semibold">GOOGLE_MAPS_BROWSER_KEY</code> is configured; otherwise the picker falls back to OSM.</span>
+          </label>
+        </div>
       </section>
 
       <section class="rounded-2xl border border-rule bg-card p-6">
@@ -92,7 +117,7 @@
           Remove current logo
         </label>
       @else
-        <div class="mt-5 flex size-28 items-center justify-center rounded-2xl bg-ink text-sm font-bold text-white">Logo</div>
+        <div class="mt-5 flex size-28 items-center justify-center rounded-2xl bg-ink text-sm font-bold text-paper">Logo</div>
       @endif
 
       <label class="mt-5 block">

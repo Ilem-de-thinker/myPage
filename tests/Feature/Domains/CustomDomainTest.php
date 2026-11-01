@@ -475,3 +475,15 @@ describe('the pending sweep', function () {
         Queue::assertPushed(VerifyDomainDns::class, 1);
     });
 });
+
+it('paginates the domain list', function () {
+    [$seller, $page] = proSeller();
+
+    foreach (range(1, 21) as $number) {
+        bindingFor($page, "shop{$number}.com");
+    }
+
+    actingAs($seller)->get('http://localhost/domains')
+        ->assertOk()
+        ->assertSee('page=2');
+});

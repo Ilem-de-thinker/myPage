@@ -26,6 +26,9 @@
                     @if ($booking->deposit_kobo > 0)
                         <p class="text-[11px] text-ink-3">{{ \App\Shared\Support\Money::format($booking->deposit_kobo) }} paid to book</p>
                     @endif
+                    @if ($booking->travel_fee_kobo > 0)
+                        <p class="text-[11px] text-ink-3">{{ \App\Shared\Support\Money::format($booking->travel_fee_kobo) }} travel fee charged</p>
+                    @endif
                 </div>
             </div>
 

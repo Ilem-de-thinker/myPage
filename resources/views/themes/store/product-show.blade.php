@@ -19,6 +19,9 @@
           ? \App\Shared\Support\WhatsApp::productLink($page, $product)
           : null;
       $soldOut = $product->isSoldOut();
+      // Variants carry their own prices, so a base-product discount would not
+      // be the number the buyer is about to pay.
+      $showSale = $product->isOnSale() && $variants->isEmpty();
       $themePreset = $page->settings['theme_preset'] ?? 'catalog';
   @endphp
 
@@ -159,16 +162,27 @@
               <span class="t-meta block mb-1">{{ $product->category->name }}</span>
             @endif
 
-            <h1 class="t-title text-xl font-bold text-[var(--ink)]">{{ $product->name }}</h1>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="t-title text-xl font-bold text-[var(--ink)]">{{ $product->name }}</h1>
+              @if ($showSale)
+                <span class="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--paper)]">
+                  Sale −{{ $product->discountPercent() }}%
+                </span>
+              @endif
+            </div>
 
             <div class="flex items-baseline gap-3 mt-3">
               <span class="t-price-lg text-[var(--brand-text)]" x-text="priceLabel">{{ $product->priceLabel }}</span>
 
-              {{-- The struck price only when it is genuinely higher. --}}
-              @if ($product->isDiscounted())
-                <del class="text-xs text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($product->compare_at_kobo) }}</del>
+              {{-- The struck price only when it is genuinely higher and live. --}}
+              @if ($showSale)
+                <del class="text-xs text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($product->originalPriceKobo()) }}</del>
               @endif
             </div>
+
+            @if ($showSale && $product->saleEndsLabel())
+              <p class="mt-1 text-[11px] font-semibold text-[var(--ink-3)]">{{ $product->saleEndsLabel() }}</p>
+            @endif
 
             <div class="flex items-center gap-2 mt-2 text-xs text-[var(--ink-3)]">
               @if ($product->hasRating())

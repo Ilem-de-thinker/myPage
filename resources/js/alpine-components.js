@@ -332,6 +332,42 @@ Alpine.data('storeProduct', (config = {}) => ({
 Alpine.data('storeCheckout', (config = {}) => ({
     submitting: false,
     captured: false,
+    fulfilment: config.defaultFulfilment ?? 'delivery',
+    zones: config.deliveryZones ?? [],
+    zoneId: config.selectedZoneId ?? null,
+    freeOverKobo: config.freeOverKobo ?? null,
+
+    /**
+     * A preview only. The server quotes the same rules again on submit and the
+     * order keeps that figure, never this one.
+     */
+    get deliveryFeeKobo() {
+        if (this.fulfilment !== 'delivery') {
+            return 0;
+        }
+
+        const zone = this.zones.find((item) => Number(item.id) === Number(this.zoneId));
+
+        if (! zone) {
+            return 0;
+        }
+
+        if (this.freeOverKobo !== null && this.$store.cart.totalKobo >= this.freeOverKobo) {
+            return 0;
+        }
+
+        return Number(zone.fee_kobo) || 0;
+    },
+
+    get orderTotalKobo() {
+        return this.$store.cart.totalKobo + this.deliveryFeeKobo;
+    },
+
+    get deliveryFeeLabel() {
+        return this.deliveryFeeKobo === 0
+            ? 'Free'
+            : '₦' + (this.deliveryFeeKobo / 100).toLocaleString();
+    },
 
     async capture() {
         if (this.captured) {
@@ -767,6 +803,101 @@ Alpine.data('storeAssistant', (config = {}) => ({
     },
 }));
 
+Alpine.data('storeSearch', (config = {}) => ({
+    open: false,
+    loading: false,
+    searched: false,
+    message: '',
+    results: [],
+    applied: {},
+    questions: [],
+    mode: 'ai',
+    error: '',
+    controller: null,
+
+    openPanel() {
+        this.open = true;
+        document.body.classList.add('sheet-open');
+        this.$nextTick(() => this.$refs.input?.focus());
+    },
+
+    closePanel() {
+        this.open = false;
+        this.controller?.abort();
+        this.loading = false;
+        document.body.classList.remove('sheet-open');
+    },
+
+    get appliedChips() {
+        const chips = [];
+
+        if (this.applied.q) {
+            chips.push('“' + this.applied.q + '”');
+        }
+        if (this.applied.budget_min && this.applied.budget_max) {
+            chips.push('₦' + this.applied.budget_min + ' – ₦' + this.applied.budget_max);
+        } else if (this.applied.budget_max) {
+            chips.push('Under ₦' + this.applied.budget_max);
+        } else if (this.applied.budget_min) {
+            chips.push('From ₦' + this.applied.budget_min);
+        }
+        if (this.applied.kind) {
+            chips.push(this.applied.kind === 'service' ? 'Services only' : 'Products only');
+        }
+
+        return chips;
+    },
+
+    async submit() {
+        const message = this.message.trim();
+
+        if (!message || this.loading) {
+            return;
+        }
+
+        this.controller?.abort();
+        this.controller = new AbortController();
+
+        this.loading = true;
+        this.error = '';
+        this.searched = false;
+        this.results = [];
+        this.questions = [];
+
+        try {
+            const response = await fetch(config.endpoint, {
+                method: 'POST',
+                signal: this.controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': config.csrf,
+                },
+                body: JSON.stringify({ message }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Search is unavailable right now. Please try again.');
+            }
+
+            this.results = Array.isArray(data.results) ? data.results : [];
+            this.applied = data.applied || {};
+            this.questions = Array.isArray(data.questions) ? data.questions.slice(0, 2) : [];
+            this.mode = data.mode === 'keyword' ? 'keyword' : 'ai';
+            this.searched = true;
+            this.message = '';
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                this.error = error.message || 'Something went wrong. Please try again.';
+            }
+        } finally {
+            this.loading = false;
+        }
+    },
+}));
+
 Alpine.data('storefrontEditor', (config = {}) => ({
     aiLoading: false,
     aiDraft: null,
@@ -813,7 +944,7 @@ Alpine.data('storefrontEditor', (config = {}) => ({
         const field = event.currentTarget.closest('label');
         const textarea = field ? field.querySelector('textarea') : null;
 
-        this.$dispatch('ai.open', { text: textarea ? textarea.value : '' });
+        this.$dispatch('ai-open', { text: textarea ? textarea.value : '' });
     },
 }));
 

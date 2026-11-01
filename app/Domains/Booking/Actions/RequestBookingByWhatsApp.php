@@ -8,6 +8,7 @@ use App\Domains\Booking\Models\Service;
 use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Booking\Services\AvailabilityService;
 use App\Domains\Customers\Actions\UpsertCustomerFromBooking;
+use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\PhoneNumber;
 use App\Shared\Support\WhatsApp;
 use Illuminate\Support\Carbon;
@@ -22,7 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class RequestBookingByWhatsApp
 {
-    public function __construct(private readonly UpsertCustomerFromBooking $upsertCustomerFromBooking) {}
+    public function __construct(
+        private readonly UpsertCustomerFromBooking $upsertCustomerFromBooking,
+        private readonly QuoteServiceFulfilment $fulfilment,
+    ) {}
 
     /**
      * @param  array{name?: ?string, phone?: ?string, notes?: ?string}  $buyer
@@ -33,7 +37,11 @@ class RequestBookingByWhatsApp
         $timezone = app(AvailabilityService::class)->timezoneFor($service);
         $start = $startsAt->copy()->setTimezone($timezone);
 
-        $booking = DB::transaction(function () use ($service, $start, $staff, $buyer) {
+        // The same resolved fee the paid path would charge, snapshotted so the
+        // seller's later edits cannot change what was quoted in the message.
+        $travelFee = $this->fulfilment->handle($service)['travel_fee_kobo'];
+
+        $booking = DB::transaction(function () use ($service, $start, $staff, $buyer, $travelFee) {
             $booking = Booking::withoutGlobalScopes()->create([
                 'seller_id' => $service->seller_id,
                 'store_page_id' => $service->store_page_id,
@@ -46,6 +54,7 @@ class RequestBookingByWhatsApp
                 'status' => BookingStatus::PendingPayment,
                 'price_kobo' => $service->price_kobo,
                 'deposit_kobo' => 0,
+                'travel_fee_kobo' => $travelFee,
                 // Nothing is held, so nothing expires and nothing is reserved.
                 'expires_at' => null,
                 'customer_name' => $buyer['name'] ?? null,
@@ -74,10 +83,14 @@ class RequestBookingByWhatsApp
 
     private function whatsappUrl(Service $service, Booking $booking, Carbon $start, string $timezone): ?string
     {
-        $message = "Hello {$service->storePage?->name}, I'd like to book {$service->name} on "
+        $storePage = $service->relationLoaded('storePage')
+            ? $service->storePage
+            : StorePage::find($service->store_page_id);
+
+        $message = "Hello {$storePage?->name}, I'd like to book {$service->name} on "
             .$start->setTimezone($timezone)->format('D j M Y \a\t g:i A').".\n"
             ."My reference is {$booking->reference}.";
 
-        return WhatsApp::link($service->storePage, $message);
+        return $storePage ? WhatsApp::link($storePage, $message) : null;
     }
 }

@@ -2,18 +2,18 @@
 
 namespace App\Domains\Directory\Services;
 
-use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Seller\Models\StorePage;
 
 final class DirectoryPlacement
 {
     public function canFeature(StorePage $page): bool
     {
-        return $page->seller()
-            ->whereHas('subscriptions', function ($query): void {
-                $query->whereIn('status', [SubscriptionStatus::Active->value, SubscriptionStatus::Trialing->value, SubscriptionStatus::PastDue->value])
-                    ->whereHas('plan', fn ($plan) => $plan->whereIn('slug', config('billing.directory_featured_plans', [])));
-            })
-            ->exists();
+        $subscription = $page->seller?->subscriptions()->with('plan')->first();
+
+        // Featured placement is a paid benefit. Grace still counts as paid time,
+        // but an expired or cancelled subscription does not.
+        return $subscription !== null
+            && $subscription->canWrite()
+            && in_array($subscription->plan?->slug, config('billing.directory_featured_plans', []), true);
     }
 }

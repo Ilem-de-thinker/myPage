@@ -28,7 +28,19 @@
       @endif
     </div>
 
-    <div x-data="storeCheckout(@jsExpr(['captureUrl' => \App\Shared\Support\StoreUrl::path('storefront.checkout.capture', ['slug' => $page->slug]), 'csrf' => csrf_token()]))">
+    <div x-data="storeCheckout(@jsExpr([
+        'captureUrl' => \App\Shared\Support\StoreUrl::path('storefront.checkout.capture', ['slug' => $page->slug]),
+        'csrf' => csrf_token(),
+        'deliveryZones' => $deliveryZones->map(fn ($zone) => [
+            'id' => $zone->id,
+            'name' => $zone->name,
+            'state' => $zone->state,
+            'fee_kobo' => $zone->fee_kobo,
+        ])->values(),
+        'selectedZoneId' => old('delivery_zone_id', $deliveryZones->first()?->id),
+        'freeOverKobo' => $deliveryProfile?->free_over_kobo,
+        'defaultFulfilment' => old('fulfilment', ($deliveryProfile?->offers_delivery ?? true) ? 'delivery' : 'pickup'),
+    ]))">
 
       <template x-if="$store.cart.items.length === 0">
         <div class="py-20 text-center">
@@ -113,19 +125,81 @@
                   2. Delivery Destination
                 </h2>
 
-                <div>
-                  <label for="note" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
-                    Delivery Address, Landmark &amp; Dispatch Instructions
-                  </label>
-                  <textarea id="note"
-                            name="note"
-                            rows="3"
-                            placeholder="Street address, house or apartment number, and the nearest landmark"
-                            class="w-full p-3 text-sm rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">{{ old('note') }}</textarea>
-                  <p class="t-meta mt-1">
-                    {{ $page->name }} will confirm the address with you on WhatsApp before dispatch.
-                  </p>
+                @if ($deliveryProfile?->offers_pickup)
+                  <fieldset>
+                    <legend class="text-xs font-bold text-[var(--ink)] mb-2">How should {{ $page->name }} get this to you?</legend>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      @if ($deliveryProfile->offers_delivery)
+                        <label class="flex cursor-pointer items-center gap-2 rounded-[var(--radius)] border border-[var(--rule)] p-3 text-xs font-semibold text-[var(--ink)]">
+                          <input type="radio" name="fulfilment" value="delivery" x-model="fulfilment" @checked(old('fulfilment', 'delivery') === 'delivery') class="accent-[var(--brand)]">
+                          Deliver to me
+                        </label>
+                      @endif
+                      <label class="flex cursor-pointer items-center gap-2 rounded-[var(--radius)] border border-[var(--rule)] p-3 text-xs font-semibold text-[var(--ink)]">
+                        <input type="radio" name="fulfilment" value="pickup" x-model="fulfilment" @checked(old('fulfilment') === 'pickup') class="accent-[var(--brand)]">
+                        I will pick it up
+                      </label>
+                    </div>
+                  </fieldset>
+                @else
+                  <input type="hidden" name="fulfilment" value="{{ ($deliveryProfile?->offers_delivery ?? true) ? 'delivery' : 'pickup' }}">
+                @endif
+
+                <div x-show="fulfilment === 'delivery'" class="space-y-4">
+                  @if ($deliveryZones->isNotEmpty())
+                    <fieldset>
+                      <legend class="text-xs font-bold text-[var(--ink)] mb-2">
+                        Delivery area <span class="text-[var(--danger-text)]" aria-hidden="true">*</span>
+                      </legend>
+                      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        @foreach ($deliveryZones as $zone)
+                          <label class="flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius)] border border-[var(--rule)] p-3 text-xs text-[var(--ink)]">
+                            <span class="flex min-w-0 items-center gap-2">
+                              <input type="radio"
+                                     name="delivery_zone_id"
+                                     value="{{ $zone->id }}"
+                                     x-model="zoneId"
+                                     @checked((string) old('delivery_zone_id', $deliveryZones->first()?->id) === (string) $zone->id)
+                                     class="accent-[var(--brand)]">
+                              <span class="truncate font-semibold">{{ $zone->name }}</span>
+                              @if ($zone->state)
+                                <span class="shrink-0 text-[var(--ink-3)]">{{ $zone->state }}</span>
+                              @endif
+                            </span>
+                            <span class="shrink-0 font-bold {{ $zone->isFree() ? 'text-[var(--ok-text)]' : '' }}">
+                              {{ $zone->isFree() ? 'Free' : \App\Shared\Support\Money::format($zone->fee_kobo) }}
+                            </span>
+                          </label>
+                        @endforeach
+                      </div>
+                      @if ($deliveryProfile?->free_over_kobo)
+                        <p class="t-meta mt-2">Free delivery on orders over {{ \App\Shared\Support\Money::format($deliveryProfile->free_over_kobo) }}.</p>
+                      @endif
+                    </fieldset>
+                  @elseif ($deliveryProfile?->notes)
+                    <p class="t-meta">{{ $deliveryProfile->notes }}</p>
+                  @else
+                    <p class="t-meta">{{ $page->name }} will confirm the delivery fee with you on WhatsApp.</p>
+                  @endif
+
+                  <div>
+                    <label for="note" class="block text-xs font-bold text-[var(--ink)] mb-1.5">
+                      Delivery Address, Landmark &amp; Dispatch Instructions
+                    </label>
+                    <textarea id="note"
+                              name="note"
+                              rows="3"
+                              placeholder="Street address, house or apartment number, and the nearest landmark"
+                              class="w-full p-3 text-sm rounded-[var(--radius)] bg-[var(--paper)] text-[var(--ink)] border border-[var(--rule)] focus:border-[var(--brand)]">{{ old('note') }}</textarea>
+                    <p class="t-meta mt-1">
+                      {{ $page->name }} will confirm the address with you on WhatsApp before dispatch.
+                    </p>
+                  </div>
                 </div>
+
+                <p x-show="fulfilment === 'pickup'" x-cloak class="rounded-[var(--radius)] bg-[var(--brand-wash)] p-3 text-xs leading-5 text-[var(--brand-text)]">
+                  {{ $page->name }} will confirm when your order is ready to collect.
+                </p>
               </div>
 
               <button type="submit" :disabled="submitting"
@@ -176,13 +250,17 @@
                   <span class="text-[var(--ink-2)]">Subtotal</span>
                   <span class="font-medium text-[var(--ink)] tabular-nums" x-text="'₦' + ($store.cart.totalKobo / 100).toLocaleString()"></span>
                 </div>
+                <div x-show="fulfilment === 'delivery' && zones.length" class="flex items-center justify-between">
+                  <span class="text-[var(--ink-2)]">Delivery</span>
+                  <span class="font-medium text-[var(--ink)] tabular-nums" x-text="deliveryFeeLabel"></span>
+                </div>
                 <div class="flex items-center justify-between">
                   <span class="text-[var(--ink-2)]">Processing Fee</span>
                   <span class="font-bold text-[var(--brand-text)]">₦0 (Included)</span>
                 </div>
                 <div class="flex items-center justify-between pt-3 border-t border-[var(--rule)]">
                   <span class="text-sm font-bold text-[var(--ink)]">Total Amount</span>
-                  <span class="t-price-lg text-[var(--ink)]" x-text="'₦' + ($store.cart.totalKobo / 100).toLocaleString()"></span>
+                  <span class="t-price-lg text-[var(--ink)]" x-text="'₦' + (orderTotalKobo / 100).toLocaleString()"></span>
                 </div>
               </div>
 

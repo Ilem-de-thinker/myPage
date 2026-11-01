@@ -19,7 +19,7 @@ it('shows tenant scoped storefront analytics and an AI summary entry point on th
         ->assertSee('Storefront analytics')
         ->assertSee('2 visits from 1 unique visitors')
         ->assertSee('WhatsApp taps')
-        ->assertSee('Use AI summary')
+        ->assertSee('Use Mercho summary')
         ->assertSee(route('dashboard.analytics.index'))
         ->assertDontSee('other-visitor');
 });
@@ -29,6 +29,6 @@ it('shows the dedicated analytics page in the seller workspace', function () {
 
     actingAs($seller)->get(route('dashboard.analytics.index'))
         ->assertOk()
-        ->assertSee('Weekly AI digest')
+        ->assertSee('Weekly Mercho digest')
         ->assertSee('Ask your data');
 });

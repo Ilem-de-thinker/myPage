@@ -1,10 +1,10 @@
 @props(['page'])
 
-<div x-data="storeAssistant(@jsExpr(['endpoint' => \App\Shared\Support\StoreUrl::path('storefront.ai.assistant', ['slug' => $page->slug]), 'csrf' => csrf_token()]))" @ai.open.window="open = true" @keydown.escape.window="open = false" class="fixed inset-x-4 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-40 sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-96">
+<div x-data="storeAssistant(@jsExpr(['endpoint' => \App\Shared\Support\StoreUrl::path('storefront.ai.assistant', ['slug' => $page->slug]), 'csrf' => csrf_token()]))" @ai-open.window="open = true" @keydown.escape.window="open = false" class="fixed inset-x-4 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-40 sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-96">
     <div x-show="open" x-cloak class="mb-3 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--card)] shadow-[var(--shadow-lift)]">
         <div class="border-b border-[var(--rule)] bg-[var(--brand-wash)] px-4 py-3">
             <div class="flex items-start justify-between gap-3">
-                <div><p class="text-sm font-bold text-[var(--ink)]">Ask {{ $page->name }}</p><p class="mt-1 text-[11px] text-[var(--ink-2)]">AI assistant · Uses published store information</p></div>
+                <div><p class="text-sm font-bold text-[var(--ink)]">Ask {{ $page->name }}</p><p class="mt-1 text-[11px] text-[var(--ink-2)]">Mercho assistant · Uses published store information</p></div>
                 <button type="button" @click="open = false" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius)] text-[var(--ink-2)] hover:bg-[var(--brand-wash-2)]" aria-label="Close assistant">&times;</button>
             </div>
         </div>
@@ -19,5 +19,5 @@
             <button type="submit" :disabled="loading" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius)] bg-[var(--brand)] px-3 text-sm font-bold text-[var(--brand-ink)] disabled:opacity-50" aria-label="Send question">&rarr;</button>
         </form>
     </div>
-    <button type="button" @click="open = !open" class="ml-auto inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--brand)] px-5 text-sm font-bold text-[var(--brand-ink)] shadow-[var(--shadow-lift)] transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-2" :aria-expanded="open"><x-ui.icon name="spark" size="size-4" />Ask AI about this {{ $page->theme->value === 'service' ? 'service' : 'store' }}</button>
+    <button type="button" @click="open = !open" class="ml-auto inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--brand)] px-5 text-sm font-bold text-[var(--brand-ink)] shadow-[var(--shadow-lift)] transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:ring-offset-2" :aria-expanded="open"><x-ui.icon name="spark" size="size-4" />Ask Mercho about this {{ $page->theme->value === 'service' ? 'service' : 'store' }}</button>
 </div>

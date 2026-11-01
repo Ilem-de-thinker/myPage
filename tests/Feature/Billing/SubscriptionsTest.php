@@ -307,7 +307,13 @@ it('blocks dashboard writes for a lapsed seller but still lets them read and pay
     $page = $seller->storePages()->sole();
 
     $subscription = Subscription::factory()->forSeller($seller)
-        ->create(['plan_id' => $this->plan->id, 'status' => SubscriptionStatus::Expired]);
+        ->create([
+            'plan_id' => $this->plan->id,
+            'status' => SubscriptionStatus::Expired,
+            'current_period_starts_at' => now()->subMonth(),
+            'current_period_ends_at' => now()->subDays(10),
+            'grace_ends_at' => now()->subDay(),
+        ]);
 
     // Reading is always allowed: they must be able to see what they have.
     actingAs($seller)->get(route('dashboard'))->assertOk();
@@ -319,15 +325,36 @@ it('blocks dashboard writes for a lapsed seller but still lets them read and pay
         ->post(route('products.store'), ['name' => 'Sneaky', 'duration_min' => 30])
         ->assertRedirect(route('billing.index'));
 
-    // And they can pay, because that is the whole point: subscribing replaces
-    // the lapsed record rather than leaving them stuck.
+    // And they can pay, because that is the whole point. Starting checkout does
+    // not reopen the shop: only a confirmed payment does.
     actingAs($seller)->post(route('billing.subscribe'), ['plan' => 'growth'])->assertRedirect();
 
-    expect($subscription->fresh()->status)->not->toBe(SubscriptionStatus::Expired)
+    expect($subscription->fresh()->canWrite())->toBeFalse();
+
+    $transaction = Transaction::where('payable_type', 'subscription')->sole();
+
+    app(ConfirmSubscriptionPayment::class)->handle($transaction->reference);
+
+    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active)
         ->and(Subscription::where('seller_id', $seller->id)->sole()->canWrite())->toBeTrue();
 
     // With a live subscription they are writing again.
     actingAs($seller)
         ->post(route('products.store'), ['name' => 'Sneaky', 'duration_min' => 30])
         ->assertRedirect();
+});
+
+it('paginates the billing history', function () {
+    [$seller] = sellerWithPage();
+    $subscription = app(SubscriptionManager::class)->start($seller, $this->plan, 'gateway');
+
+    Transaction::factory()->count(21)->create([
+        'payable_type' => 'subscription',
+        'payable_id' => $subscription->getKey(),
+        'seller_id' => $seller->id,
+    ]);
+
+    actingAs($seller)->get(route('billing.index'))
+        ->assertOk()
+        ->assertSee('page=2');
 });

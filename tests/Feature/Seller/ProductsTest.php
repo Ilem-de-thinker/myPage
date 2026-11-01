@@ -59,6 +59,23 @@ it('creates a product with kobo conversion', function () {
     expect($product->seller_id)->toBe($seller->id);
 });
 
+it('stores a delivery override on a product', function () {
+    [$seller] = sellerWithPage();
+
+    actingAs($seller)->post('/products', [
+        'name' => 'Heavy Armchair',
+        'price' => '40000',
+        'status' => 'active',
+        'delivery_mode' => 'pickup',
+        'delivery_fee' => '2500',
+    ])->assertRedirect();
+
+    $product = Product::withoutGlobalScopes()->sole();
+
+    expect($product->delivery_mode->value)->toBe('pickup')
+        ->and($product->delivery_fee_kobo)->toBe(250_000);
+});
+
 it('updates a product and stores the price in kobo', function () {
     [$seller, , $product] = sellerWithProduct();
 

@@ -32,4 +32,28 @@ final class SubscriptionEntitlements
 
         return $subscription?->plan?->max_products;
     }
+
+    public function assertCanCreateStaff(StorePage $page): void
+    {
+        $limit = $this->staffLimit($page);
+
+        if ($limit === null) {
+            return;
+        }
+
+        $used = $page->staffMembers()->count();
+
+        abort_if($used >= $limit, 403, "Your current plan allows up to {$limit} staff member".($limit === 1 ? '' : 's').'. Upgrade to add another.');
+    }
+
+    public function staffLimit(StorePage $page): ?int
+    {
+        if (! $this->availability->enabled()) {
+            return null;
+        }
+
+        $subscription = Subscription::query()->with('plan')->where('seller_id', $page->seller_id)->first();
+
+        return $subscription?->plan?->max_staff;
+    }
 }

@@ -70,6 +70,27 @@ it('lets a seller add a service and prices it in kobo', function () {
         ->and($service->amountDueKobo())->toBe(375015);
 });
 
+it('stores how a service reaches the customer', function () {
+    [$seller] = serviceSeller();
+
+    actingAs($seller)->post(route('services.store'), [
+        'name' => 'Bridal makeup',
+        'duration_min' => 120,
+        'price' => '50000',
+        'deposit_type' => 'none',
+        'service_mode' => 'home',
+        'travel_fee' => '5000',
+        'travel_radius_km' => 25,
+        'is_active' => '1',
+    ])->assertRedirect(route('services.index'));
+
+    $service = Service::withoutGlobalScopes()->sole();
+
+    expect($service->service_mode->value)->toBe('home')
+        ->and($service->travel_fee_kobo)->toBe(500_000)
+        ->and($service->travel_radius_km)->toBe(25);
+});
+
 it('stores a fixed deposit in kobo, not naira', function () {
     [$seller] = serviceSeller();
 

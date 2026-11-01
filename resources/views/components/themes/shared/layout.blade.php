@@ -103,20 +103,33 @@
         @endif
       </div>
     @endif
+    @if ($storeReadOnly ?? false)
+      <div class="shell mb-6" role="status">
+        <div class="rounded-[var(--radius)] border border-[var(--warn-edge)] bg-[var(--warn-wash)] px-4 py-3 text-sm text-[var(--warn-text)]">
+          <p class="font-semibold">{{ $page->name }} is temporarily not accepting new orders.</p>
+          <p class="mt-1 text-xs">You can browse the catalogue, but checkout and bookings are paused. Please check back soon.</p>
+        </div>
+      </div>
+    @endif
     {{ $slot }}
   </main>
 
   @if ($isService)
-    <x-themes.service.whatsapp-bar :page="$page" />
+    @unless ($storeReadOnly ?? false)
+      <x-themes.service.whatsapp-bar :page="$page" />
+    @endunless
     <x-themes.service.footer :page="$page" />
   @else
-    <x-themes.store.whatsapp-bar :page="$page" />
+    @unless ($storeReadOnly ?? false)
+      <x-themes.store.whatsapp-bar :page="$page" />
+    @endunless
     <x-themes.store.footer :page="$page" />
   @endif
 
   <x-support.floating-button :page="$page" />
-  @if (($page->settings['ai_enabled'] ?? true) && config('ai.enabled'))
+  @if (($page->settings['ai_enabled'] ?? true) && app(\App\Domains\Ai\Services\AiSettings::class)->enabled())
     <x-ai.assistant :page="$page" />
+    <x-ai.store-search :page="$page" />
   @endif
   <x-pwa.install-prompt :name="$page->name" :manifest="\App\Shared\Support\StoreUrl::path('storefront.pwa.manifest', ['slug' => $page->slug])" :worker="\App\Shared\Support\StoreUrl::path('storefront.pwa.worker', ['slug' => $page->slug])" />
 

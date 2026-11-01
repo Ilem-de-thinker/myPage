@@ -41,8 +41,9 @@
             {{-- The seller's surface mode is the default; this is the visitor's override. --}}
             <x-ui.theme-toggle />
 
-            @if (($page->settings['ai_enabled'] ?? true) && config('ai.enabled'))
-                <button type="button" @click="$dispatch('ai.open')" class="hidden min-h-11 items-center gap-1.5 rounded-[var(--radius)] border border-[var(--brand-edge)] bg-[var(--brand-wash)] px-3.5 text-xs font-bold text-[var(--brand-text)] lg:inline-flex" aria-label="Ask the AI assistant"><x-ui.icon name="spark" size="size-4" /> Ask AI</button>
+            @if (($page->settings['ai_enabled'] ?? true) && app(\App\Domains\Ai\Services\AiSettings::class)->enabled())
+                <button type="button" @click="$dispatch('store-search-open')" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius)] border border-[var(--rule)] bg-[var(--paper)] text-[var(--ink)] transition-colors hover:bg-[var(--brand-wash)]" aria-label="Search this store"><x-ui.icon name="search" size="size-4" /></button>
+                <button type="button" @click="$dispatch('ai-open')" class="hidden min-h-11 items-center gap-1.5 rounded-[var(--radius)] border border-[var(--brand-edge)] bg-[var(--brand-wash)] px-3.5 text-xs font-bold text-[var(--brand-text)] lg:inline-flex" aria-label="Ask the Mercho assistant"><x-ui.icon name="spark" size="size-4" /> Ask Mercho</button>
             @endif
 
             <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.book', $storefront) }}"
@@ -74,8 +75,9 @@
         <a @click="mobileNavOpen = false" href="{{ \App\Shared\Support\StoreUrl::path('storefront.contact', $storefront) }}" class="flex min-h-11 items-center text-[var(--ink)]">Studio Directions</a>
         <a @click="mobileNavOpen = false" href="{{ \App\Shared\Support\StoreUrl::path('storefront.manage-booking', $storefront) }}" class="flex min-h-11 items-center text-[var(--ink)]">Manage Booking Reference</a>
         <div class="pt-3 border-t border-[var(--rule)] flex items-center justify-between">
-            @if (($page->settings['ai_enabled'] ?? true) && config('ai.enabled'))
-                <button type="button" @click="$dispatch('ai.open'); mobileNavOpen = false" class="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--brand-wash)] px-3 text-xs font-bold text-[var(--brand-text)]"><x-ui.icon name="spark" size="size-4" /> Ask AI</button>
+            @if (($page->settings['ai_enabled'] ?? true) && app(\App\Domains\Ai\Services\AiSettings::class)->enabled())
+                <button type="button" @click="$dispatch('store-search-open'); mobileNavOpen = false" class="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--brand-wash)] px-3 text-xs font-bold text-[var(--brand-text)]"><x-ui.icon name="search" size="size-4" /> Search store</button>
+                <button type="button" @click="$dispatch('ai-open'); mobileNavOpen = false" class="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--brand-wash)] px-3 text-xs font-bold text-[var(--brand-text)]"><x-ui.icon name="spark" size="size-4" /> Ask Mercho</button>
             @endif
             @if ($wa)
                 <a href="{{ $wa }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[var(--brand-text)]">

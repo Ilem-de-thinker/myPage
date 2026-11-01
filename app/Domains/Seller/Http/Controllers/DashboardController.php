@@ -3,6 +3,8 @@
 namespace App\Domains\Seller\Http\Controllers;
 
 use App\Domains\Analytics\Services\AnalyticsSummary;
+use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Seller\Services\DashboardStats;
 use App\Domains\Seller\Services\PublishReadiness;
 use Illuminate\Http\Request;
@@ -16,8 +18,12 @@ class DashboardController extends Controller
         DashboardStats $stats,
         PublishReadiness $readiness,
         AnalyticsSummary $analytics,
+        SubscriptionAvailability $availability,
     ): View {
         $page = $request->user()->storePages()->first();
+        $subscription = $availability->enabled()
+            ? Subscription::with('plan')->where('seller_id', $request->user()->getKey())->first()
+            : null;
 
         return view('dashboard.index', [
             'page' => $page,
@@ -25,6 +31,8 @@ class DashboardController extends Controller
             'stats' => $page ? $stats->for($page) : null,
             'analytics' => $page ? $analytics->for($page) : null,
             'checks' => $page ? $readiness->checks($page) : [],
+            'subscription' => $subscription,
+            'merchantStatus' => $subscription?->merchantStatus(),
         ]);
     }
 }

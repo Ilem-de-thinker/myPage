@@ -54,6 +54,10 @@
                     </a>
                 @endforeach
             </div>
+
+            @if ($requests->hasPages())
+                <div class="mt-4">{{ $requests->links() }}</div>
+            @endif
         </section>
     @endif
 @endsection

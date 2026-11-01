@@ -2,6 +2,7 @@
 
 namespace App\Domains\Booking\Http\Controllers;
 
+use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Seller\Enums\Theme;
@@ -22,7 +23,9 @@ class StaffMemberController extends Controller
         $staff = $page->staffMembers()
             ->withCount(['services', 'bookings'])
             ->orderBy('name')
-            ->get();
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('dashboard.staff.index', [
             'page' => $page,
@@ -31,9 +34,10 @@ class StaffMemberController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SubscriptionEntitlements $entitlements): RedirectResponse
     {
         $page = $this->page($request);
+        $entitlements->assertCanCreateStaff($page);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],

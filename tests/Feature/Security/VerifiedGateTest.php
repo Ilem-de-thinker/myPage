@@ -1,8 +1,6 @@
 <?php
 
 use App\Domains\Admin\Models\BadgeApplication;
-use App\Domains\Catalog\Models\Product;
-use App\Domains\Payments\Models\SellerGateway;
 use App\Domains\Seller\Enums\StoreStatus;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
@@ -14,13 +12,13 @@ use Illuminate\Support\Facades\Route;
 use function Pest\Laravel\actingAs;
 
 /**
- * The seller dashboard needs two verifications and used to claim one.
+ * Business verification is a buyer-facing trust signal, not a dashboard gate.
  *
- * 'verified' is Laravel's own alias and always worked: it sends a seller with an
- * unconfirmed email address to /email/verify. What the routes implied, and never
- * did, was the second one — an admin looking at a CAC certificate or a national
- * ID. Those tests cover the gap that opened, and the loop that waits for anyone
- * who wires the gate up without exempting the screen it redirects to.
+ * 'verified' is Laravel's own alias and still guards the dashboard: it sends a
+ * seller with an unconfirmed email address to /email/verify. An admin looking at
+ * a CAC certificate or a national ID stamps the page so buyers can see the
+ * badge, but it must not lock a seller out of the tools they need to run their
+ * shop.
  */
 
 /**
@@ -36,64 +34,57 @@ function unverifiedSeller(array $attributes = []): array
     return [$seller, $page];
 }
 
-it('turns an unverified seller away from the dashboard', function () {
+it('lets an unverified seller use the dashboard', function () {
     [$seller] = unverifiedSeller();
 
     actingAs($seller)
         ->get(route('dashboard'))
-        ->assertRedirect(route('badge.apply'))
-        ->assertSessionHas('status');
+        ->assertOk();
 });
 
-it('turns an unverified seller away from the rest of the dashboard, not just the front page', function () {
+it('lets an unverified seller use the rest of the dashboard, not just the front page', function () {
     [$seller] = unverifiedSeller();
 
     foreach (['dashboard.orders.index', 'customers.index', 'reviews.index', 'products.index'] as $name) {
         actingAs($seller)
             ->get(route($name))
-            ->assertRedirect(route('badge.apply'), $name.' was reachable without verification');
+            ->assertOk($name.' was blocked by business verification');
     }
 });
 
-it('refuses the write, not just the screen', function () {
+it('lets an unverified seller attempt a write', function () {
     [$seller] = unverifiedSeller();
 
     actingAs($seller)
         ->post(route('page.publish'))
-        ->assertRedirect(route('badge.apply'));
+        ->assertRedirect(route('dashboard'));
 
-    // The gate has to run before the controller, or the redirect is theatre.
+    // The publish blockers still apply; business verification does not.
     expect($seller->storePages()->first()->status)->toBe(StoreStatus::Draft);
 });
 
-it('refuses a product created by an unverified seller', function () {
-    [$seller, $page] = unverifiedSeller();
+it('lets an unverified seller open the product form', function () {
+    [$seller] = unverifiedSeller();
 
-    actingAs($seller)->post(route('products.store'), ['name' => 'Ankara', 'price_kobo' => 250000]);
-
-    expect(Product::where('store_page_id', $page->getKey())->count())->toBe(0);
+    actingAs($seller)
+        ->get(route('products.create'))
+        ->assertOk();
 });
 
-it('refuses a payment key from an unverified seller', function () {
+it('lets an unverified seller open payment settings', function () {
     [$seller] = unverifiedSeller();
 
     actingAs($seller)
         ->get(route('payments.gateways.index'))
-        ->assertRedirect(route('badge.apply'));
-
-    actingAs($seller)
-        ->post(route('payments.gateways.store'), ['gateway' => 'paystack', 'secret_key' => 'sk_test_x'])
-        ->assertRedirect(route('badge.apply'));
-
-    expect(SellerGateway::withoutGlobalScopes()->count())->toBe(0);
+        ->assertOk();
 });
 
-it('answers a JSON caller with a refusal rather than a redirect to a page', function () {
+it('answers a JSON caller without a verification redirect', function () {
     [$seller] = unverifiedSeller();
 
     actingAs($seller)
         ->getJson(route('dashboard'))
-        ->assertForbidden();
+        ->assertOk();
 });
 
 it('lets the badge screen itself through, or the blocked seller loops forever', function () {

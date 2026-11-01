@@ -6,12 +6,14 @@ use App\Domains\Billing\Actions\ConfirmSubscriptionPayment;
 use App\Domains\Billing\Actions\SubscriptionManager;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Services\GracePeriod;
 use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 use Throwable;
@@ -21,8 +23,11 @@ use Throwable;
  */
 class BillingController extends Controller
 {
-    public function index(Request $request, SubscriptionAvailability $availability): View
-    {
+    public function index(
+        Request $request,
+        SubscriptionAvailability $availability,
+        GracePeriod $grace,
+    ): View {
         $seller = $request->user();
 
         $subscription = Subscription::with('plan')
@@ -32,10 +37,14 @@ class BillingController extends Controller
         return view('dashboard.billing.index', [
             'page' => $seller->storePages()->first(),
             'subscription' => $subscription,
-            'plans' => Plan::active()->orderByDesc('is_featured')->orderBy('price_kobo')->get(),
-            'history' => $subscription ? $this->historyFor($subscription) : collect(),
+            'plans' => Plan::active()
+                ->where('slug', '!=', config('billing.trial_plan'))
+                ->orderByDesc('is_featured')
+                ->orderBy('price_kobo')
+                ->get(),
+            'history' => $subscription ? $this->historyFor($subscription) : new LengthAwarePaginator([], 0, 20),
             'transfers' => config('billing.manual_transfers'),
-            'graceDays' => (int) config('billing.grace_days', 7),
+            'graceDays' => $grace->days(),
             'subscriptionsEnabled' => $availability->enabled(),
         ]);
     }
@@ -53,6 +62,9 @@ class BillingController extends Controller
         ]);
 
         $plan = Plan::active()->where('slug', $data['plan'])->firstOrFail();
+
+        // The trial is started automatically at signup, never bought.
+        abort_if($plan->slug === config('billing.trial_plan'), 422, 'The trial plan cannot be purchased.');
 
         // Written as past_due, not active: only a confirmed payment makes it
         // live. A seller who abandons checkout is never marked paying.
@@ -118,6 +130,8 @@ class BillingController extends Controller
         ]);
 
         $plan = Plan::active()->where('slug', $data['plan'])->firstOrFail();
+
+        abort_if($plan->slug === config('billing.trial_plan'), 422, 'The trial plan cannot be purchased.');
 
         $subscriptions->start($request->user(), $plan, 'manual');
 
@@ -190,7 +204,8 @@ class BillingController extends Controller
     {
         return Transaction::where('payable_type', 'subscription')
             ->where('payable_id', $subscription->getKey())
-            ->latest()
-            ->get();
+            ->latest('id')
+            ->paginate(20)
+            ->withQueryString();
     }
 }

@@ -336,3 +336,16 @@ it('never removes another seller\'s dates off', function () {
 
     expect(TimeOff::withoutGlobalScopes()->find($foreign->id))->not->toBeNull();
 });
+
+it('paginates the team list', function () {
+    [$seller, $page] = availabilitySeller();
+
+    StaffMember::factory()->count(21)->create([
+        'seller_id' => $seller->id,
+        'store_page_id' => $page->id,
+    ]);
+
+    actingAs($seller)->get(route('staff.index'))
+        ->assertOk()
+        ->assertSee('page=2');
+});

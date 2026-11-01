@@ -5,6 +5,7 @@ namespace App\Domains\Directory\Services;
 use App\Domains\Booking\Models\Service;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\SearchQueryParser;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -70,12 +71,23 @@ final class DirectoryCatalogQuery
     /** @return Builder<Product> */
     public function productBase(Request $request): Builder
     {
+        $term = $request->string('q')->toString();
+
         $query = Product::query()
             ->select('products.*')
             ->active()
             ->where('is_directory_listed', true)
             ->whereHas('storePage', fn (Builder $query) => $query->discoverable())
-            ->when($request->filled('q'), fn (Builder $query) => $query->search($request->string('q')->toString()))
+            ->when($term !== '' && SearchQueryParser::tokens($term) !== [], fn (Builder $query) => $query->where(function (Builder $inner) use ($term): void {
+                // Title, description and SKU are the obvious match; the merchant's
+                // city and state are what the search box promises when it says
+                // "by title, craft, or city".
+                $needle = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], mb_strtolower($term)).'%';
+                $inner->search($term)
+                    ->orWhereHas('storePage', fn (Builder $store) => $store
+                        ->whereRaw('LOWER(store_pages.city) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(store_pages.state) LIKE ?', [$needle]));
+            }))
             ->when($request->filled('category'), fn (Builder $query) => $query->whereHas('category', fn (Builder $category) => $category->where('slug', $request->string('category'))))
             ->when($request->filled('state'), fn (Builder $query) => $query->whereHas('storePage', fn (Builder $store) => $store->where('state', $request->string('state'))))
             ->when($request->filled('city'), fn (Builder $query) => $query->whereHas('storePage', fn (Builder $store) => $store->where('city', $request->string('city'))))
@@ -103,12 +115,20 @@ final class DirectoryCatalogQuery
     /** @return Builder<Service> */
     public function serviceBase(Request $request): Builder
     {
+        $term = $request->string('q')->toString();
+
         $query = Service::query()
             ->select('services.*')
             ->where('is_active', true)
             ->where('is_directory_listed', true)
             ->whereHas('storePage', fn (Builder $query) => $query->discoverable())
-            ->when($request->filled('q'), fn (Builder $query) => $query->search($request->string('q')->toString()))
+            ->when($term !== '' && SearchQueryParser::tokens($term) !== [], fn (Builder $query) => $query->where(function (Builder $inner) use ($term): void {
+                $needle = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], mb_strtolower($term)).'%';
+                $inner->search($term)
+                    ->orWhereHas('storePage', fn (Builder $store) => $store
+                        ->whereRaw('LOWER(store_pages.city) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(store_pages.state) LIKE ?', [$needle]));
+            }))
             ->when($request->filled('state'), fn (Builder $query) => $query->whereHas('storePage', fn (Builder $store) => $store->where('state', $request->string('state'))))
             ->when($request->filled('city'), fn (Builder $query) => $query->whereHas('storePage', fn (Builder $store) => $store->where('city', $request->string('city'))))
             ->when($request->boolean('verified'), fn (Builder $query) => $query->whereHas('storePage', fn (Builder $store) => $store->whereNotNull('verified_at')))

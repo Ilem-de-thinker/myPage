@@ -199,3 +199,15 @@ it('shows the variant image url when one is stored', function () {
 
     expect($variant->fresh()->imageUrl())->toContain('variants/1/red.webp');
 });
+
+it('paginates the variant list', function () {
+    [$seller, , $product] = sellerWithProduct();
+
+    $product->variants()->createMany(
+        collect(range(1, 21))->map(fn (int $number): array => ['name' => "Variant {$number}"])->all()
+    );
+
+    actingAs($seller)->get(route('products.variants.index', $product))
+        ->assertOk()
+        ->assertSee('page=2');
+});

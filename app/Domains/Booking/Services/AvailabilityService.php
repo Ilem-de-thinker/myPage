@@ -7,6 +7,7 @@ use App\Domains\Booking\Models\Service;
 use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Booking\Models\TimeOff;
 use App\Domains\Booking\Models\WorkingHour;
+use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -169,7 +170,11 @@ class AvailabilityService
 
     public function timezoneFor(Service $service): string
     {
-        return $service->storePage?->settings['timezone'] ?? config('mypage.timezone', 'Africa/Lagos');
+        $storePage = $service->relationLoaded('storePage')
+            ? $service->storePage
+            : StorePage::find($service->store_page_id);
+
+        return $storePage?->settings['timezone'] ?? config('mypage.timezone', 'Africa/Lagos');
     }
 
     /**
@@ -178,7 +183,11 @@ class AvailabilityService
      */
     private function minNoticeMinutes(Service $service): int
     {
-        return (int) ($service->storePage?->settings['min_notice_minutes']
+        $storePage = $service->relationLoaded('storePage')
+            ? $service->storePage
+            : StorePage::find($service->store_page_id);
+
+        return (int) ($storePage?->settings['min_notice_minutes']
             ?? config('mypage.booking_min_notice_minutes', 60));
     }
 }

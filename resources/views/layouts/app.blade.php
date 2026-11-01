@@ -75,7 +75,7 @@
                     queues is both wrong and a slow query on every dashboard
                     screen. One indexed COUNT, cheaper than the badge is worth.
                 --}}
-                @php $pendingReviews = $page->reviews()->awaitingModeration()->count(); @endphp
+                @php $pendingReviews = $page?->reviews()->awaitingModeration()->count() ?? 0; @endphp
                 <a href="{{ route('reviews.index') }}"
                    @class(['group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-colors', 'bg-brand-wash font-semibold text-brand-text' => request()->routeIs('reviews.*'), 'text-ink-2 hover:bg-tint hover:text-ink' => ! request()->routeIs('reviews.*')])
                    @if(request()->routeIs('reviews.*')) aria-current="page" @endif>
@@ -89,7 +89,7 @@
                 <x-ui.nav-link :href="route('payments.gateways.index')" label="Payment keys" icon="key" :active="request()->routeIs('payments.gateways.*')" />
                 <x-ui.nav-link :href="route('support.index')" label="Support" icon="life-buoy" :active="request()->routeIs('support.*')" />
                 <x-ui.nav-link :href="route('badge.apply')" label="Get verified" icon="badge" :active="request()->routeIs('badge.*')" />
-                @if (auth()->user()->is_admin)
+                @if (auth()->user()->isAdmin())
                     <x-ui.nav-link :href="route('admin.index')" label="Admin panel" icon="shield" :active="request()->routeIs('admin.*')" />
                 @endif
             </nav>

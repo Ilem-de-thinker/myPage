@@ -81,7 +81,7 @@ class ChatController extends Controller
     public function aiSuggestion(Request $request, int $thread, AiManager $ai): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
-        abort_unless((bool) ($page->settings['ai_enabled'] ?? true) && (bool) ($page->settings['ai_order_chat'] ?? false), 403, 'Order chat AI is disabled for this store.');
+        abort_unless((bool) ($page->settings['ai_enabled'] ?? true) && (bool) ($page->settings['ai_order_chat'] ?? false), 403, 'Mercho is disabled for order chat in this store.');
         $thread = ChatThread::query()->where('store_page_id', $page->id)->with('messages')->findOrFail($thread);
         $result = $ai->run('order_chat_assist', [
             'thread_subject' => $thread->subject,

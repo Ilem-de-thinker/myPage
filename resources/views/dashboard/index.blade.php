@@ -4,6 +4,25 @@
     <div class="space-y-6">
         <x-ui.page-header title="Dashboard" :subtitle="'Welcome back, '.auth()->user()->name.'.'" />
 
+        @if (($merchantStatus ?? null) === \App\Domains\Billing\Enums\MerchantStatus::Grace)
+            <div class="rounded-2xl border border-warn-edge bg-warn-wash p-5">
+                <p class="text-sm font-semibold text-warn-text">Your payment did not go through — you are in a grace period.</p>
+                <p class="mt-1 text-xs text-warn-text">
+                    You still have full access for
+                    {{ $subscription->daysLeft() ?? 0 }} {{ \Illuminate\Support\Str::plural('day', $subscription->daysLeft() ?? 1) }}.
+                    <a href="{{ route('billing.index') }}" class="font-semibold underline">Update your payment</a> before then.
+                </p>
+            </div>
+        @elseif (($merchantStatus ?? null)?->isLapsed())
+            <div class="rounded-2xl border border-danger-edge bg-danger-wash p-5">
+                <p class="text-sm font-semibold text-danger-text">{{ $merchantStatus->label() }}: your shop is read-only.</p>
+                <p class="mt-1 text-xs text-danger-text">
+                    {{ $merchantStatus->description() }}
+                    <a href="{{ route('billing.index') }}" class="font-semibold underline">Renew your plan</a> to reopen it.
+                </p>
+            </div>
+        @endif
+
         @if ($blockers = session('publish_blockers'))
             <div class="bg-warn-wash border border-warn-edge rounded-2xl p-5">
                 <p class="text-sm font-semibold text-warn-text">Almost there — your page is not live yet.</p>
@@ -81,7 +100,7 @@
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ route('dashboard.analytics.index') }}" class="min-h-11 rounded-xl border border-rule-strong px-4 py-2.5 text-xs font-bold text-ink-2 hover:bg-surface">Open analytics</a>
-                        <button type="button" @click="generate" :disabled="loading" class="min-h-11 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-brand-ink disabled:opacity-50" x-text="loading ? 'Preparing…' : 'Use AI summary'"></button>
+                        <button type="button" @click="generate" :disabled="loading" class="min-h-11 rounded-xl bg-brand px-4 py-2.5 text-xs font-bold text-brand-ink disabled:opacity-50" x-text="loading ? 'Preparing…' : 'Use Mercho summary'"></button>
                     </div>
                 </div>
 
@@ -109,7 +128,7 @@
                 </div>
 
                 <div x-show="digest" x-cloak class="mt-4 rounded-xl bg-surface p-4 text-sm text-ink">
-                    <p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">AI summary</p>
+                    <p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">Mercho summary</p>
                     <p x-text="digest?.summary || digest?.error"></p>
                     <ul x-show="digest?.recommendations?.length" class="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-2"><template x-for="recommendation in (digest?.recommendations || [])" :key="recommendation"><li x-text="recommendation"></li></template></ul>
                 </div>

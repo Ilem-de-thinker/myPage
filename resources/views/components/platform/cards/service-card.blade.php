@@ -9,6 +9,7 @@
     $waUrl = route('directory.go', ['type' => 'whatsapp', 'id' => $store->id ?? 1, 'source' => 'directory']);
     $price = method_exists($service, 'priceLabel') ? $service->priceLabel() : ($service->priceLabel ?? 'Rate on request');
     $reportUrl = $store ? route('directory.store', ['storePage' => $store, 'report' => 'service', 'id' => $service->id]).'#report' : null;
+    $onSale = $service->isOnSale();
 @endphp
 
 <article data-reveal style="--stagger-index: {{ $index % 6 }}" class="platform-card-base group border-l-4 border-l-[var(--platform-accent)]">
@@ -20,6 +21,9 @@
         </span>
         @if (!empty($service->turnaround))
           <span class="text-[11px] font-medium text-[var(--platform-ink-muted)]">· {{ $service->turnaround }}</span>
+        @endif
+        @if ($onSale)
+          <span class="rounded-full bg-[var(--platform-ink)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--platform-ink-invert)]">Sale −{{ $service->discountPercent() }}%</span>
         @endif
       </div>
       <span class="text-xs font-semibold text-[var(--platform-ink-muted)]">{{ $store->city ?? 'Nigeria' }}</span>
@@ -49,8 +53,11 @@
     <div class="mt-auto pt-6 flex items-center justify-between gap-3 border-t border-[var(--platform-line)]">
       <div>
         <span class="block text-[10px] font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">Rate</span>
-        <span class="font-display text-base font-extrabold text-[var(--platform-ink)]">
+        <span class="flex flex-wrap items-baseline gap-1.5 font-display text-base font-extrabold text-[var(--platform-ink)]">
           {{ $price }}
+          @if ($onSale)
+            <del class="text-[11px] font-semibold text-[var(--platform-ink-muted)] tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }}</del>
+          @endif
         </span>
       </div>
 
@@ -58,7 +65,7 @@
         <a href="{{ $waUrl }}" title="Chat with provider" class="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--platform-line)] text-[var(--platform-accent)] hover:bg-[var(--platform-accent-wash)] transition-colors">
           <x-ui.icon name="whatsapp" class="size-4" />
         </a>
-        <a href="{{ $url }}" class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[var(--platform-ink)] px-3 text-xs font-bold text-white hover:bg-[var(--platform-accent)] transition-all">
+        <a href="{{ $url }}" class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[var(--platform-ink)] px-3 text-xs font-bold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-accent)] transition-all">
           <span>Book on website</span>
           <svg class="size-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>

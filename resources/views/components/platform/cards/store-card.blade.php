@@ -19,7 +19,7 @@
     
     {{-- Verified Stamp --}}
     @if (!empty($store->verified_at))
-      <div class="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-[var(--platform-brand)]/20 bg-white/90 px-2.5 py-1 text-[10px] font-bold text-[var(--platform-brand)] backdrop-blur-xs">
+      <div class="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-[var(--platform-brand)]/20 bg-[var(--platform-paper)]/90 px-2.5 py-1 text-[10px] font-bold text-[var(--platform-brand)] backdrop-blur-xs">
         <svg class="size-3 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <span>Verified Merchant</span>
       </div>
@@ -29,7 +29,7 @@
   <div class="relative flex flex-1 flex-col px-6 pb-6 pt-0">
     {{-- Overlapping Brand Monogram/Logo --}}
     <div class="-mt-10 mb-4 flex items-end justify-between">
-      <div class="flex size-20 items-center justify-center rounded-2xl border-4 border-white bg-[var(--platform-paper)] shadow-md transition-transform group-hover:scale-105" style="color: {{ $accentColor }}">
+      <div class="flex size-20 items-center justify-center rounded-2xl border-4 border-[var(--platform-paper)] bg-[var(--platform-paper)] shadow-md transition-transform group-hover:scale-105" style="color: {{ $accentColor }}">
         @if (!empty($store->logo_path))
           <img src="{{ \Illuminate\Support\Facades\Storage::url($store->logo_path) }}" alt="" class="size-full rounded-xl object-cover">
         @else
@@ -61,7 +61,7 @@
         <a href="{{ $waUrl }}" title="Direct WhatsApp" class="inline-flex size-9 items-center justify-center rounded-xl border border-[var(--platform-line)] text-[var(--platform-brand)] hover:bg-[var(--platform-brand-wash)] transition-colors">
           <x-ui.icon name="whatsapp" class="size-4" />
         </a>
-        <a href="{{ $goUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[var(--platform-brand)] px-4 text-xs font-bold text-white hover:bg-[var(--platform-brand-hover)] transition-all">
+        <a href="{{ $goUrl }}" class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[var(--platform-brand)] px-4 text-xs font-bold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-brand-hover)] transition-all">
           <span>Visit store</span>
           <svg class="size-3.5 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>

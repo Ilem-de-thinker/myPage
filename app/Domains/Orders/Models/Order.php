@@ -3,6 +3,7 @@
 namespace App\Domains\Orders\Models;
 
 use App\Domains\Customers\Models\Customer;
+use App\Domains\Orders\Enums\FulfilmentMode;
 use App\Domains\Orders\Enums\OrderSource;
 use App\Domains\Orders\Enums\OrderStatus;
 use App\Domains\Payments\Models\Transaction;
@@ -38,6 +39,14 @@ class Order extends Model
         'status',
         'total_kobo',
         'customer_note',
+        'delivery_mode',
+        'delivery_fee_kobo',
+        'delivery_zone',
+        'delivery_address',
+        'delivery_city',
+        'delivery_state',
+        'delivery_latitude',
+        'delivery_longitude',
     ];
 
     protected function casts(): array
@@ -46,6 +55,10 @@ class Order extends Model
             'source' => OrderSource::class,
             'status' => OrderStatus::class,
             'total_kobo' => 'integer',
+            'delivery_mode' => FulfilmentMode::class,
+            'delivery_fee_kobo' => 'integer',
+            'delivery_latitude' => 'float',
+            'delivery_longitude' => 'float',
         ];
     }
 

@@ -57,13 +57,19 @@ final class PricingPlans
      */
     private static function plans(): array
     {
-        $stored = Plan::active()->orderBy('price_kobo')->get();
+        $trial = config('billing.trial_plan');
+
+        $stored = Plan::active()
+            ->when($trial !== null, fn ($query) => $query->where('slug', '!=', $trial))
+            ->orderBy('price_kobo')
+            ->get();
 
         if ($stored->isNotEmpty()) {
             return [$stored, true];
         }
 
         return [collect(config('billing.plans', []))
+            ->reject(fn (array $plan, string $slug): bool => $slug === $trial)
             ->map(fn (array $plan, string $slug) => (object) [
                 'slug' => $slug,
                 'name' => $plan['name'],

@@ -7,6 +7,7 @@ use App\Domains\Ai\Jobs\RunAiOperation;
 use App\Domains\Ai\Models\AiDraft;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Services\AiCreditService;
+use App\Domains\Ai\Services\AiSettings;
 use App\Domains\Ai\Support\AiFeatureRegistry;
 use App\Domains\Seller\Enums\Theme;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 class AiController extends Controller
 {
+    public function __construct(private readonly AiSettings $settings) {}
+
     public function contextual(Request $request, AiManager $ai): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
@@ -26,7 +29,7 @@ class AiController extends Controller
         ]);
         $definition = AiFeatureRegistry::get($data['feature']);
         AiFeatureRegistry::authorize($page, $data['feature']);
-        abort_unless((bool) config('ai.enabled') && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'AI is disabled for this store.');
+        abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
         if ($data['feature'] === 'content' && ($data['input']['mode'] ?? null) === 'translate') {
             validator($data['input'], ['text' => ['required', 'string', 'max:10000'], 'language' => ['required', 'in:English,Nigerian Pidgin,Yoruba,Igbo,Hausa']])->validate();
         }
@@ -58,7 +61,7 @@ class AiController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
         AiFeatureRegistry::authorize($page, 'appearance');
-        abort_unless((bool) config('ai.enabled') && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'AI is disabled for this store.');
+        abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
         abort_unless(function_exists('imagecreatefromjpeg'), 503, 'Logo color extraction is unavailable.');
         $data = $request->validate(['logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
         $image = match ($data['logo']->getMimeType()) {
@@ -122,7 +125,7 @@ class AiController extends Controller
         $groups = collect($result['groups'] ?? [])->map(fn (array $group): array => collect($group)->map(fn (string|int $index): int => (int) $index)->filter(fn (int $index): bool => $index >= 1 && $index <= count($data['photos']))->values()->all())->filter()->values()->all();
 
         if ($groups === []) {
-            throw ValidationException::withMessages(['photos' => 'AI could not suggest photo groups.']);
+            throw ValidationException::withMessages(['photos' => 'Mercho could not suggest photo groups.']);
         }
 
         return response()->json(['groups' => $groups, 'reason' => $result['reason'] ?? null]);
@@ -133,8 +136,9 @@ class AiController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         $data = $request->validate(['feature' => ['required', 'string'], 'item_count' => ['required', 'integer', 'min:1', 'max:50']]);
         AiFeatureRegistry::authorize($page, $data['feature']);
+        $definition = AiFeatureRegistry::get($data['feature']);
 
-        return response()->json($credits->estimate($page, $data['item_count']));
+        return response()->json($credits->estimate($page, $data['item_count'], $definition['task']));
     }
 
     public function batch(Request $request, AiCreditService $credits): JsonResponse
@@ -147,8 +151,8 @@ class AiController extends Controller
             'items.*.group' => ['nullable', 'integer', 'min:0'],
         ]);
         AiFeatureRegistry::authorize($page, $data['feature']);
-        $estimate = $credits->estimate($page, count($data['items']));
         $task = $data['feature'] === 'products' ? 'listing_copy' : 'service_listing';
+        $estimate = $credits->estimate($page, count($data['items']), $task);
         $operations = [];
 
         foreach (array_slice($data['items'], 0, $estimate['allowed']) as $index => $item) {
@@ -163,10 +167,10 @@ class AiController extends Controller
     public function run(Request $request, AiManager $ai): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
-        abort_unless((bool) config('ai.enabled') && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'AI is disabled for this store.');
+        abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
         $data = $request->validate(['task' => ['required', 'string', 'in:listing_copy,service_listing,copy_rewrite'], 'feature' => ['required', 'string'], 'input' => ['required', 'array']]);
         $definition = AiFeatureRegistry::get($data['feature']);
-        abort_unless($definition['task'] === $data['task'], 422, 'The AI task does not belong to this page.');
+        abort_unless($definition['task'] === $data['task'], 422, 'This Mercho task does not belong to this page.');
         AiFeatureRegistry::authorize($page, $data['feature']);
         $result = $ai->run($data['task'], $data['input'], $page);
         if ($data['feature'] === 'services' && is_array($result)) {
@@ -192,10 +196,10 @@ class AiController extends Controller
             'listing_from_photo' => 'products',
             'insights_digest' => 'analytics',
         ];
-        abort_unless(($features[$data['task']] ?? null) === $data['feature'], 422, 'The AI task does not belong to this feature.');
+        abort_unless(($features[$data['task']] ?? null) === $data['feature'], 422, 'This Mercho task does not belong to this feature.');
         AiFeatureRegistry::authorize($page, $data['feature']);
-        $estimate = app(AiCreditService::class)->estimate($page, 1);
-        abort_if($estimate['allowed'] < 1, 429, 'This store has reached its monthly AI limit.');
+        $estimate = app(AiCreditService::class)->estimate($page, 1, $data['task']);
+        abort_if($estimate['allowed'] < 1, 429, 'This store has reached its monthly Mercho limit for '.AiSettings::taskLabel($data['task']).'.');
         $operation = AiOperation::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'task' => $data['task'], 'status' => 'queued', 'input' => ['feature' => $data['feature'], ...$data['input']]]);
         RunAiOperation::dispatch($operation);
 
@@ -217,7 +221,7 @@ class AiController extends Controller
         $task = $data['feature'] === 'products' ? 'listing_from_photo' : 'service_listing';
         $groups = $this->photoGroups($data['groups'] ?? null, count($data['photos']));
         $requested = $groups !== null ? count($groups) : (($data['group'] ?? false) ? 1 : count($data['photos']));
-        $estimate = $credits->estimate($page, $requested);
+        $estimate = $credits->estimate($page, $requested, $task);
         $photos = $groups !== null
             ? $data['photos']
             : (($data['group'] ?? false) && $estimate['allowed'] > 0 ? $data['photos'] : array_slice($data['photos'], 0, $estimate['allowed']));
@@ -291,11 +295,4 @@ class AiController extends Controller
 
         return array_map(fn (array $group): array => array_values(array_unique(array_map('intval', $group))), $groups);
     }
-}
-
-namespace App\Http\Controllers;
-
-class AiController extends Controller
-{
-    //
 }

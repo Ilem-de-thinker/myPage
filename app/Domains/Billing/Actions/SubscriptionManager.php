@@ -5,6 +5,8 @@ namespace App\Domains\Billing\Actions;
 use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\SubscriptionGraceStarted;
+use App\Domains\Billing\Services\GracePeriod;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SubscriptionManager
 {
+    public function __construct(private readonly GracePeriod $grace) {}
+
     /**
      * Record the gateway's identity for a subscription, and the date it has
      * promised to charge next.
@@ -56,6 +60,7 @@ class SubscriptionManager
                 'status' => SubscriptionStatus::Active,
                 'cancelled_at' => null,
                 'grace_ends_at' => null,
+                'grace_override_until' => null,
             ]),
             'non-renewing' => $subscription->update(['cancelled_at' => now()]),
             'attention' => $this->markPastDue($subscription),
@@ -83,8 +88,12 @@ class SubscriptionManager
     }
 
     /**
-     * Begin a subscription. A plan with a trial starts in trial; otherwise it
-     * starts the moment payment is confirmed.
+     * Begin a subscription.
+     *
+     * A trial starts immediately and grants access. A paid plan bought through
+     * the gateway only grants access once its payment is confirmed: starting
+     * checkout records the intent without changing what the seller can do. A
+     * manual transfer is money already sent, so it starts paying immediately.
      */
     public function start(
         Seller $seller,
@@ -96,12 +105,31 @@ class SubscriptionManager
         $now ??= now();
 
         return DB::transaction(function () use ($seller, $plan, $paymentMethod, $gatewayReference, $now) {
-            // Only a card checkout gets a trial. A bank transfer is money that
-            // has already been sent, so it starts paying immediately.
-            $trialDays = $plan->trial_days;
-            $onTrial = $paymentMethod === 'gateway'
-                && $trialDays !== null
-                && $trialDays > 0;
+            $existing = Subscription::query()
+                ->where('seller_id', $seller->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            $trialDays = (int) ($plan->trial_days ?? 0);
+
+            // A trial is either the dedicated trial plan being started at signup,
+            // or a first-time card signup on a plan that still carries trial days.
+            $onTrial = $paymentMethod === 'trial'
+                || ($paymentMethod === 'gateway' && $existing === null && $trialDays > 0);
+
+            // A seller who already has a subscription keeps exactly what they
+            // have until the payment is confirmed. An abandoned checkout must
+            // never silently change their access.
+            $keepExisting = ! $onTrial && $existing !== null && $paymentMethod === 'gateway';
+
+            $status = match (true) {
+                $onTrial => SubscriptionStatus::Trialing,
+                $keepExisting => $existing->status,
+                $paymentMethod === 'gateway' => SubscriptionStatus::Pending,
+                default => SubscriptionStatus::Active,
+            };
+
+            $withoutPeriod = $onTrial || $status === SubscriptionStatus::Pending;
 
             // A live subscription is replaced rather than duplicated: the unique
             // index on seller_id would fail otherwise.
@@ -109,13 +137,20 @@ class SubscriptionManager
                 ['seller_id' => $seller->getKey()],
                 [
                     'plan_id' => $plan->getKey(),
-                    'status' => $onTrial ? SubscriptionStatus::Trialing : SubscriptionStatus::Active,
+                    'status' => $status,
                     'price_kobo' => $plan->price_kobo,
-                    'trial_ends_at' => $onTrial ? $now->copy()->addDays($trialDays) : null,
-                    'current_period_starts_at' => $onTrial ? null : $now->copy(),
-                    'current_period_ends_at' => $onTrial ? null : $this->periodEnd($now, $plan->interval),
-                    'cancelled_at' => null,
-                    'grace_ends_at' => null,
+                    'trial_ends_at' => $onTrial
+                        ? $now->copy()->addDays($trialDays)
+                        : ($keepExisting ? $existing->trial_ends_at : null),
+                    'current_period_starts_at' => $withoutPeriod
+                        ? null
+                        : ($keepExisting ? $existing->current_period_starts_at : $now->copy()),
+                    'current_period_ends_at' => $withoutPeriod
+                        ? null
+                        : ($keepExisting ? $existing->current_period_ends_at : $this->periodEnd($now, $plan->interval)),
+                    'cancelled_at' => $keepExisting ? $existing->cancelled_at : null,
+                    'grace_ends_at' => $keepExisting ? $existing->grace_ends_at : null,
+                    'grace_override_until' => $keepExisting ? $existing->grace_override_until : null,
                     'payment_method' => $paymentMethod,
                     'gateway_reference' => $gatewayReference,
                 ],
@@ -138,9 +173,11 @@ class SubscriptionManager
 
         $subscription->update([
             'status' => SubscriptionStatus::Active,
+            'trial_ends_at' => null,
             'current_period_starts_at' => $periodStart,
             'current_period_ends_at' => $this->periodEnd($periodStart, $subscription->plan?->interval ?? 'monthly'),
             'grace_ends_at' => null,
+            'grace_override_until' => null,
         ]);
 
         return $subscription;
@@ -172,10 +209,18 @@ class SubscriptionManager
     {
         $now ??= now();
 
+        // Retries and repeated webhooks must not email the seller every time.
+        $alreadyInGrace = $subscription->status === SubscriptionStatus::PastDue
+            && $subscription->grace_ends_at?->isFuture();
+
         $subscription->update([
             'status' => SubscriptionStatus::PastDue,
-            'grace_ends_at' => $now->copy()->addDays((int) config('billing.grace_days', 7)),
+            'grace_ends_at' => $this->grace->end($now),
         ]);
+
+        if (! $alreadyInGrace && $this->grace->days() > 0) {
+            $subscription->seller?->notify(new SubscriptionGraceStarted($subscription->grace_ends_at));
+        }
 
         return $subscription;
     }
@@ -190,8 +235,12 @@ class SubscriptionManager
 
         $subscription->update([
             'status' => SubscriptionStatus::PastDue,
-            'grace_ends_at' => $now->copy()->addDays((int) config('billing.grace_days', 7)),
+            'grace_ends_at' => $this->grace->end($now),
         ]);
+
+        if ($this->grace->days() > 0) {
+            $subscription->seller?->notify(new SubscriptionGraceStarted($subscription->grace_ends_at));
+        }
 
         return $subscription;
     }

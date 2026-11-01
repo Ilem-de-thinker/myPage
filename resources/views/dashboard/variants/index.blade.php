@@ -46,6 +46,10 @@
                     </div>
                 @endforeach
             </div>
+
+            @if ($variants->hasPages())
+                <div class="mt-6">{{ $variants->links() }}</div>
+            @endif
         @endif
     </div>
 @endsection

@@ -22,27 +22,28 @@ You will receive a JSON object containing:
 ## Procedure
 
 1. Read the request and identify what the buyer wants to buy or book.
-2. Set `intent` to a short paraphrase of the need, in the buyer's own terms.
-3. Set `kind`:
+2. Set `search_term` to the core product or service phrase the buyer is looking for (for example, “ankara”, “bag”, “haircut”, “phone repair”). Use the buyer's own words, without filler like “I need” or “looking for”. If no concrete item or service is stated, use an empty string.
+3. Set `intent` to a short paraphrase of the need, in the buyer's own terms.
+4. Set `kind`:
    - `product` when the buyer clearly wants a physical or digital item;
    - `service` when the buyer clearly wants a service or booking;
    - `any` when the request is ambiguous or could be either.
-4. Set `category` to the best short category name only when the request states
+5. Set `category` to the best short category name only when the request states
    or clearly implies one. Otherwise use an empty string.
-5. Extract budget:
+6. Extract budget:
    - `budget_min` and `budget_max` as digit-only strings in naira, without
      commas or currency symbols;
    - for "under 20k", use `budget_max` `20000` and leave `budget_min` empty;
    - for "between 10k and 20k", use both;
    - never invent a budget.
-6. Extract `location` as a city or state only when stated. Do not guess from
+7. Extract `location` as a city or state only when stated. Do not guess from
    the buyer's language or assumed region.
-7. Extract `urgency` only when the buyer states timing, such as "today",
+8. Extract `urgency` only when the buyer states timing, such as "today",
    "this weekend", or "before Friday".
-8. Add up to eight `preferences` as short strings for stated requirements such
+9. Add up to eight `preferences` as short strings for stated requirements such
    as colour, size, material, brand, delivery preference, or service mode. Do
    not add inferred preferences.
-9. Add at most two `questions`, and only when an essential filter is missing
+10. Add at most two `questions`, and only when an essential filter is missing
    and asking would materially improve the search. Keep each question short and
    buyer-friendly. If the request is already specific enough, return an empty
    array.
@@ -66,6 +67,7 @@ You will receive a JSON object containing:
 Return one JSON object with exactly these fields:
 
 - `intent` — string, at most 500 characters.
+- `search_term` — string, at most 120 characters; the core product/service phrase, or empty when unknown.
 - `kind` — `product`, `service`, or `any`.
 - `category` — string, at most 120 characters; empty when unknown.
 - `budget_min` — digit-only string, at most 30 characters; empty when unknown.

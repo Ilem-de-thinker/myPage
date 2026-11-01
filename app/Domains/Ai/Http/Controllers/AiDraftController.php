@@ -197,7 +197,7 @@ class AiDraftController extends Controller
 
         $draft->update(['status' => 'undone', 'reviewed_by' => $request->user()->id]);
 
-        return response()->json(['draft' => $draft->fresh(), 'message' => 'The AI change was undone.']);
+        return response()->json(['draft' => $draft->fresh(), 'message' => 'The Mercho change was undone.']);
     }
 
     private function applyDraft(Request $request, StorePage $page, AiDraft $draft): void

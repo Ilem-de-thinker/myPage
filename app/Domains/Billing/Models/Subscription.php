@@ -2,6 +2,8 @@
 
 namespace App\Domains\Billing\Models;
 
+use App\Domains\Billing\Actions\ResolveMerchantStatus;
+use App\Domains\Billing\Enums\MerchantStatus;
 use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
@@ -9,6 +11,7 @@ use Database\Factories\Domains\Billing\Models\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /** @use HasFactory<SubscriptionFactory> */
 class Subscription extends Model
@@ -25,6 +28,7 @@ class Subscription extends Model
         'current_period_ends_at',
         'cancelled_at',
         'grace_ends_at',
+        'grace_override_until',
         'payment_method',
         'gateway_reference',
         'gateway_subscription_code',
@@ -44,6 +48,7 @@ class Subscription extends Model
             'current_period_ends_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'grace_ends_at' => 'datetime',
+            'grace_override_until' => 'datetime',
             'next_payment_date' => 'datetime',
             'meta' => 'array',
         ];
@@ -77,33 +82,52 @@ class Subscription extends Model
     }
 
     /**
-     * The grace period is what stops a lapsed subscription from taking a paying
-     * seller's page offline the day a debit fails.
+     * The status everything should read: active, grace, expired or cancelled.
+     * Stored gateway statuses are history; this is the answer to "can they work".
      */
-    public function isInGrace(): bool
+    public function merchantStatus(): MerchantStatus
     {
-        return $this->grace_ends_at !== null && $this->grace_ends_at->isFuture();
-    }
-
-    public function isExpired(): bool
-    {
-        return match (true) {
-            $this->status === SubscriptionStatus::Expired => true,
-            $this->status === SubscriptionStatus::Cancelled => true,
-            $this->status === SubscriptionStatus::PastDue => ! $this->isInGrace(),
-            $this->status === SubscriptionStatus::Trialing => (bool) $this->trial_ends_at?->isPast(),
-
-            // Cancelled part way through a paid period: still allowed until that
-            // period runs out, and not one minute longer.
-            $this->cancelled_at !== null && (bool) $this->current_period_ends_at?->isPast() => true,
-
-            default => false,
-        };
+        return app(ResolveMerchantStatus::class)->handle($this);
     }
 
     public function canWrite(): bool
     {
-        return $this->status->allowsWrites() && ! $this->isExpired();
+        return $this->merchantStatus()->allowsWrites();
+    }
+
+    public function isInGrace(): bool
+    {
+        return $this->merchantStatus() === MerchantStatus::Grace;
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->merchantStatus() === MerchantStatus::Expired;
+    }
+
+    public function graceEndsAt(): ?Carbon
+    {
+        return app(ResolveMerchantStatus::class)->graceEndsAt($this);
+    }
+
+    /**
+     * Days left in the current paid period, trial, or grace window.
+     */
+    public function daysLeft(): ?int
+    {
+        $until = match ($this->merchantStatus()) {
+            MerchantStatus::Active => $this->trial_ends_at?->isFuture()
+                ? $this->trial_ends_at
+                : $this->current_period_ends_at,
+            MerchantStatus::Grace => $this->graceEndsAt(),
+            default => null,
+        };
+
+        if ($until === null || ! $until->isFuture()) {
+            return null;
+        }
+
+        return (int) ceil(now()->diffInDays($until));
     }
 
     public function daysUntilRenewal(): ?int

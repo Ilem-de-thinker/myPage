@@ -23,8 +23,9 @@ class SupportController extends Controller
                         });
                 })
                 ->with('messages.sender')
-                ->latest()
-                ->get(),
+                ->latest('id')
+                ->paginate(20)
+                ->withQueryString(),
         ]);
     }
 

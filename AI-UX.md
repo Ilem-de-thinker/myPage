@@ -24,7 +24,7 @@ server as well as by the dashboard UI.
 
 ## Adding a feature
 
-Add one registry entry, add the page's inline `@click="$dispatch('ai.open')"`
+Add one registry entry, add the page's inline `@click="$dispatch('ai-open')"`
 button, and use the shared launcher already rendered by `layouts.app`. The
 launcher opens the same page-scoped panel, records an editable draft through
 the existing AI manager, and never publishes automatically.

@@ -65,7 +65,7 @@
                   <x-ui.icon name="spark" class="size-3.5 text-[var(--platform-accent)]" />
                   <span>Help me buy</span>
                 </button>
-                <button type="submit" class="btn-magnetic inline-flex h-11 items-center justify-center rounded-xl bg-[var(--platform-brand)] px-6 text-xs font-extrabold text-white hover:bg-[var(--platform-brand-hover)] transition-all">
+                <button type="submit" class="btn-magnetic inline-flex h-11 items-center justify-center rounded-xl bg-[var(--platform-brand)] px-6 text-xs font-extrabold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-brand-hover)] transition-all">
                   <span>Search</span>
                 </button>
               </div>
@@ -99,98 +99,9 @@
           </div>
         </div>
 
-        {{-- Hero Right: Floating Layered Store & Product Cards with Parallax & Slow Drift --}}
-        <div class="relative min-h-[380px] sm:min-h-[480px] lg:min-h-[560px]" aria-label="Curated Nigerian store preview cards">
-          <div class="platform-hero-image-stack" data-pause-motion aria-hidden="true">
-            <img src="{{ asset('images/landing/fashion-studio.svg') }}" width="900" height="1125" alt="" class="platform-hero-image platform-hero-image-primary">
-            <img src="{{ asset('images/landing/beauty-studio.svg') }}" width="700" height="875" alt="" class="platform-hero-image platform-hero-image-secondary">
-            <span class="platform-hero-image-label">{{ $cities->take(3)->join(' / ') ?: 'Nigeria' }}</span>
-          </div>
-          @php
-            $firstStore = $stores->first();
-            $firstProduct = $products->first();
-          @endphp
-
-          {{-- Floating Card 1: Store profile preview. Real data only. --}}
-          @if ($firstStore)
-            <div data-parallax="0.03" class="platform-hero-card drift-slow-1 left-2 top-4 w-[280px] sm:w-[320px] p-5 z-20">
-              <div class="flex items-center justify-between gap-2">
-                @if ($firstStore->verified_at)
-                  <span class="rounded-full bg-[var(--platform-brand-wash)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-brand)]">Verified Merchant</span>
-                @else
-                  <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-ink-muted)]">Published Merchant</span>
-                @endif
-                <span class="truncate text-[11px] font-medium text-[var(--platform-ink-muted)]">{{ $firstStore->locationLabel() ?? 'Nigeria' }}</span>
-              </div>
-              <div class="mt-4 flex items-center gap-3">
-                <span class="flex size-12 items-center justify-center rounded-xl bg-[var(--platform-brand)] font-display text-lg font-bold text-white">
-                  {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($firstStore->name, 0, 2)) }}
-                </span>
-                <div class="min-w-0">
-                  <h3 class="truncate font-display text-base font-bold text-[var(--platform-ink)]">{{ $firstStore->name }}</h3>
-                  <span class="block truncate text-xs font-medium text-[var(--platform-brand)]">{{ $firstStore->slug }}.mypage.ng</span>
-                </div>
-              </div>
-              <p class="mt-3 line-clamp-2 text-xs leading-relaxed text-[var(--platform-ink-muted)]">
-                {{ $firstStore->tagline ?: $firstStore->bio ?: 'A published storefront on the Nigerian directory.' }}
-              </p>
-              <div class="mt-4 flex items-center justify-between border-t border-[var(--platform-line)] pt-3 text-xs">
-                <span class="font-bold text-[var(--platform-ink)]">Published seller</span>
-                <a href="{{ route('directory.store', $firstStore) }}" class="flex items-center gap-1 font-semibold text-[var(--platform-accent)] hover:underline">
-                  Visit store <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </a>
-              </div>
-            </div>
-          @else
-            <div data-parallax="0.03" class="platform-hero-card drift-slow-1 left-2 top-4 w-[280px] p-5 z-20">
-              <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--platform-ink-muted)]">New directory</span>
-              <h3 class="mt-4 font-display text-lg font-bold text-[var(--platform-ink)]">Published stores appear here.</h3>
-              <p class="mt-2 text-xs leading-relaxed text-[var(--platform-ink-muted)]">When a merchant publishes and opts in, their storefront becomes part of the public directory.</p>
-              <a href="{{ route('register') }}" class="mt-4 inline-flex items-center gap-1 border-t border-[var(--platform-line)] pt-3 text-xs font-bold text-[var(--platform-support)]">Publish the first one ↗</a>
-            </div>
-          @endif
-
-          {{-- Floating Card 2: Product preview. Real data only. --}}
-          @if ($firstProduct)
-            <div data-parallax="0.06" class="platform-hero-card drift-slow-2 right-2 top-24 w-[260px] sm:w-[300px] overflow-hidden p-0 z-30">
-              @if (!empty($firstProduct->primaryImageUrl))
-                <img src="{{ $firstProduct->primaryImageUrl }}" alt="{{ $firstProduct->name }}" class="aspect-[4/3] w-full object-cover">
-              @else
-                <x-platform.visual.placeholder silhouette="vase" :label="$firstProduct->name" sublabel="Published listing" class="aspect-[4/3] w-full" />
-              @endif
-              <div class="flex items-center justify-between bg-[var(--platform-card)] p-4">
-                <div class="min-w-0 pr-2">
-                  <span class="block truncate text-[10px] font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">{{ $firstProduct->name }}</span>
-                  <span class="block font-display text-sm font-extrabold text-[var(--platform-ink)]">{{ $firstProduct->priceLabel }}</span>
-                </div>
-                <a href="{{ route('directory.go', ['type' => 'product', 'id' => $firstProduct->id, 'source' => 'landing']) }}" class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--platform-surface)] text-[var(--platform-brand)]" aria-label="View {{ $firstProduct->name }}">
-                  <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </a>
-              </div>
-            </div>
-          @else
-            <div data-parallax="0.06" class="platform-hero-card drift-slow-2 right-2 top-24 w-[260px] p-5 z-30">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--platform-ink-muted)]">Published listings</span>
-              <p class="mt-2 font-display text-base font-bold text-[var(--platform-ink)]">Products and services will surface here.</p>
-              <a href="{{ route('directory.products') }}" class="mt-4 inline-flex text-xs font-bold text-[var(--platform-support)]">Browse the directory ↗</a>
-            </div>
-          @endif
-
-          {{-- Floating Card 3: Help Me Buy prompt --}}
-          <div data-parallax="0.04" class="platform-hero-card drift-slow-3 left-10 bottom-6 w-[270px] sm:w-[310px] p-5 z-25 bg-[var(--platform-ink)] text-white border-0 shadow-2xl">
-            <div class="flex items-center gap-2">
-              <x-ui.icon name="spark" class="size-3.5 text-[var(--platform-accent)]" />
-              <span class="text-[10px] font-bold uppercase tracking-widest text-[var(--platform-accent)]">Help Me Buy</span>
-            </div>
-            <p class="mt-2.5 font-display text-sm font-medium leading-snug text-neutral-100">
-              “A birthday gift under my budget, from a published Nigerian store.”
-            </p>
-            <div class="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-[11px] text-neutral-300">
-              <span class="font-bold text-[var(--platform-support)]">Grounded in listings</span>
-              <button type="button" @click="$dispatch('marketplace-open')" class="underline text-neutral-200 hover:text-white">Ask ↗</button>
-            </div>
-          </div>
-
+        {{-- Hero Right: the animated Mercho storefront illustration. --}}
+        <div class="relative flex min-h-[380px] items-center justify-center sm:min-h-[480px] lg:min-h-[560px]">
+          <x-platform.mercho-hero class="max-w-[640px]" />
         </div>
 
       </div>
@@ -314,7 +225,7 @@
         {{-- Special Editorial Callout Tile inside Grid --}}
         <div data-reveal style="--stagger-index: 5" class="rounded-3xl border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] p-8 flex flex-col justify-between">
           <div>
-            <span class="rounded-full bg-[var(--platform-accent)] text-white px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider">
+            <span class="rounded-full bg-[var(--platform-accent)] text-[var(--platform-ink-invert)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider">
               Network Standard
             </span>
             <h3 class="mt-4 font-display text-2xl font-bold text-[var(--platform-ink)]">
@@ -356,7 +267,7 @@
             </p>
           </div>
 
-          <a href="{{ route('directory.stores') }}" class="btn-magnetic rounded-xl bg-[var(--platform-ink)] px-5 py-2.5 text-xs font-bold text-white hover:bg-black transition-colors">
+          <a href="{{ route('directory.stores') }}" class="btn-magnetic rounded-xl bg-[var(--platform-ink)] px-5 py-2.5 text-xs font-bold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-ink-subtle)] transition-colors">
             See all storefronts ↗
           </a>
         </div>

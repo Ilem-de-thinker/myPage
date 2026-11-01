@@ -15,6 +15,18 @@ return [
 
     /*
      |--------------------------------------------------------------------------
+     | Trial plan
+     |--------------------------------------------------------------------------
+     |
+     | The plan a new seller is started on automatically. It is never offered as
+     | a purchasable card, and it has no grace period: when its days are up the
+     | merchant stops writing until they buy a paid plan.
+     |
+     */
+    'trial_plan' => 'trial',
+
+    /*
+     |--------------------------------------------------------------------------
      | Custom domain eligibility
      |--------------------------------------------------------------------------
      |
@@ -27,12 +39,25 @@ return [
     'directory_featured_plans' => ['growth', 'pro'],
 
     'plans' => [
+        'trial' => [
+            'name' => 'Trial',
+            'price_kobo' => 0,
+            'interval' => 'monthly',
+            'trial_days' => 14,
+            'max_products' => 10,
+            'max_staff' => 1,
+            'description' => 'A 14-day look at mypage.ng with a smaller catalogue and one staff member.',
+            'is_default' => true,
+            'is_featured' => false,
+            'gateway_plan_code' => null,
+        ],
         'starter' => [
             'name' => 'Starter',
             'price_kobo' => 350000,        // ₦3,500 / month
             'interval' => 'monthly',
-            'trial_days' => 14,
+            'trial_days' => 0,
             'max_products' => 25,
+            'max_staff' => null,
             'description' => 'A page, products and payments. Enough to start selling.',
             'is_default' => false,
             'is_featured' => false,
@@ -49,10 +74,11 @@ return [
             'name' => 'Growth',
             'price_kobo' => 950000,        // ₦9,500 / month
             'interval' => 'monthly',
-            'trial_days' => 14,
+            'trial_days' => 0,
             'max_products' => 200,
+            'max_staff' => null,
             'description' => 'More products and priority support.',
-            'is_default' => true,
+            'is_default' => false,
             'is_featured' => true,
             'gateway_plan_code' => env('PAYSTACK_PLAN_GROWTH'),
         ],
@@ -62,6 +88,7 @@ return [
             'interval' => 'monthly',
             'trial_days' => 0,
             'max_products' => null,        // null means unlimited
+            'max_staff' => null,
             'description' => 'Unlimited products, custom domain and broadcast credits.',
             'is_default' => false,
             'is_featured' => false,

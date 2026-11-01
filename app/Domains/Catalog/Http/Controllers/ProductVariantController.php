@@ -20,7 +20,7 @@ class ProductVariantController extends Controller
 
         return view('dashboard.variants.index', [
             'product' => $product,
-            'variants' => $product->variants()->with('product')->latest()->get(),
+            'variants' => $product->variants()->with('product')->latest('id')->paginate(20)->withQueryString(),
         ]);
     }
 

@@ -1,17 +1,13 @@
 @props(['page'])
 
 @php
-    use App\Domains\Admin\Models\BadgeApplication;
-    use App\Domains\Admin\Models\BadgeStatus;
-
     /**
-     * The badge is looked up per page render rather than cached, because it changes
-     * rarely and a stale tick on someone's storefront is worse than one extra query.
+     * verified_at is the canonical trust signal: the admin approval action is the
+     * only thing that stamps it, and the directory cards, structured data, sitemap
+     * and seller gate all read it. Re-checking the application row here made the
+     * storefront disagree with the directory whenever the two drifted apart.
      */
-    $isVerified = $page->verified_at !== null
-        && BadgeApplication::where('store_page_id', $page->getKey())
-        ->where('status', BadgeStatus::Approved->value)
-        ->exists();
+    $isVerified = $page->verified_at !== null;
 
 @endphp
 

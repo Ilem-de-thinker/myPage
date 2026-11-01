@@ -12,7 +12,7 @@
      */
     $image = $product->images->first();
     $soldOut = $product->isSoldOut();
-    $onSale = $product->isDiscounted();
+    $onSale = $product->isOnSale();
     $category = $product->category;
     // Populated by ProductSort::Popular; absent on every other ordering.
     $sold = isset($product->sold_count) ? (int) $product->sold_count : null;
@@ -27,7 +27,7 @@
          button uses. --}}
     @if ($onSale)
       <div class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--ink)] text-[var(--paper)] text-[11px] font-bold tracking-tight">
-        −{{ $product->discountPercent() }}%
+        Sale −{{ $product->discountPercent() }}%
       </div>
     @endif
 
@@ -87,15 +87,20 @@
     </div>
 
     <div class="mt-auto pt-3 border-t border-[var(--rule)] flex items-center justify-between gap-3">
-      <div class="flex items-baseline gap-2">
-        <span class="sr-only">Price:</span>
-        <p class="t-price-sm {{ $soldOut ? 'text-[var(--ink-3)]' : '' }}">{{ $product->priceLabel }}</p>
+      <div class="min-w-0">
+        <div class="flex items-baseline gap-2">
+          <span class="sr-only">Price:</span>
+          <p class="t-price-sm {{ $soldOut ? 'text-[var(--ink-3)]' : '' }}">{{ $product->priceLabel }}</p>
 
-        {{-- The old price only appears when it is genuinely higher. A seller who
-             typed them the wrong way round gets a plain price, not a negative
-             discount. --}}
-        @if ($onSale)
-          <del class="text-xs text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($product->compare_at_kobo) }}</del>
+          {{-- The old price only appears when it is genuinely higher and the
+               sale window is live. A future or expired sale renders plainly. --}}
+          @if ($onSale)
+            <del class="text-xs text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($product->originalPriceKobo()) }}</del>
+          @endif
+        </div>
+
+        @if ($product->saleEndsLabel())
+          <p class="mt-0.5 text-[10px] font-semibold text-[var(--ink-3)]">{{ $product->saleEndsLabel() }}</p>
         @endif
       </div>
 

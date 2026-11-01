@@ -3,8 +3,8 @@
 use App\Domains\Chat\Models\ChatThread;
 
 it('does not let a guest chat token cross store tenants', function () {
-    [, $pageA] = sellerWithPage(['slug' => 'chat-shop-a']);
-    [, $pageB] = sellerWithPage(['slug' => 'chat-shop-b']);
+    [, $pageA] = sellerWithPage(['slug' => 'chat-shop-a', 'status' => 'published']);
+    [, $pageB] = sellerWithPage(['slug' => 'chat-shop-b', 'status' => 'published']);
 
     $opened = $this->postJson(storeUrl($pageA->slug, '/chat'), [
         'name' => 'Buyer',

@@ -45,16 +45,16 @@
                         rows="4"
                         maxlength="1200"
                         class="w-full resize-none rounded-2xl border border-[var(--platform-line)] bg-[var(--platform-card)] p-4 text-sm leading-6 text-[var(--platform-ink)] outline-none transition focus:border-[var(--platform-accent)] focus:ring-2 focus:ring-[var(--platform-accent)]/15"
-                        placeholder="A handwoven gift for my sister, within my budget"
+                        placeholder="What are you looking for? (e.g., ankara, shoes, haircut)"
                         @keydown.enter.exact.prevent="submit()"
                     ></textarea>
-                    <button type="submit" :disabled="loading || !message.trim()" class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--platform-accent)] px-5 text-sm font-extrabold text-white transition hover:bg-[var(--platform-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="submit" :disabled="loading || !message.trim()" class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--platform-accent)] px-5 text-sm font-extrabold text-[var(--platform-ink-invert)] transition hover:bg-[var(--platform-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50">
                         <x-ui.icon name="spark" class="size-4" />
                         <span x-text="submitLabel"></span>
                     </button>
                 </form>
 
-                <p class="mt-3 text-xs leading-5 text-[var(--platform-ink-muted)]">AI-assisted search. Names, prices and locations come from the merchant’s published page. No checkout happens here.</p>
+                <p class="mt-3 text-xs leading-5 text-[var(--platform-ink-muted)]">Mercho-assisted search. Names, prices and locations come from the merchant’s published page. No checkout happens here.</p>
 
                 <p x-show="limitReached" class="mt-4 rounded-xl border border-[var(--platform-accent-border)] bg-[var(--platform-accent-wash)] p-4 text-sm leading-6 text-[var(--platform-ink)]" role="status">
                     You have reached today’s free guided-search limit. You can keep browsing the directory normally.
@@ -89,6 +89,12 @@
                         </select>
                     </div>
 
+                    <div x-show="appliedChips.length" class="flex flex-wrap gap-2">
+                        <template x-for="chip in appliedChips" :key="chip">
+                            <span class="rounded-full border border-[var(--platform-accent)]/40 bg-[var(--platform-accent-wash)] px-3 py-1.5 text-[11px] font-bold text-[var(--platform-ink)]" x-text="chip"></span>
+                        </template>
+                    </div>
+
                     <template x-for="(result, index) in results" :key="result.id">
                         <article class="marketplace-result-card rounded-2xl border border-[var(--platform-line)] bg-[var(--platform-card)] p-4" :style="'--result-index: ' + index">
                             <div class="flex items-start justify-between gap-3">
@@ -100,7 +106,10 @@
                                         <span class="rounded-full bg-[var(--platform-surface)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--platform-ink-muted)]" x-text="typeLabel(result)"></span>
                                     </div>
                                 </div>
-                                <span class="shrink-0 font-display text-sm font-extrabold text-[var(--platform-ink)]" x-text="result.price"></span>
+                                <span class="shrink-0 text-right font-display text-sm font-extrabold text-[var(--platform-ink)]">
+                                    <span x-text="result.price"></span>
+                                    <del x-show="result.originalPrice" class="ml-1 block text-[10px] font-semibold text-[var(--platform-ink-muted)] tabular-nums" x-text="result.originalPrice"></del>
+                                </span>
                             </div>
                             <p class="mt-2 text-xs text-[var(--platform-ink-muted)]" x-text="result.location"></p>
                             <p class="mt-3 text-sm leading-6 text-[var(--platform-ink-muted)]" x-text="result.reason"></p>
@@ -127,7 +136,10 @@
                             <div class="rounded-xl bg-[var(--platform-card)] p-3">
                                 <p class="truncate text-xs text-[var(--platform-ink-muted)]" x-text="item.store"></p>
                                 <p class="mt-1 line-clamp-2 text-sm font-bold text-[var(--platform-ink)]" x-text="item.name"></p>
-                                <p class="mt-2 text-xs font-bold text-[var(--platform-ink)]" x-text="item.price"></p>
+                                <p class="mt-2 text-xs font-bold text-[var(--platform-ink)]">
+                                    <span x-text="item.price"></span>
+                                    <del x-show="item.originalPrice" class="ml-1 text-[10px] font-semibold text-[var(--platform-ink-muted)] tabular-nums" x-text="item.originalPrice"></del>
+                                </p>
                                 <p class="mt-1 text-xs text-[var(--platform-ink-muted)]" x-text="item.location"></p>
                                 <a :href="item.url" class="mt-3 inline-flex min-h-10 items-center text-xs font-bold text-[var(--platform-support)] hover:underline">Open listing</a>
                             </div>
@@ -163,9 +175,10 @@
             loading: false,
             searched: false,
             message: '',
-            suggestions: ['A gift within my budget', 'A tailor near me', 'Bridal makeup in Abuja'],
+            suggestions: ['Ankara under ₦15,000', 'A tailor in Lagos', 'Under ₦20,000'],
             results: [],
             originalResults: [],
+            applied: {},
             questions: [],
             error: '',
             limitReached: false,
@@ -185,6 +198,29 @@
 
             get resultCountLabel() {
                 return this.results.length + (this.results.length === 1 ? ' result' : ' results') + ' from merchant listings';
+            },
+
+            get appliedChips() {
+                const chips = [];
+
+                if (this.applied.q) {
+                    chips.push('“' + this.applied.q + '”');
+                }
+                if (this.applied.location) {
+                    chips.push('In ' + this.applied.location);
+                }
+                if (this.applied.budget_min && this.applied.budget_max) {
+                    chips.push('₦' + this.applied.budget_min + ' – ₦' + this.applied.budget_max);
+                } else if (this.applied.budget_max) {
+                    chips.push('Under ₦' + this.applied.budget_max);
+                } else if (this.applied.budget_min) {
+                    chips.push('From ₦' + this.applied.budget_min);
+                }
+                if (this.applied.kind) {
+                    chips.push(this.applied.kind === 'service' ? 'Services only' : 'Products only');
+                }
+
+                return chips;
             },
 
             typeLabel(result) {
@@ -293,6 +329,7 @@
 
                     this.results = Array.isArray(data.results) ? data.results : [];
                     this.originalResults = [...this.results];
+                    this.applied = data.applied || {};
                     this.questions = Array.isArray(data.questions) ? data.questions.slice(0, 2) : [];
                     this.sort = 'match';
                     this.searched = true;

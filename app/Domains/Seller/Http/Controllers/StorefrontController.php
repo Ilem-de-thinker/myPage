@@ -30,7 +30,9 @@ use App\Domains\Seller\Actions\RecordStorePageView;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\BlockRenderer;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\Money;
 use App\Shared\Support\PhoneNumber;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -133,11 +135,11 @@ class StorefrontController extends Controller
         abort_if($query === '' || mb_strlen($query) > 120, 422, 'Enter a search term.');
 
         $products = Product::query()->active()->where('store_page_id', $page->id)->search($query)->with('images')->limit(12)->get()->map(fn (Product $product): array => [
-            'type' => 'product', 'name' => $product->name, 'slug' => $product->slug, 'description' => Str::limit(strip_tags((string) $product->description), 140), 'url' => StoreUrl::path('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]),
+            'type' => 'product', 'name' => $product->name, 'slug' => $product->slug, 'description' => Str::limit(strip_tags((string) $product->description), 140), 'price' => $product->priceLabel, 'original_price' => $product->isOnSale() ? Money::format($product->originalPriceKobo()) : null, 'url' => StoreUrl::path('storefront.product', ['slug' => $page->slug, 'productSlug' => $product->slug]),
         ]);
         $services = $page->theme === Theme::Service
             ? Service::withoutGlobalScopes()->where('store_page_id', $page->id)->where('is_active', true)->where(fn ($builder) => $builder->where('name', 'like', '%'.$query.'%')->orWhere('description', 'like', '%'.$query.'%'))->limit(12)->get()->map(fn (Service $service): array => [
-                'type' => 'service', 'name' => $service->name, 'slug' => $service->slug, 'description' => Str::limit(strip_tags((string) $service->description), 140), 'url' => StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]),
+                'type' => 'service', 'name' => $service->name, 'slug' => $service->slug, 'description' => Str::limit(strip_tags((string) $service->description), 140), 'price' => $service->priceWithUnitLabel(), 'original_price' => $service->isOnSale() ? Money::format($service->originalPriceKobo()) : null, 'url' => StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]),
             ])
             : collect();
 
@@ -327,7 +329,15 @@ class StorefrontController extends Controller
     {
         abort_unless($page->theme === Theme::Store, 404);
 
-        return view('themes.store.checkout', ['page' => $page]);
+        // The checkout shows the shop's own areas and nothing else. A shop that
+        // never configured delivery keeps the free-text address it had before.
+        $profile = $page->deliveryProfile()->with('zones')->first();
+
+        return view('themes.store.checkout', [
+            'page' => $page,
+            'deliveryProfile' => $profile,
+            'deliveryZones' => $profile?->zones ?? collect(),
+        ]);
     }
 
     /**

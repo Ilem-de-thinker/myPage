@@ -2,11 +2,14 @@
 
 namespace App\Domains\Catalog\Models;
 
+use App\Domains\Catalog\Enums\DeliveryMode;
 use App\Domains\Catalog\Enums\ProductSort;
 use App\Domains\Directory\Jobs\SyncDirectorySearchIndex;
 use App\Domains\Orders\Models\OrderItem;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\HasSalePrice;
 use App\Shared\Support\Money;
+use App\Shared\Support\SearchQueryParser;
 use App\Shared\Traits\BelongsToSeller;
 use App\Shared\Traits\HasRating;
 use Database\Factories\Domains\Catalog\Models\ProductFactory;
@@ -19,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** @use HasFactory<ProductFactory> */
 class Product extends Model
 {
-    use BelongsToSeller, HasFactory, HasRating;
+    use BelongsToSeller, HasFactory, HasRating, HasSalePrice;
 
     protected static function booted(): void
     {
@@ -29,16 +32,16 @@ class Product extends Model
 
     protected $fillable = [
         'seller_id', 'store_page_id', 'category_id', 'name', 'slug', 'description',
-        'price_kobo', 'compare_at_kobo', 'sku', 'track_stock', 'stock_qty', 'ai_metadata',
+        'price_kobo', 'compare_at_kobo', 'sale_starts_at', 'sale_ends_at', 'sku', 'track_stock', 'stock_qty', 'ai_metadata',
         'status', 'is_featured', 'view_count', 'rating', 'review_count',
-        'is_directory_listed',
+        'is_directory_listed', 'delivery_mode', 'delivery_fee_kobo',
     ];
 
     protected function casts(): array
     {
         return [
+            ...$this->salePriceCasts(),
             'price_kobo' => 'integer',
-            'compare_at_kobo' => 'integer',
             'track_stock' => 'boolean',
             'is_featured' => 'boolean',
             'view_count' => 'integer',
@@ -46,6 +49,8 @@ class Product extends Model
             'review_count' => 'integer',
             'is_directory_listed' => 'boolean',
             'ai_metadata' => 'array',
+            'delivery_mode' => DeliveryMode::class,
+            'delivery_fee_kobo' => 'integer',
         ];
     }
 
@@ -92,6 +97,11 @@ class Product extends Model
         return Money::format($this->price_kobo);
     }
 
+    public function getSaleLabelAttribute(): ?string
+    {
+        return $this->isOnSale() ? 'Sale −'.$this->discountPercent().'%' : null;
+    }
+
     public function getPrimaryImageUrlAttribute(): ?string
     {
         $image = $this->images->first();
@@ -100,24 +110,12 @@ class Product extends Model
     }
 
     /**
-     * Whether the price shown is actually a reduction.
-     *
-     * Guards the case where a seller types a compare-at below the real price: the
-     * card then shows the price plainly instead of a "save 40%" that is negative.
+     * Kept for callers written before sale windows. A sale that is future or
+     * expired is not a discount any more, so this follows isOnSale().
      */
     public function isDiscounted(): bool
     {
-        return $this->compare_at_kobo !== null
-            && $this->compare_at_kobo > $this->price_kobo;
-    }
-
-    public function discountPercent(): ?int
-    {
-        if (! $this->isDiscounted() || $this->compare_at_kobo === 0) {
-            return null;
-        }
-
-        return (int) round((($this->compare_at_kobo - $this->price_kobo) / $this->compare_at_kobo) * 100);
+        return $this->isOnSale();
     }
 
     public function isSoldOut(): bool
@@ -151,21 +149,35 @@ class Product extends Model
      *
      * @param  Builder<Product>  $query
      */
+    /**
+     * Every word of the term must appear somewhere in the row, so a title, a
+     * description detail, or a SKU can each carry a match on their own.
+     * LOWER(...) on both sides keeps the comparison case-insensitive on every
+     * engine, not only the ones whose collation happens to ignore case.
+     */
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         $term = trim((string) $term);
+        $tokens = SearchQueryParser::tokens($term);
 
-        if ($term === '') {
-            return $query;
+        // A term made only of punctuation (a typed "%") or of single letters
+        // tokenises to nothing. Adding no conditions would return the entire
+        // catalogue, so an empty token list matches nothing instead.
+        if ($term !== '' && $tokens === []) {
+            return $query->whereRaw('1 = 0');
         }
 
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $term).'%';
+        foreach ($tokens as $token) {
+            $needle = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $token).'%';
 
-        return $query->where(function (Builder $inner) use ($like): void {
-            $inner->where('name', 'like', $like)
-                ->orWhere('description', 'like', $like)
-                ->orWhere('sku', 'like', $like);
-        });
+            $query->where(function (Builder $inner) use ($needle): void {
+                $inner->whereRaw('LOWER(products.name) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(products.description) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(products.sku) LIKE ?', [$needle]);
+            });
+        }
+
+        return $query;
     }
 
     /**

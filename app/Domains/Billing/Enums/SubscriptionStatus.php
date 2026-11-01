@@ -8,6 +8,9 @@ enum SubscriptionStatus: string
 
     case Active = 'active';
 
+    /** Checkout started but no money has landed yet. Grants nothing. */
+    case Pending = 'pending';
+
     /** Payment failed or ran out. The seller is warned before anything changes. */
     case PastDue = 'past_due';
 
@@ -16,9 +19,8 @@ enum SubscriptionStatus: string
     case Expired = 'expired';
 
     /**
-     * Whether the seller may write to their dashboard. The public storefront is
-     * never gated on this: taking a paying seller's page offline without a
-     * conversation is worse than the revenue.
+     * Gateway lifecycle statuses are history; use ResolveMerchantStatus for any
+     * access decision. This remains for callers that need the raw mapping.
      */
     public function allowsWrites(): bool
     {
@@ -39,6 +41,7 @@ enum SubscriptionStatus: string
         return match ($this) {
             self::Trialing => 'Free trial',
             self::Active => 'Active',
+            self::Pending => 'Awaiting payment',
             self::PastDue => 'Payment due',
             self::Cancelled => 'Cancelled',
             self::Expired => 'Expired',
@@ -50,7 +53,7 @@ enum SubscriptionStatus: string
         return match ($this) {
             self::Trialing => 'bg-sky-100 text-sky-800',
             self::Active => 'bg-emerald-100 text-emerald-800',
-            self::PastDue => 'bg-amber-100 text-amber-800',
+            self::Pending, self::PastDue => 'bg-amber-100 text-amber-800',
             self::Cancelled, self::Expired => 'bg-slate-100 text-slate-600',
         };
     }

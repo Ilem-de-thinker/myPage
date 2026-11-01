@@ -17,15 +17,15 @@ use function Pest\Laravel\get;
 it('shows the platform without asking anyone to sign in', function () {
     get('/')
         ->assertOk()
-        ->assertSee('Storefronts for businesses worth ₦1.5 billion.')
-        ->assertSee('Buyers never need an account');
+        ->assertSee('Find the place')
+        ->assertSee('Zero buyer accounts');
 });
 
 it('makes clear that browsing needs no account', function () {
     $html = get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('Buyers never need an account')
-        ->toContain('0% transaction fee on direct bank transfers');
+    expect($html)->toContain('Zero buyer accounts')
+        ->toContain('Zero marketplace commission');
 });
 
 it('never puts the sign in link where the start-selling call to action is', function () {
@@ -38,12 +38,13 @@ it('never puts the sign in link where the start-selling call to action is', func
         ->not->toContain(route('login'));
 });
 
-it('shows both themes so a visitor can pick the one that fits them', function () {
+it('links to both the store and service demos', function () {
     get('/')
         ->assertOk()
-        ->assertSee('Storefront Theme')
-        ->assertSee('Service Booking Theme')
-        ->assertSee('No ghost bookings');
+        ->assertSee('Retail Store Demo')
+        ->assertSee('Service Booking Demo')
+        ->assertSee(route('directory.products'))
+        ->assertSee(route('directory.services'));
 });
 
 it('shows prices even before PlanSeeder has ever run', function () {
@@ -55,7 +56,7 @@ it('shows prices even before PlanSeeder has ever run', function () {
         ->assertOk()
         ->assertSee(config('billing.plans.growth.name'))
         ->assertSee('₦9,500')
-        ->assertSee('Showing the configured prices');
+        ->assertSee('Flat plans. No transaction tax.');
 });
 
 it('prefers a price stored in the database over the config', function () {
@@ -64,7 +65,8 @@ it('prefers a price stored in the database over the config', function () {
     get('/')
         ->assertOk()
         ->assertSee('Founder Rate')
-        ->assertDontSee('Showing the configured prices');
+        ->assertSee('₦1,000')
+        ->assertDontSee(config('billing.plans.growth.description'));
 });
 
 it('sends a signed in seller to their dashboard instead of a sign in form', function () {

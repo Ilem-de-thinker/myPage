@@ -111,7 +111,7 @@
         
         {{-- Brand Monogram / Logo Overlap --}}
         <div class="flex items-start gap-5">
-          <div class="flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-3xl border-4 border-white bg-[var(--platform-paper)] shadow-md text-[var(--platform-brand)]">
+          <div class="flex size-20 sm:size-24 shrink-0 items-center justify-center rounded-3xl border-4 border-[var(--platform-paper)] bg-[var(--platform-paper)] shadow-md text-[var(--platform-brand)]">
             @if (!empty($page->logo_path))
               <img src="{{ \Illuminate\Support\Facades\Storage::url($page->logo_path) }}" alt="{{ $page->name }}" class="size-full rounded-2xl object-cover">
             @else
@@ -149,7 +149,7 @@
             mypage.ng does not handle customer checkout. You buy and book directly with {{ $page->name }}.
           </p>
 
-          <a href="{{ $goUrl }}" class="btn-magnetic mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--platform-brand)] px-5 text-xs font-extrabold text-white hover:bg-[var(--platform-brand-hover)] transition-all shadow-sm">
+          <a href="{{ $goUrl }}" class="btn-magnetic mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--platform-brand)] px-5 text-xs font-extrabold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-brand-hover)] transition-all shadow-sm">
             <span>Visit {{ $page->name }}</span>
             <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
@@ -231,7 +231,7 @@
           <textarea name="body" required minlength="20" maxlength="2000" rows="4" class="mt-2 w-full rounded-xl border border-[var(--platform-line)] bg-[var(--platform-paper)] px-3 py-2 text-sm font-normal" placeholder="Give us enough detail to review this store. At least 20 characters."></textarea>
         </label>
         <input type="text" name="reporter_name" maxlength="120" class="h-11 rounded-xl border border-[var(--platform-line)] bg-[var(--platform-paper)] px-3 text-sm" placeholder="Your name (optional)">
-        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--platform-ink)] px-5 text-xs font-bold text-white hover:bg-[var(--platform-accent)]">
+        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--platform-ink)] px-5 text-xs font-bold text-[var(--platform-ink-invert)] hover:bg-[var(--platform-accent)]">
           Send report
         </button>
       </form>
@@ -245,7 +245,7 @@
       <a href="{{ $waUrl }}" class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-[var(--platform-line)] text-[var(--platform-brand)]">
         <x-ui.icon name="whatsapp" class="size-5" />
       </a>
-      <a href="{{ $goUrl }}" class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--platform-brand)] px-5 text-sm font-extrabold text-white">
+      <a href="{{ $goUrl }}" class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--platform-brand)] px-5 text-sm font-extrabold text-[var(--platform-ink-invert)]">
         <span>Visit {{ $page->name }}</span>
         <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>

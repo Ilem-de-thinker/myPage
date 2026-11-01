@@ -11,6 +11,7 @@ use App\Domains\Seller\Models\PageBlock;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Rules\NigerianPhone;
 use App\Shared\Support\Html;
+use App\Shared\Support\Money;
 use App\Shared\Support\PhoneNumber;
 use App\Shared\Support\SocialLinks;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +40,7 @@ class StorefrontSettingsController extends Controller
      * block registry, which is why they are listed here rather than in
      * config/themes.php.
      */
-    private const PAGES = ['brand', 'details', 'listing', 'home', 'about', 'contact'];
+    private const PAGES = ['brand', 'details', 'delivery', 'listing', 'home', 'about', 'contact'];
 
     public function edit(Request $request, BlockRenderer $blocks): View
     {
@@ -53,12 +54,13 @@ class StorefrontSettingsController extends Controller
             // Brand, details and the directory listing are not blocks: they are
             // page settings, which is why they survive whichever tab the seller
             // is editing.
-            'blocks' => in_array($tab, ['brand', 'details', 'listing'], true)
+            'blocks' => in_array($tab, ['brand', 'details', 'delivery', 'listing'], true)
                 ? collect()
                 : $blocks->editableForPage($page, $tab),
             'socialPlatforms' => SocialLinks::platforms(),
             'priceTiers' => PriceTier::ordered(),
             'discoveryOn' => Feature::enabled('discovery'),
+            'deliveryProfile' => $page->deliveryProfile()->with('zones')->first(),
 
             // The three presets, resolved rather than raw, so the form shows what
             // is actually in force — a seller who never opened the tab should
@@ -99,6 +101,10 @@ class StorefrontSettingsController extends Controller
 
         if ($tab === 'details') {
             return $this->saveDetails($request, $page);
+        }
+
+        if ($tab === 'delivery') {
+            return $this->saveDelivery($request, $page);
         }
 
         if ($tab === 'listing') {
@@ -177,6 +183,57 @@ class StorefrontSettingsController extends Controller
         ])->save();
 
         return back()->with('status', 'Your business details have been updated.');
+    }
+
+    /**
+     * Store-wide delivery defaults.
+     *
+     * Zones are replaced wholesale rather than diffed: the form always submits
+     * the complete list, so deleting and recreating is the only way to guarantee
+     * the saved areas match what the seller just saw. Fees arrive in naira and
+     * are stored in kobo like every other price.
+     */
+    private function saveDelivery(Request $request, StorePage $page): RedirectResponse
+    {
+        $validated = $request->validate([
+            'offers_delivery' => ['sometimes', 'boolean'],
+            'offers_pickup' => ['sometimes', 'boolean'],
+            'offers_home_service' => ['sometimes', 'boolean'],
+            'free_over' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'radius_km' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:255'],
+            'zones' => ['nullable', 'array', 'max:30'],
+            'zones.*.name' => ['nullable', 'string', 'max:80'],
+            'zones.*.state' => ['nullable', 'string', 'max:80'],
+            'zones.*.fee' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+        ]);
+
+        $profile = $page->deliveryProfile()->firstOrNew([]);
+        $profile->fill([
+            'offers_delivery' => $request->boolean('offers_delivery'),
+            'offers_pickup' => $request->boolean('offers_pickup'),
+            'offers_home_service' => $request->boolean('offers_home_service'),
+            'free_over_kobo' => filled($validated['free_over'] ?? null)
+                ? Money::toKobo($validated['free_over'])
+                : null,
+            'radius_km' => $validated['radius_km'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ])->save();
+
+        $zones = collect($validated['zones'] ?? [])
+            ->map(fn (array $zone): array => [
+                'name' => trim((string) ($zone['name'] ?? '')),
+                'state' => filled($zone['state'] ?? null) ? trim((string) $zone['state']) : null,
+                'fee_kobo' => filled($zone['fee'] ?? null) ? Money::toKobo($zone['fee']) : 0,
+            ])
+            ->filter(fn (array $zone): bool => $zone['name'] !== '')
+            ->values()
+            ->all();
+
+        $profile->zones()->delete();
+        $profile->zones()->createMany($zones);
+
+        return back()->with('status', 'Your delivery settings have been updated.');
     }
 
     /**

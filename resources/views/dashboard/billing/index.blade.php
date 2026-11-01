@@ -13,6 +13,12 @@
             </div>
         @endunless
         @if ($subscription)
+            @php
+                $merchantStatus = $subscription->merchantStatus();
+                $statusLabel = $subscription->trial_ends_at?->isFuture() ? 'Free trial' : $merchantStatus->label();
+                $graceEndsAt = $subscription->graceEndsAt();
+                $daysLeft = $subscription->daysLeft();
+            @endphp
             <div class="rounded-2xl border border-rule bg-card p-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -21,9 +27,12 @@
                             {{ $subscription->plan?->name ?? 'Plan removed' }}
                         </h2>
                         <p class="mt-1 text-xs text-ink-3">
-                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $subscription->status->badgeClasses() }}">
-                                {{ $subscription->status->label() }}
+                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $merchantStatus->badgeClasses() }}">
+                                {{ $statusLabel }}
                             </span>
+                            @if ($daysLeft !== null)
+                                <span class="ml-1 text-[10px] text-ink-3">{{ $daysLeft }} {{ \Illuminate\Support\Str::plural('day', $daysLeft) }} left</span>
+                            @endif
                         </p>
                     </div>
 
@@ -70,14 +79,23 @@
                     @endif
                 </dl>
 
-                @if ($subscription->isInGrace())
+                @if ($merchantStatus === \App\Domains\Billing\Enums\MerchantStatus::Grace)
                     <div class="mt-5 rounded-xl border border-warn-edge bg-warn-wash p-4">
                         <p class="text-xs font-semibold text-warn-text">
                             Your last payment did not go through.
                         </p>
                         <p class="mt-1 text-[11px] text-warn-text">
-                            Your page stays online and your customers keep buying throughout.
-                            You have {{ $subscription->grace_ends_at->diffForHumans() }} left to sort it out.
+                            Your page stays online and your customers keep buying throughout the grace period.
+                            You have {{ $graceEndsAt?->diffForHumans() ?? $graceDays.' days' }} left to sort it out.
+                        </p>
+                    </div>
+                @elseif ($merchantStatus->isLapsed())
+                    <div class="mt-5 rounded-xl border border-danger-edge bg-danger-wash p-4">
+                        <p class="text-xs font-semibold text-danger-text">
+                            {{ $merchantStatus->label() }}: your dashboard is read-only and your storefront is not accepting new orders.
+                        </p>
+                        <p class="mt-1 text-[11px] text-danger-text">
+                            {{ $merchantStatus->description() }} Renew below to reopen your shop.
                         </p>
                     </div>
                 @endif
@@ -178,6 +196,10 @@
                         </div>
                     </div>
                 @endforeach
+
+                @if ($history->hasPages())
+                    <div class="border-t border-rule px-5 py-4">{{ $history->links() }}</div>
+                @endif
             </div>
         @endif
 

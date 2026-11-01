@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Ai\Contracts\AiManager;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
 
@@ -9,6 +10,42 @@ it('redirects new sellers into onboarding from the dashboard', function () {
     $seller = Seller::factory()->create();
 
     actingAs($seller)->get('/dashboard')->assertRedirect(route('onboarding.show', 'business'));
+});
+
+it('lets a seller skip setup and reach the dashboard', function () {
+    $seller = Seller::factory()->create();
+
+    actingAs($seller)->post(route('onboarding.skip'))
+        ->assertRedirect(route('dashboard'));
+
+    expect($seller->fresh()->onboarding_skipped_at)->not->toBeNull();
+
+    actingAs($seller)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('No page yet');
+
+    actingAs($seller)->get('/orders')
+        ->assertRedirect(route('onboarding.show', 'business'));
+});
+
+it('lets an admin through the dashboard without onboarding', function () {
+    $admin = Seller::factory()->admin()->create();
+
+    actingAs($admin)->get('/dashboard')->assertOk();
+});
+
+it('shows a friendly error when AI is unavailable during onboarding', function () {
+    $seller = Seller::factory()->create();
+
+    $this->mock(AiManager::class, function ($mock): void {
+        $mock->shouldReceive('run')->andThrow(new RuntimeException('AI unavailable'));
+    });
+
+    actingAs($seller)
+        ->from(route('onboarding.show', 'business'))
+        ->post(route('onboarding.ai'), ['name' => 'Ada Bags', 'description' => 'Handmade bags'])
+        ->assertRedirect(route('onboarding.show', 'business'))
+        ->assertSessionHasErrors('description');
 });
 
 it('completes the wizard and creates a draft store page with sections', function () {

@@ -43,12 +43,12 @@
           {{-- 01 Describe --}}
           <div data-story-visual="1" class="story-visual-frame absolute inset-3 z-10 flex flex-col justify-between rounded-[var(--platform-radius-xl)] bg-[var(--platform-ink)] p-6 text-[var(--platform-ink-invert)] shadow-xl sm:inset-5 sm:p-8">
             <div>
-              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--platform-accent)]">01 / Describe</span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--platform-accent-on-ink)]">01 / Describe</span>
               <h3 class="mt-3 max-w-xs font-display text-3xl font-bold leading-tight sm:text-4xl">Start with the occasion.</h3>
             </div>
-            <div class="rounded-[var(--platform-radius-lg)] border border-white/15 bg-white/5 p-5">
-              <p class="text-sm leading-7 text-white/75">“A birthday gift for my mum, from a published Nigerian store.”</p>
-              <div class="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-[11px] font-semibold text-white/50">
+            <div class="rounded-[var(--platform-radius-lg)] border border-[color-mix(in_srgb,var(--platform-ink-invert)_15%,transparent)] bg-[color-mix(in_srgb,var(--platform-ink-invert)_5%,transparent)] p-5">
+              <p class="text-sm leading-7 text-[color-mix(in_srgb,var(--platform-ink-invert)_75%,transparent)]">“A birthday gift for my mum, from a published Nigerian store.”</p>
+              <div class="mt-4 flex items-center gap-2 border-t border-[color-mix(in_srgb,var(--platform-ink-invert)_10%,transparent)] pt-4 text-[11px] font-semibold text-[color-mix(in_srgb,var(--platform-ink-invert)_50%,transparent)]">
                 <span class="size-1.5 rounded-full bg-[var(--platform-accent)]"></span>
                 <span>One sentence is enough</span>
               </div>
@@ -79,9 +79,9 @@
           </div>
 
           {{-- 03 Visit --}}
-          <div data-story-visual="3" class="story-visual-frame pointer-events-none absolute inset-3 z-10 flex flex-col justify-between rounded-[var(--platform-radius-xl)] bg-[var(--platform-support)] p-6 text-white opacity-0 shadow-xl sm:inset-5 sm:p-8" style="transform: scale(.95);">
+          <div data-story-visual="3" class="story-visual-frame pointer-events-none absolute inset-3 z-10 flex flex-col justify-between rounded-[var(--platform-radius-xl)] bg-[var(--platform-support)] p-6 text-[var(--platform-ink-invert)] opacity-0 shadow-xl sm:inset-5 sm:p-8" style="transform: scale(.95);">
             <div>
-              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/60">03 / Visit</span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--platform-ink-invert)_60%,transparent)]">03 / Visit</span>
               <h3 class="mt-3 max-w-xs font-display text-3xl font-bold leading-tight sm:text-4xl">Follow the handoff.</h3>
             </div>
             @if ($store)
@@ -101,12 +101,12 @@
           </div>
 
           {{-- 04 Deal directly --}}
-          <div data-story-visual="4" class="story-visual-frame pointer-events-none absolute inset-3 z-10 flex flex-col justify-between rounded-[var(--platform-radius-xl)] bg-[var(--platform-accent)] p-6 text-white opacity-0 shadow-xl sm:inset-5 sm:p-8" style="transform: scale(.95);">
+          <div data-story-visual="4" class="story-visual-frame pointer-events-none absolute inset-3 z-10 flex flex-col justify-between rounded-[var(--platform-radius-xl)] bg-[var(--platform-accent)] p-6 text-[var(--platform-ink-invert)] opacity-0 shadow-xl sm:inset-5 sm:p-8" style="transform: scale(.95);">
             <div>
-              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/65">04 / Deal directly</span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--platform-ink-invert)_65%,transparent)]">04 / Deal directly</span>
               <h3 class="mt-3 max-w-xs font-display text-3xl font-bold leading-tight sm:text-4xl">Keep the relationship human.</h3>
             </div>
-            <div class="rounded-[var(--platform-radius-lg)] border border-white/25 bg-white/10 p-5 text-sm leading-7 text-white/90">
+            <div class="rounded-[var(--platform-radius-lg)] border border-[color-mix(in_srgb,var(--platform-ink-invert)_25%,transparent)] bg-[color-mix(in_srgb,var(--platform-ink-invert)_10%,transparent)] p-5 text-sm leading-7 text-[color-mix(in_srgb,var(--platform-ink-invert)_90%,transparent)]">
               Ask, book or order with the seller on their own terms. MyPage makes the introduction; the merchant owns the conversation.
             </div>
           </div>

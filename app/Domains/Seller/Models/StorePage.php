@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** @use HasFactory<StorePageFactory> */
 class StorePage extends Model
@@ -132,6 +133,15 @@ class StorePage extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class)->orderBy('position');
+    }
+
+    /**
+     * How this shop delivers. Null until the seller opens the delivery settings,
+     * which is what keeps older shops on the WhatsApp arrangement they had.
+     */
+    public function deliveryProfile(): HasOne
+    {
+        return $this->hasOne(DeliveryProfile::class);
     }
 
     public function staffMembers(): HasMany

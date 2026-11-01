@@ -60,8 +60,8 @@
             <div class="flex items-start gap-3">
                 <input type="checkbox" name="ai_enabled" value="1" x-model="enabled" @checked(old('ai_enabled', true)) class="mt-0.5 rounded border-rule text-brand focus:ring-brand">
                 <div>
-                    <p class="text-xs font-bold">Set up AI for my business</p>
-                    <p class="mt-1 text-[11px] leading-5 text-slate-300">Choose how AI should help while you set up your store or service. You can change this later.</p>
+                    <p class="text-xs font-bold">Set up Mercho for my business</p>
+                    <p class="mt-1 text-[11px] leading-5 text-slate-300">Choose how Mercho should help while you set up your store or service. You can change this later.</p>
                     <select name="ai_goal" class="mt-3 w-full rounded-xl border border-rule-strong bg-card px-3 py-2 text-xs text-ink" x-show="enabled">
                         <option value="sell_more" @selected(old('ai_goal', 'sell_more') === 'sell_more')>Help me write listings that sell</option>
                         <option value="write_faster" @selected(old('ai_goal') === 'write_faster')>Help me create my page faster</option>

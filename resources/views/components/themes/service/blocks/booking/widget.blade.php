@@ -1,6 +1,7 @@
 @props(['page', 'services' => null, 'staff' => null])
 
 @php
+    use App\Domains\Booking\Actions\QuoteServiceFulfilment;
     use Illuminate\Support\Carbon;
 
     // The widget needs real, bookable services. A service page with none yet
@@ -49,6 +50,31 @@
     // The photograph in the summary column. The seller's own cover, else the first
     // service that has a picture, else nothing at all.
     $snapshot = $page->heroImage() ?: $services->firstWhere('image_path')?->image_path;
+
+    /*
+     * A travel fee is only owed when the service happens at the buyer's place.
+     * Resolve every service once against the same profile so the card, the
+     * summary and CreateBooking all charge the same figure.
+     */
+    $profile = $page->deliveryProfile()->first();
+    $quoteFulfilment = app(QuoteServiceFulfilment::class);
+    $fulfilments = $services
+        ->mapWithKeys(fn ($service) => [$service->id => $quoteFulfilment->handle($service, $profile)]);
+
+    $preselectedFulfilment = $preselected
+        ? $fulfilments[$preselected->id]
+        : ['mode' => \App\Domains\Booking\Enums\ServiceMode::AtLocation, 'travel_fee_kobo' => 0];
+    $travelFeeKobo = $preselectedFulfilment['travel_fee_kobo'];
+    $dueKobo = $preselected ? $preselected->amountDueKobo() + $travelFeeKobo : 0;
+    $balanceKobo = $preselected ? max(0, $preselected->price_kobo - $preselected->depositKobo()) : 0;
+
+    // Buyer-facing wording: "at your location" would read as the buyer's place,
+    // which is the opposite of what that mode means here.
+    $modeLabels = [
+        'at_location' => 'At the studio',
+        'home' => 'We come to you',
+        'remote' => 'Remote / online',
+    ];
 @endphp
 
 {{-- The same shell as every other storefront section, so the widget
@@ -66,8 +92,11 @@
                'name' => $s->name,
                'duration' => $s->durationLabel(),
                'price' => $s->priceLabel(),
-               'due' => \App\Shared\Support\Money::format($s->amountDueKobo()),
+               'due' => \App\Shared\Support\Money::format($s->amountDueKobo() + $fulfilments[$s->id]['travel_fee_kobo']),
                'balance' => \App\Shared\Support\Money::format(max(0, $s->price_kobo - $s->depositKobo())),
+               'travelFee' => \App\Shared\Support\Money::format($fulfilments[$s->id]['travel_fee_kobo']),
+               'hasTravelFee' => $fulfilments[$s->id]['travel_fee_kobo'] > 0,
+               'modeLabel' => $modeLabels[$fulfilments[$s->id]['mode']->value] ?? $fulfilments[$s->id]['mode']->label(),
                'hasDeposit' => $s->hasDeposit(),
            ])->values(),
            'months' => $months,
@@ -108,25 +137,43 @@
                 <span class="t-meta">{{ $page->name }}</span>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                @foreach ($services as $service)
+              <div x-data="{ showAll: {{ ($preselected && $services->values()->search(fn ($s) => $s->id === $preselected->id) >= 6) ? 'true' : 'false' }} }">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                  @foreach ($services as $index => $service)
+                    <button type="button"
+                            x-show="showAll || {{ $index }} < 6"
+                            @click="selectService('{{ $service->id }}')"
+                            :class="serviceId === '{{ $service->id }}' ? 'border-[var(--brand)] bg-[var(--brand-wash)] ring-1 ring-[var(--brand)]' : 'border-[var(--rule)] bg-[var(--paper)] hover:border-[var(--brand-edge)]'"
+                            :aria-pressed="serviceId === '{{ $service->id }}'"
+                            class="p-4 rounded-[var(--radius)] border text-left transition-all">
+                      <div class="flex justify-between items-start gap-3">
+                        <span class="text-xs font-bold text-[var(--ink)]">{{ $service->name }}</span>
+                        <span class="text-right">
+                          <span class="t-price-sm">{{ $service->priceLabel() }}</span>
+                          @if ($service->isOnSale())
+                            <del class="ml-1 text-[10px] text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }}</del>
+                          @endif
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-[var(--ink-3)] mt-1">
+                        {{ $service->durationLabel() }}
+                        @if ($service->hasDeposit())
+                          · {{ \App\Shared\Support\Money::format($service->depositKobo()) }} Deposit
+                        @endif
+                        @if ($fulfilments[$service->id]['travel_fee_kobo'] > 0)
+                          · Travel {{ \App\Shared\Support\Money::format($fulfilments[$service->id]['travel_fee_kobo']) }}
+                        @endif
+                      </p>
+                    </button>
+                  @endforeach
+                </div>
+                @if ($services->count() > 6)
                   <button type="button"
-                          @click="selectService('{{ $service->id }}')"
-                          :class="serviceId === '{{ $service->id }}' ? 'border-[var(--brand)] bg-[var(--brand-wash)] ring-1 ring-[var(--brand)]' : 'border-[var(--rule)] bg-[var(--paper)] hover:border-[var(--brand-edge)]'"
-                          :aria-pressed="serviceId === '{{ $service->id }}'"
-                          class="p-4 rounded-[var(--radius)] border text-left transition-all">
-                    <div class="flex justify-between items-start gap-3">
-                      <span class="text-xs font-bold text-[var(--ink)]">{{ $service->name }}</span>
-                      <span class="t-price-sm">{{ $service->priceLabel() }}</span>
-                    </div>
-                    <p class="text-[11px] text-[var(--ink-3)] mt-1">
-                      {{ $service->durationLabel() }}
-                      @if ($service->hasDeposit())
-                        · {{ \App\Shared\Support\Money::format($service->depositKobo()) }} Deposit
-                      @endif
-                    </p>
+                          @click="showAll = !showAll"
+                          class="mt-3 text-xs font-semibold text-[var(--brand)] hover:underline">
+                    <span x-text="showAll ? 'Show fewer services' : 'Show all {{ $services->count() }} services'"></span>
                   </button>
-                @endforeach
+                @endif
               </div>
 
               {{-- Only worth asking when there is a choice to make. --}}
@@ -338,14 +385,24 @@
                 <span class="font-semibold text-[var(--ink)] text-right" x-text="service ? service.duration : ''">{{ $preselected->durationLabel() }}</span>
               </div>
 
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[var(--ink-3)]">Where</span>
+                <span class="font-semibold text-[var(--ink)] text-right" x-text="service ? service.modeLabel : ''">{{ $modeLabels[$preselectedFulfilment['mode']->value] ?? $preselectedFulfilment['mode']->label() }}</span>
+              </div>
+
+              <div x-show="service && service.hasTravelFee" style="display: none;" class="flex items-center justify-between gap-2">
+                <span class="text-[var(--ink-3)]">Travel fee</span>
+                <span class="font-semibold text-[var(--ink)] text-right" x-text="service ? service.travelFee : ''">{{ \App\Shared\Support\Money::format($travelFeeKobo) }}</span>
+              </div>
+
               <div class="flex items-center justify-between pt-3 border-t border-[var(--rule)]">
                 <span class="font-semibold text-[var(--ink)]" x-text="service && service.hasDeposit ? 'Deposit Due Now' : 'Amount Due Now'">Amount Due Now</span>
-                <span class="t-price-sm" x-text="service ? service.due : ''">{{ \App\Shared\Support\Money::format($preselected->amountDueKobo()) }}</span>
+                <span class="t-price-sm" x-text="service ? service.due : ''">{{ \App\Shared\Support\Money::format($dueKobo) }}</span>
               </div>
 
               <div x-show="service && service.hasDeposit" style="display: none;" class="flex items-center justify-between text-[11px]">
                 <span class="text-[var(--ink-3)]">Balance at the Studio</span>
-                <span class="font-semibold text-[var(--ink-2)]" x-text="service ? service.balance : ''">{{ \App\Shared\Support\Money::format(max(0, $preselected->price_kobo - $preselected->depositKobo())) }}</span>
+                <span class="font-semibold text-[var(--ink-2)]" x-text="service ? service.balance : ''">{{ \App\Shared\Support\Money::format($balanceKobo) }}</span>
               </div>
             </div>
 

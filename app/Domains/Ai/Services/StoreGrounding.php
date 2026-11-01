@@ -19,12 +19,14 @@ class StoreGrounding
             ->with('category:id,name')
             ->orderByDesc('is_featured')
             ->limit(80)
-            ->get(['id', 'store_page_id', 'category_id', 'name', 'description', 'price_kobo', 'track_stock', 'stock_qty'])
+            ->get(['id', 'store_page_id', 'category_id', 'name', 'description', 'price_kobo', 'compare_at_kobo', 'sale_starts_at', 'sale_ends_at', 'track_stock', 'stock_qty'])
             ->map(fn (Product $product): array => [
                 'name' => $product->name,
                 'description' => $product->description,
                 'category' => $product->category?->name,
-                'price_kobo' => $product->price_kobo,
+                'price_kobo' => $product->effectivePriceKobo(),
+                'original_price_kobo' => $product->originalPriceKobo(),
+                'sale_ends_at' => $product->saleEndsAt()?->toIso8601String(),
                 'in_stock' => ! $product->isSoldOut(),
             ])->values()->all();
 
@@ -33,11 +35,13 @@ class StoreGrounding
             ->where('is_active', true)
             ->orderBy('position')
             ->limit(80)
-            ->get(['name', 'description', 'price_kobo', 'duration_min', 'turnaround_label'])
+            ->get(['name', 'description', 'price_kobo', 'compare_at_kobo', 'sale_starts_at', 'sale_ends_at', 'duration_min', 'turnaround_label'])
             ->map(fn (Service $service): array => [
                 'name' => $service->name,
                 'description' => $service->description,
-                'price_kobo' => $service->price_kobo,
+                'price_kobo' => $service->effectivePriceKobo(),
+                'original_price_kobo' => $service->originalPriceKobo(),
+                'sale_ends_at' => $service->saleEndsAt()?->toIso8601String(),
                 'duration_min' => $service->duration_min,
                 'turnaround' => $service->turnaround_label,
             ])->values()->all();

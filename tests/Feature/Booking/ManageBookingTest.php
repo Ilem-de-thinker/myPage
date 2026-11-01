@@ -45,6 +45,7 @@ it('will not show a booking on the reference alone', function () {
     Booking::factory()->create([
         'store_page_id' => $page->id,
         'reference' => 'BK-8941',
+        'customer_name' => 'Vault Token',
         'customer_email' => 'baba@example.com',
         'customer_phone' => '+2348031234567',
     ]);
@@ -70,7 +71,7 @@ it('matches the phone number however the client typed it', function () {
 
     get(storeUrl($page->slug, '/book/manage?reference=BK-8941&contact=08031234567'))
         ->assertOk()
-        ->assertSee('Vault Token');
+        ->assertSee('BK-8941');
 });
 
 it('answers an empty search with the form rather than a booking', function () {

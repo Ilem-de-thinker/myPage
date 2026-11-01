@@ -24,6 +24,7 @@ use App\Shared\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -146,7 +147,7 @@ class AdminController extends Controller
     {
         return view('admin.stores', [
             'pages' => StorePage::withoutGlobalScopes()
-                ->with('seller')
+                ->with(['seller', 'seller.subscriptions.plan'])
                 ->when($request->query('q'), function ($query) use ($request) {
                     $like = '%'.$request->input('q').'%';
                     $query->where('name', 'like', $like)->orWhere('slug', 'like', $like);
@@ -156,6 +157,48 @@ class AdminController extends Controller
                 ->withQueryString(),
             'search' => $request->query('q'),
         ]);
+    }
+
+    /**
+     * Extend one merchant's grace window without touching the platform default.
+     */
+    public function updateSubscriptionGrace(
+        Request $request,
+        StorePage $storePage,
+        RecordAdminAction $audit,
+    ): RedirectResponse {
+        $data = $request->validate([
+            'grace_until' => ['nullable', 'date', 'after:now'],
+        ]);
+
+        $subscription = $storePage->seller?->subscriptions()->first();
+
+        if ($subscription === null) {
+            return back()->withErrors(['grace_until' => 'This seller has no subscription record.']);
+        }
+
+        $until = filled($data['grace_until'] ?? null)
+            ? Carbon::parse($data['grace_until'])
+            : null;
+
+        // Written before the change lands, like every other admin decision.
+        $audit->handle(
+            $request->user(),
+            'subscription.grace_override',
+            $subscription,
+            $until
+                ? 'Grace extended until '.$until->toDayDateTimeString().'.'
+                : 'Grace override cleared.',
+        );
+
+        $subscription->update(['grace_override_until' => $until]);
+
+        return back()->with(
+            'status',
+            $until
+                ? "Grace period for {$storePage->name} extended until {$until->format('j M Y')}."
+                : "Grace override for {$storePage->name} cleared.",
+        );
     }
 
     /**
@@ -321,11 +364,15 @@ class AdminController extends Controller
      */
     public function plans(PaymentGatewayInterface $gateway): View
     {
-        $plans = Plan::query()->orderByDesc('is_featured')->orderBy('price_kobo')->get();
+        $plans = Plan::query()
+            ->orderByDesc('is_featured')
+            ->orderBy('price_kobo')
+            ->paginate(20)
+            ->withQueryString();
 
         $gatewayPlans = [];
 
-        foreach ($plans->whereNotNull('gateway_plan_code') as $plan) {
+        foreach ($plans->getCollection()->whereNotNull('gateway_plan_code') as $plan) {
             try {
                 $gatewayPlans[$plan->getKey()] = $gateway->fetchPlan($plan->gateway_plan_code);
             } catch (Throwable) {

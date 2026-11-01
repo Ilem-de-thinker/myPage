@@ -5,14 +5,18 @@ namespace App\Domains\Booking\Http\Controllers;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
+use App\Domains\Booking\Enums\ServiceMode;
 use App\Domains\Booking\Models\Service;
 use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Html;
+use App\Shared\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ServiceController extends Controller
@@ -126,6 +130,9 @@ class ServiceController extends Controller
             'duration_min' => ['required', 'integer', 'min:5', 'max:1440'],
             'buffer_min' => ['nullable', 'integer', 'min:0', 'max:240'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'compare_at' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'sale_starts_at' => ['nullable', 'date'],
+            'sale_ends_at' => ['nullable', 'date'],
             'deposit_type' => ['required', Rule::enum(DepositType::class)],
             'deposit_value' => ['nullable', 'integer', 'min:0'],
             // `sometimes`, not `required`. This field arrived after the form
@@ -140,6 +147,9 @@ class ServiceController extends Controller
             'deliverables' => ['nullable', 'string', 'max:1000'],
             'is_featured' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'service_mode' => ['nullable', Rule::enum(ServiceMode::class)],
+            'travel_fee' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'travel_radius_km' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'staff' => ['array'],
             'staff.*' => ['integer'],
         ]);
@@ -154,6 +164,34 @@ class ServiceController extends Controller
             ? min(100, (int) ($data['deposit_value'] ?? 0))
             : (int) (($data['deposit_value'] ?? 0) * 100);
 
+        $compareAtKobo = filled($data['compare_at'] ?? null)
+            ? Money::toKobo($data['compare_at'])
+            : null;
+        $saleStartsAt = filled($data['sale_starts_at'] ?? null)
+            ? Carbon::parse($data['sale_starts_at'])
+            : null;
+        $saleEndsAt = filled($data['sale_ends_at'] ?? null)
+            ? Carbon::parse($data['sale_ends_at'])
+            : null;
+
+        if ($compareAtKobo !== null && $compareAtKobo <= $priceKobo) {
+            throw ValidationException::withMessages([
+                'compare_at' => 'The original price must be higher than the price the buyer pays.',
+            ]);
+        }
+
+        if ($saleStartsAt !== null && $saleEndsAt !== null && $saleEndsAt->lessThanOrEqualTo($saleStartsAt)) {
+            throw ValidationException::withMessages([
+                'sale_ends_at' => 'The sale must end after it starts.',
+            ]);
+        }
+
+        // Dates without an original price have nothing to compare against.
+        if ($compareAtKobo === null) {
+            $saleStartsAt = null;
+            $saleEndsAt = null;
+        }
+
         return [
             'name' => $data['name'],
             'slug' => Service::generateSlug($data['name']),
@@ -161,6 +199,9 @@ class ServiceController extends Controller
             'duration_min' => $data['duration_min'],
             'buffer_min' => $data['buffer_min'] ?? 0,
             'price_kobo' => $priceKobo,
+            'compare_at_kobo' => $compareAtKobo,
+            'sale_starts_at' => $saleStartsAt,
+            'sale_ends_at' => $saleEndsAt,
             'deposit_type' => $depositType,
             'deposit_value' => $depositType === DepositType::None ? 0 : $depositValue,
             'billing_unit' => BillingUnit::tryFrom((string) ($data['billing_unit'] ?? '')) ?? BillingUnit::PerProject,
@@ -168,6 +209,13 @@ class ServiceController extends Controller
             'deliverables' => $this->deliverables($data['deliverables'] ?? null),
             'is_featured' => $request->boolean('is_featured'),
             'is_active' => $request->boolean('is_active'),
+            // Blank inherits the store profile; anything else applies to this
+            // service only. Travel fees are naira on the form, kobo in the row.
+            'service_mode' => filled($data['service_mode'] ?? null) ? $data['service_mode'] : null,
+            'travel_fee_kobo' => filled($data['travel_fee'] ?? null)
+                ? Money::toKobo($data['travel_fee'])
+                : null,
+            'travel_radius_km' => $data['travel_radius_km'] ?? null,
         ];
     }
 

@@ -13,6 +13,7 @@
     $deliverables = $service->deliverableList();
     $where = $page->locationLabel();
     $bookLabel = $cardCta ?? 'Book Slot';
+    $onSale = $service->isOnSale();
 @endphp
 
 <article class="card p-4 group relative">
@@ -20,6 +21,12 @@
   {{-- The photograph is the seller's own. No image is not a hole: the plate keeps
        its surface wash, so a card without a picture still reads as a card. --}}
   <div class="plate aspect-[4/3] mb-4">
+    @if ($onSale)
+      <div class="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--ink)] text-[var(--paper)] text-[11px] font-bold tracking-tight">
+        Sale −{{ $service->discountPercent() }}%
+      </div>
+    @endif
+
     <div class="plate-media h-full">
       @if ($service->image_path)
         <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
@@ -96,9 +103,17 @@
     </div>
 
     <div class="mt-auto flex items-center justify-between">
-      <div>
+      <div class="min-w-0">
         <span class="text-[10px] text-[var(--ink-3)] block">Total Investment</span>
-        <p class="t-price-sm">{{ $service->priceWithUnitLabel() }}</p>
+        <div class="flex flex-wrap items-baseline gap-1.5">
+          <p class="t-price-sm">{{ $service->priceWithUnitLabel() }}</p>
+          @if ($onSale)
+            <del class="text-[11px] text-[var(--ink-3)] tabular-nums">{{ \App\Shared\Support\Money::format($service->originalPriceKobo()) }} {{ $service->billingUnit()->suffix() }}</del>
+          @endif
+        </div>
+        @if ($service->saleEndsLabel())
+          <p class="mt-0.5 text-[10px] font-semibold text-[var(--ink-3)]">{{ $service->saleEndsLabel() }}</p>
+        @endif
       </div>
 
       {{-- Sits above the stretched link, so the card stays one click deep and the

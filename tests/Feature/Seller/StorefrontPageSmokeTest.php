@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Booking\Models\Service;
 use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Catalog\Models\Category;
@@ -93,6 +94,24 @@ it('renders every service page with content on it', function (string $path, stri
     'service detail' => ['/services/smoke-service-item', 'Smoke Service'],
     'booking' => ['/book', 'Smoke Service'],
 ]);
+
+it('uses the page trust flag for the storefront badge, not the application row', function () {
+    $page = storePage();
+
+    // Regression: the directory cards read verified_at while the storefront
+    // re-checked for an approved application. A stamped page with no application
+    // row therefore showed "Verified" in the directory and "Not verified" here.
+    expect(BadgeApplication::where('store_page_id', $page->id)->exists())->toBeFalse();
+
+    get(storeUrl($page->slug))->assertOk()->assertSee('Verified');
+});
+
+it('shows the not-verified state when the page trust flag is clear', function () {
+    $page = storePage();
+    $page->forceFill(['verified_at' => null])->save();
+
+    get(storeUrl($page->slug))->assertOk()->assertSee('Not verified by mypage.ng');
+});
 
 /**
  * The factory writes filler content into every block, which hides bugs where a

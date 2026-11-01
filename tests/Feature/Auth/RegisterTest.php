@@ -22,6 +22,8 @@ it('registers a seller and redirects to email verification', function () {
         'phone' => '0803 123 4567',
         'password' => 'password123',
         'password_confirmation' => 'password123',
+        'terms_accepted' => true,
+        'privacy_accepted' => true,
     ]);
 
     $response->assertRedirect(route('verification.notice'));
@@ -40,6 +42,7 @@ it('verifies email with the OTP code', function () {
     post('/register', [
         'name' => 'Ada', 'email' => 'ada@example.com', 'phone' => '0803 123 4567',
         'password' => 'password123', 'password_confirmation' => 'password123',
+        'terms_accepted' => true, 'privacy_accepted' => true,
     ]);
 
     Notification::assertSentTo(Seller::first(), EmailOtpNotification::class);
@@ -72,6 +75,7 @@ it('normalises phone numbers on registration', function (string $input, string $
     post('/register', [
         'name' => 'Ada', 'email' => fake()->safeEmail(), 'phone' => $input,
         'password' => 'password123', 'password_confirmation' => 'password123',
+        'terms_accepted' => true, 'privacy_accepted' => true,
     ]);
 
     expect(Seller::latest()->first()->phone)->toBe($expected);
@@ -87,6 +91,7 @@ it('rejects duplicate phone numbers', function () {
     post('/register', [
         'name' => 'Ada', 'email' => 'new@example.com', 'phone' => '+2348031234567',
         'password' => 'password123', 'password_confirmation' => 'password123',
+        'terms_accepted' => true, 'privacy_accepted' => true,
     ])->assertSessionHasErrors('phone');
 });
 
@@ -94,6 +99,7 @@ it('rejects invalid phone numbers', function () {
     post('/register', [
         'name' => 'Ada', 'email' => 'new@example.com', 'phone' => '12345',
         'password' => 'password123', 'password_confirmation' => 'password123',
+        'terms_accepted' => true, 'privacy_accepted' => true,
     ])->assertSessionHasErrors('phone');
 });
 
@@ -103,6 +109,7 @@ it('welcomes a new seller with the first step they have to take', function () {
     post('/register', [
         'name' => 'Ada Obi', 'email' => 'ada@example.com', 'phone' => '0803 123 4567',
         'password' => 'password123', 'password_confirmation' => 'password123',
+        'terms_accepted' => true, 'privacy_accepted' => true,
     ]);
 
     $seller = Seller::where('email', 'ada@example.com')->firstOrFail();

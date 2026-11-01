@@ -35,7 +35,7 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'Your account is suspended. Contact support.']);
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended($seller->isAdmin() ? route('admin.index') : route('dashboard'));
     }
 
     public function destroy(Request $request): RedirectResponse

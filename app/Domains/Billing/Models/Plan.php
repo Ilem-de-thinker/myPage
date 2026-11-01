@@ -22,6 +22,7 @@ class Plan extends Model
         'interval',
         'trial_days',
         'max_products',
+        'max_staff',
         'is_default',
         'is_featured',
         'is_active',
@@ -34,6 +35,7 @@ class Plan extends Model
             'price_kobo' => 'integer',
             'trial_days' => 'integer',
             'max_products' => 'integer',
+            'max_staff' => 'integer',
             'is_default' => 'boolean',
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
@@ -61,5 +63,10 @@ class Plan extends Model
     public function allowsProducts(int $count): bool
     {
         return $this->max_products === null || $count <= $this->max_products;
+    }
+
+    public function allowsStaff(int $count): bool
+    {
+        return $this->max_staff === null || $count <= $this->max_staff;
     }
 }
