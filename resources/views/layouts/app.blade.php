@@ -131,6 +131,35 @@
                     <a href="{{ \App\Shared\Support\StoreUrl::forSeller($page) }}" target="_blank" class="text-xs font-semibold text-brand hover:text-brand-text">View {{ $page->theme->siteNoun() }} ↗</a>
                 @endif
                 <div class="flex items-center gap-2">
+                    <div x-data="{ open: false }" class="relative">
+                        <button type="button" @click="open = !open" class="relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl text-ink-3 hover:bg-tint hover:text-ink" aria-label="Notifications">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                            @php $unreadCount = auth()->user()->unreadNotifications()->count(); @endphp
+                            @if ($unreadCount > 0)
+                                <span class="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-bold text-brand-ink">{{ $unreadCount }}</span>
+                            @endif
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-2 w-80 rounded-2xl border border-rule bg-card p-3 shadow-xl">
+                            @php $latestNotifications = auth()->user()->notifications()->latest()->limit(5)->get(); @endphp
+                            @if ($latestNotifications->isEmpty())
+                                <p class="p-2 text-xs text-ink-3">No notifications.</p>
+                            @else
+                                <ul class="space-y-2">
+                                    @foreach ($latestNotifications as $notification)
+                                        @php $notice = $notification->data; @endphp
+                                        <li class="rounded-xl border border-rule p-3 {{ $notification->read_at ? '' : 'bg-brand-wash/40' }}">
+                                            <p class="text-xs font-bold text-ink">{{ $notice['title'] ?? 'Account notice' }}</p>
+                                            <p class="mt-1 text-[11px] text-ink-2">{{ $notice['body'] ?? '' }}</p>
+                                            @if (! empty($notice['url']))
+                                                <a href="{{ $notice['url'] }}" class="mt-1 inline-block text-[11px] font-bold text-brand">{{ $notice['action'] ?? 'Review' }}</a>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                <a href="{{ route('notifications.index') }}" class="mt-3 block text-center text-xs font-bold text-brand">View all</a>
+                            @endif
+                        </div>
+                    </div>
                     <x-ui.theme-toggle />
                     <div class="w-8 h-8 rounded-full bg-brand-wash text-brand-text flex items-center justify-center text-xs font-bold">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</div>
                     <span class="text-xs font-medium text-ink-2">{{ auth()->user()->name }}</span>
@@ -201,9 +230,9 @@
     <x-support.floating-button seller :ai-feature="$aiPageAllowed ? $aiPageFeature : null" />
 
     <div x-data="aiTaskStatus()" x-init="init()" x-show="count > 0" x-cloak class="fixed right-4 top-4 z-50">
-        <button type="button" @click="$dispatch('ai-open')" class="inline-flex min-h-9 items-center gap-2 rounded-full bg-brand px-4 text-xs font-bold text-brand-ink shadow-lg">
+        <a href="{{ route('dashboard.ai.drafts') }}" class="inline-flex min-h-9 items-center gap-2 rounded-full bg-brand px-4 text-xs font-bold text-brand-ink shadow-lg">
             <span x-text="count"></span> drafts ready
-        </button>
+        </a>
     </div>
 
     <script>
@@ -221,6 +250,64 @@
                         const d = await r.json();
                         this.count = (d.drafts || []).filter(x => x.status === 'pending').length;
                     } catch (e) {}
+                }
+            }));
+        });
+    </script>
+    <div x-data="aiTaskProgress()" x-init="init()" x-show="visible" x-cloak class="fixed right-4 top-20 z-50 w-72">
+        <a :href="url" class="block rounded-2xl border border-rule bg-card p-4 shadow-xl">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wide text-ink-3">Mercho task</p>
+                    <p class="mt-1 text-sm font-bold text-ink" x-text="label"></p>
+                    <p class="mt-1 text-xs text-ink-3" x-text="detail"></p>
+                </div>
+                <span x-show="failed > 0" class="rounded-full bg-warn-wash px-2 py-0.5 text-[10px] font-bold text-warn-text" x-text="failed + ' failed'"></span>
+            </div>
+            <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-tint">
+                <div class="h-full rounded-full bg-brand transition-all" :style="'width:' + percent + '%'"></div>
+            </div>
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('aiTaskProgress', () => ({
+                visible: false,
+                label: '',
+                detail: '',
+                percent: 0,
+                failed: 0,
+                url: '/ai/tasks',
+                timer: null,
+                async init() {
+                    await this.refresh();
+                    this.timer = setInterval(() => {
+                        if (document.visibilityState === 'visible') this.refresh();
+                    }, 4000);
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') this.refresh();
+                    });
+                },
+                async refresh() {
+                    try {
+                        const r = await fetch('/ai/tasks/active', { headers: { 'Accept': 'application/json' } });
+                        if (!r.ok) { this.visible = false; return; }
+                        const d = await r.json();
+                        const tasks = d.tasks || [];
+                        if (! tasks.length) { this.visible = false; return; }
+                        const task = tasks[0];
+                        const total = Math.max(1, task.total || 1);
+                        const completed = task.completed || 0;
+                        this.failed = task.failed || 0;
+                        this.percent = Math.round((completed / total) * 100);
+                        this.label = (task.type || 'Task') + ' · ' + completed + '/' + total;
+                        this.detail = task.status === 'processing' ? 'Running in background…' : (task.status || '');
+                        this.url = '/ai/tasks/' + task.id;
+                        this.visible = ['queued', 'processing'].includes(task.status);
+                    } catch (e) {
+                        this.visible = false;
+                    }
                 }
             }));
         });

@@ -103,7 +103,8 @@
         <nav aria-label="Legal" class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-[var(--ink-3)]">
             <a href="{{ \App\Shared\Support\StoreUrl::platform('legal.policy', ['policy' => 'privacy']) }}" class="hover:text-[var(--ink)]">Privacy</a>
             <a href="{{ \App\Shared\Support\StoreUrl::platform('legal.policy', ['policy' => 'terms']) }}" class="hover:text-[var(--ink)]">Terms</a>
-            <a href="{{ \App\Shared\Support\StoreUrl::platform('legal.policy', ['policy' => 'refunds']) }}" class="hover:text-[var(--ink)]">Refunds</a>
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.policy', array_merge($storefront, ['policy' => 'cancellation'])) }}" class="hover:text-[var(--ink)]">Cancellation</a>
+            <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.policy', array_merge($storefront, ['policy' => 'refunds'])) }}" class="hover:text-[var(--ink)]">Refunds</a>
             <a href="{{ \App\Shared\Support\StoreUrl::platform('legal.policy', ['policy' => 'contact']) }}" class="hover:text-[var(--ink)]">Platform contact</a>
         </nav>
 

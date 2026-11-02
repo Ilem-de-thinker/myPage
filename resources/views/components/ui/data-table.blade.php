@@ -50,14 +50,19 @@
         </div>
     </div>
 
-    @if ($bulkDestroyRoute)
-        <div x-cloak x-show="selected.length > 0" class="mb-3 flex items-center gap-3 bg-danger-wash border border-danger-edge rounded-xl px-4 py-2.5">
-            <span class="text-xs font-semibold text-danger-text" x-text="selected.length + ' selected'"></span>
-            <form method="POST" action="{{ $bulkDestroyRoute }}" onsubmit="return confirm('Delete selected?')">
-                @csrf
-                <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
-                <button class="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold">Delete selected</button>
-            </form>
+    @if ($bulkDestroyRoute || isset($bulkActions))
+        <div x-cloak x-show="selected.length > 0" class="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-rule bg-card px-4 py-2.5">
+            <span class="text-xs font-semibold text-ink-2" x-text="selected.length + ' selected'"></span>
+            @if (isset($bulkActions))
+                {{ $bulkActions }}
+            @endif
+            @if ($bulkDestroyRoute)
+                <form method="POST" action="{{ $bulkDestroyRoute }}" onsubmit="return confirm('Delete selected?')" class="ml-auto">
+                    @csrf
+                    <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                    <button class="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold">Delete selected</button>
+                </form>
+            @endif
         </div>
     @endif
 
@@ -166,8 +171,8 @@
 
     {{-- Stock modal --}}
     @if ($stockRoute)
-        <div x-cloak x-show="stock.open" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" @keydown.escape.window="stock.open = false">
-            <div class="bg-card rounded-2xl p-6 w-full max-w-sm" @click.outside="stock.open = false">
+        <div x-cloak x-show="stock.open" class="app-modal fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" @keydown.escape.window="stock.open = false">
+            <div class="app-modal-panel bg-card rounded-2xl p-6 w-full max-w-sm" @click.outside="stock.open = false">
                 <div class="flex items-center justify-between mb-1">
                     <h3 class="font-display font-bold text-ink">Adjust stock</h3>
                     <button type="button" @click="stock.open = false" class="text-ink-3 text-lg leading-none">&times;</button>

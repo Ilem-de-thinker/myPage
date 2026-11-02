@@ -13,6 +13,7 @@
       ['route' => 'admin.gateway-health', 'pattern' => 'admin.gateway-health', 'label' => 'Gateway health', 'icon' => 'shield', 'core' => true],
       ['route' => 'admin.features', 'pattern' => 'admin.features', 'label' => 'Features', 'icon' => 'spark', 'core' => true],
       ['route' => 'admin.settings', 'pattern' => 'admin.settings', 'label' => 'Settings', 'icon' => 'settings', 'core' => true],
+      ['route' => 'admin.policies', 'pattern' => 'admin.policies*', 'label' => 'Policies', 'icon' => 'receipt', 'core' => true],
       ['route' => 'admin.ai-settings', 'pattern' => 'admin.ai-settings*', 'label' => 'AI', 'icon' => 'spark', 'core' => true],
       ['route' => 'admin.plans', 'pattern' => 'admin.plans*', 'label' => 'Plans', 'icon' => 'credit-card', 'core' => true],
       ['route' => 'admin.audit', 'pattern' => 'admin.audit', 'label' => 'Audit', 'icon' => 'database'],

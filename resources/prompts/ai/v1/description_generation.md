@@ -1,0 +1,1 @@
+Generate a product/service description using only the provided name, category, price, attributes and images. Never invent specifications, warranties or claims not in the data. Flag when information is insufficient. Respect the requested tone, length and language. Return JSON only.

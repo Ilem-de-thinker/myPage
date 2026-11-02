@@ -25,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -61,20 +62,23 @@ class AdminController extends Controller
         ReviewBadgeApplication $review,
     ): RedirectResponse {
         $data = $request->validate([
-            'decision' => ['required', 'in:approve,reject'],
+            'decision' => ['required', 'in:approve,reject,needs_more_info,revoke,reopen'],
             'note' => ['nullable', 'string', 'max:1000'],
             'rejection_reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $admin = $request->user();
+        $reason = (string) ($data['rejection_reason'] ?? '');
 
-        if ($data['decision'] === 'approve') {
-            $review->approve($application, $admin, $data['note'] ?? null);
-        } else {
-            $review->reject($application, $admin, (string) ($data['rejection_reason'] ?? ''));
-        }
+        match ($data['decision']) {
+            'approve' => $review->approve($application, $admin, $data['note'] ?? null),
+            'reject' => $review->reject($application, $admin, $reason),
+            'needs_more_info' => $review->requestMoreInfo($application, $admin, $reason),
+            'revoke' => $review->revoke($application, $admin, $reason),
+            'reopen' => $review->reopen($application, $admin, $data['note'] ?? null),
+        };
 
-        return back()->with('status', 'Badge application '.$data['decision'].'d.');
+        return back()->with('status', 'Badge application updated.');
     }
 
     public function badgeDocument(BadgeApplication $application, RecordAdminAction $audit): Response
@@ -90,8 +94,19 @@ class AdminController extends Controller
 
         $disk = Storage::disk('local');
 
-        return response()->file($disk->path($application->document_path), [
-            'Content-Type' => $disk->mimeType($application->document_path) ?: 'application/octet-stream',
+        if (! $disk->exists($application->document_path)) {
+            abort(404);
+        }
+
+        $stored = $disk->get($application->document_path);
+        $plain = str_starts_with($stored, 'enc:v1:')
+            ? Crypt::decryptString(substr($stored, 7))
+            : $stored;
+
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($plain) ?: 'application/octet-stream';
+
+        return response($plain, 200, [
+            'Content-Type' => $mime,
             'Content-Disposition' => 'inline; filename="kyc-'.$application->getKey().'"',
             'X-Content-Type-Options' => 'nosniff',
         ]);

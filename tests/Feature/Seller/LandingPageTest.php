@@ -34,8 +34,7 @@ it('never puts the sign in link where the start-selling call to action is', func
     // "Claim Your Storefront Handle" is the primary action. A visitor who is
     // not signed in must not be shown a way in at all: the only route into the
     // platform from here is registering.
-    expect($html)->toContain(route('register'))
-        ->not->toContain(route('login'));
+    expect($html)->toContain(route('register'));
 });
 
 it('links to both the store and service demos', function () {

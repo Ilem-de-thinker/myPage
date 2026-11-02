@@ -19,7 +19,7 @@
     @if ($standalone)
         <div class="platform-support-launcher fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-3 md:bottom-6 md:right-6">
             @if ($aiFeature)
-                @php $aiCategories = $page ? collect(\App\Domains\Ai\Support\AiFeatureRegistry::featuresFor($page))->pluck('key')->all() ?: [] : []; @endphp>
+                @php $aiCategories = $page ? collect(\App\Domains\Ai\Support\AiFeatureRegistry::featuresFor($page))->pluck('key')->all() ?: [] : []; @endphp
                 <x-ai.launcher :feature="$aiFeature" :aiCategories="$aiCategories" />
             @endif
             <button type="button" @click="openSupport()" class="inline-flex min-h-16 items-center gap-2.5 rounded-full bg-brand px-6 py-4 text-base font-bold text-brand-ink shadow-xl shadow-ink/10 transition hover:-translate-y-0.5 hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2" aria-label="Open support form">
@@ -29,8 +29,8 @@
         </div>
     @endif
 
-    <div x-cloak x-show="supportOpen" x-transition.opacity @keydown.escape.window="closeSupport()" style="display: none" class="fixed inset-0 flex items-end justify-end bg-black/30 p-4 md:p-6" role="dialog" aria-modal="true" aria-label="Support form">
-        <div x-show="supportOpen" x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="translate-y-4 opacity-0" x-transition:enter-end="translate-y-0 opacity-100" @click.outside="closeSupport()" class="max-h-[calc(100dvh-7rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-rule bg-card p-5 text-ink shadow-2xl">
+    <div x-cloak x-show="supportOpen" x-transition.opacity @keydown.escape.window="closeSupport()" style="display: none" class="app-modal fixed inset-0 flex items-end justify-end bg-black/30 p-4 md:p-6" role="dialog" aria-modal="true" aria-label="Support form">
+        <div x-show="supportOpen" x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="translate-y-4 opacity-0" x-transition:enter-end="translate-y-0 opacity-100" @click.outside="closeSupport()" class="app-modal-panel max-h-[calc(100dvh-7rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-rule bg-card p-5 text-ink shadow-2xl">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-brand">{{ $isStorefront ? 'Help with this page' : 'mypage.ng support' }}</p>

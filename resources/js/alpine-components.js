@@ -457,6 +457,192 @@ Alpine.data('aiListingForm', (config = {}) => ({
     },
 }));
 
+Alpine.data('aiDraftReview', (config = {}) => ({
+    id: config.id,
+    status: config.status,
+    feature: config.feature,
+    busy: false,
+    error: '',
+    message: '',
+    payload: {
+        name: config.payload?.name ?? '',
+        description: config.payload?.description ?? '',
+        category: config.payload?.category ?? '',
+        price_hint: config.payload?.price_hint ?? '',
+        tags: Array.isArray(config.payload?.tags)
+            ? config.payload.tags.join(', ')
+            : (config.payload?.tags ?? ''),
+        seo_title: config.payload?.seo_title ?? '',
+        seo_description: config.payload?.seo_description ?? '',
+    },
+
+    get isPending() {
+        return this.status === 'pending';
+    },
+
+    get isListing() {
+        return ['products', 'services'].includes(config.feature);
+    },
+
+    get isApproved() {
+        return this.status === 'approved';
+    },
+
+    get presets() {
+        return Array.isArray(config.payload?.presets) ? config.payload.presets : [];
+    },
+
+    get hasPresets() {
+        return this.presets.length > 0;
+    },
+
+    get isDirection() {
+        return Boolean(config.payload?.theme_key && config.payload?.copy);
+    },
+
+    list(value) {
+        return String(value ?? '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+    },
+
+    async send(url, method = 'POST', body = null) {
+        const options = {
+            method,
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': config.csrf,
+            },
+        };
+
+        if (body !== null) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = {};
+        }
+
+        if (! response.ok) {
+            throw new Error(data.message || 'The request could not be completed.');
+        }
+
+        return data;
+    },
+
+    async save() {
+        await this.send(config.updateUrl, 'PATCH', {
+            name: this.payload.name,
+            description: this.payload.description,
+            category: this.payload.category || null,
+            price_hint: this.payload.price_hint || null,
+            tags: this.list(this.payload.tags),
+            seo_title: this.payload.seo_title || null,
+            seo_description: this.payload.seo_description || null,
+        });
+    },
+
+    async approve() {
+        if (this.hasPresets) {
+            return;
+        }
+
+        this.busy = true;
+        this.error = '';
+
+        try {
+            if (config.feature === 'products' || config.feature === 'services') {
+                await this.save();
+            }
+            await this.send(config.approveUrl);
+            this.status = 'approved';
+            this.message = this.isDirection
+                ? 'Direction applied. You can change it again from the Brand tab.'
+                : 'Approved. The listing is now in your catalogue as a draft.';
+        } catch (error) {
+            this.error = error.message;
+        } finally {
+            this.busy = false;
+        }
+    },
+
+    async applyPreset(index) {
+        this.busy = true;
+        this.error = '';
+
+        try {
+            await this.send(config.approveUrl, 'POST', { preset: index });
+            this.status = 'approved';
+            this.message = 'Direction applied. You can change it again from the Brand tab.';
+        } catch (error) {
+            this.error = error.message;
+        } finally {
+            this.busy = false;
+        }
+    },
+
+    async discard() {
+        this.busy = true;
+        this.error = '';
+
+        try {
+            await this.send(config.discardUrl);
+            this.status = 'discarded';
+            this.message = 'Draft discarded.';
+        } catch (error) {
+            this.error = error.message;
+        } finally {
+            this.busy = false;
+        }
+    },
+
+    async undo() {
+        this.busy = true;
+        this.error = '';
+
+        try {
+            await this.send(config.undoUrl);
+            this.status = 'undone';
+            this.message = 'The approved change was undone.';
+        } catch (error) {
+            this.error = error.message;
+        } finally {
+            this.busy = false;
+        }
+    },
+}));
+
+Alpine.data('hoursEditor', (config = {}) => ({
+    placeholder: config.placeholder ?? 'Monday to Friday, 9am - 6pm',
+    rows: String(config.value ?? '')
+        .split('\n')
+        .map((row) => row.trim())
+        .filter(Boolean),
+
+    get joined() {
+        return this.rows.map((row) => row.trim()).filter(Boolean).join('\n');
+    },
+
+    add() {
+        this.rows.push('');
+        this.$nextTick(() => {
+            const inputs = this.$el.querySelectorAll('input[type="text"]');
+            inputs[inputs.length - 1]?.focus();
+        });
+    },
+
+    remove(index) {
+        this.rows.splice(index, 1);
+    },
+}));
+
 Alpine.data('newCategoryForm', (config = {}) => ({
     newCat: false,
     name: '',
@@ -914,12 +1100,111 @@ Alpine.data('storeSearch', (config = {}) => ({
 Alpine.data('storefrontEditor', (config = {}) => ({
     aiLoading: false,
     aiDraft: null,
+    aiDraftId: null,
     aiError: '',
+    aiOpen: false,
+    aiBusy: false,
+    aiMessage: '',
+
+    get aiPresets() {
+        return Array.isArray(this.aiDraft?.presets) ? this.aiDraft.presets : [];
+    },
+
+    get aiText() {
+        return typeof this.aiDraft?.text === 'string' ? this.aiDraft.text : '';
+    },
+
+    get hasPresets() {
+        return this.aiPresets.length > 0;
+    },
+
+    get hasDirection() {
+        return !!(this.aiDraft && (this.aiDraft.theme_key || this.aiDraft.copy));
+    },
+
+    get directionThemeLabel() {
+        return config.preview?.presetLabels?.[this.aiDraft?.theme_key] ?? this.aiDraft?.theme_key ?? '';
+    },
+
+    get directionSurfaceLabel() {
+        return config.preview?.surfaceLabels?.[this.aiDraft?.surface] ?? this.aiDraft?.surface ?? '';
+    },
+
+    get directionRadiusLabel() {
+        return config.preview?.radiusLabels?.[this.aiDraft?.radius] ?? this.aiDraft?.radius ?? '';
+    },
+
+    get directionHeroStyleLabel() {
+        return config.preview?.heroStyles?.[this.aiDraft?.hero_style] ?? this.aiDraft?.hero_style ?? '';
+    },
+
+    get directionHeroAlignmentLabel() {
+        return config.preview?.heroAlignments?.[this.aiDraft?.hero_alignment] ?? this.aiDraft?.hero_alignment ?? '';
+    },
+
+    get directionHeroOverlayLabel() {
+        return config.preview?.heroOverlays?.[this.aiDraft?.hero_overlay] ?? this.aiDraft?.hero_overlay ?? '';
+    },
+
+    get directionHiddenLabels() {
+        return (this.aiDraft?.hidden_sections ?? [])
+            .map((key) => config.preview?.hiddenSections?.[key] ?? key);
+    },
+
+    get copySections() {
+        const copy = this.aiDraft?.copy ?? {};
+        const pages = config.preview?.pages ?? [];
+
+        return pages
+            .map((page) => ({
+                key: page.key,
+                label: page.label,
+                blocks: (page.blocks ?? [])
+                    .map((block) => ({
+                        key: block.key,
+                        label: block.label,
+                        fields: (block.fields ?? []).filter((field) => copy[page.key]?.[block.key]?.[field.name] !== undefined),
+                    }))
+                    .filter((block) => block.fields.length > 0),
+            }))
+            .filter((page) => page.blocks.length > 0);
+    },
+
+    repeaterRows(pageKey, blockKey, fieldName) {
+        return this.aiDraft?.copy?.[pageKey]?.[blockKey]?.[fieldName] ?? [];
+    },
+
+    pageCopySource() {
+        // The copy-rewrite task rewrites text; handing it an instruction made it
+        // rewrite the instruction. Use the seller's actual page copy instead.
+        const tagline = this.$root.querySelector('input[name="tagline"]');
+        const copy = Array.from(this.$root.querySelectorAll('textarea[name^="blocks["], input[type="text"][name^="blocks["]'))
+            .map((field) => field.value.trim())
+            .filter(Boolean);
+
+        if (tagline?.value.trim()) {
+            copy.unshift(tagline.value.trim());
+        }
+
+        return copy.join('\n\n');
+    },
 
     async draftPageCopy() {
         this.aiLoading = true;
         this.aiDraft = null;
+        this.aiDraftId = null;
         this.aiError = '';
+        this.aiMessage = '';
+        this.aiOpen = false;
+
+        const text = config.feature === 'appearance' ? (config.text ?? '') : this.pageCopySource();
+
+        if (config.feature !== 'appearance' && ! text) {
+            this.aiError = 'Add some copy to this page first, then Mercho can suggest an improvement.';
+            this.aiLoading = false;
+
+            return;
+        }
 
         try {
             const response = await fetch(config.endpoint, {
@@ -931,7 +1216,7 @@ Alpine.data('storefrontEditor', (config = {}) => ({
                 },
                 body: JSON.stringify({
                     feature: config.feature,
-                    input: { text: config.text, tone: 'friendly' },
+                    input: { text, tone: 'friendly' },
                 }),
             });
 
@@ -939,6 +1224,8 @@ Alpine.data('storefrontEditor', (config = {}) => ({
 
             if (response.ok) {
                 this.aiDraft = data.result;
+                this.aiDraftId = data.draft_id || null;
+                this.aiOpen = true;
             } else {
                 this.aiError = data.message || 'AI could not prepare page copy.';
             }
@@ -946,6 +1233,113 @@ Alpine.data('storefrontEditor', (config = {}) => ({
             this.aiError = 'AI could not prepare page copy.';
         } finally {
             this.aiLoading = false;
+        }
+    },
+
+    draftUrl(template, id) {
+        return String(template || '').replace('__DRAFT__', String(id));
+    },
+
+    async aiRequest(url, body = null) {
+        const options = {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': config.csrf,
+            },
+        };
+
+        if (body !== null) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = {};
+        }
+
+        if (! response.ok) {
+            throw new Error(data.message || 'The draft could not be saved.');
+        }
+
+        return data;
+    },
+
+    async applyPreset(index) {
+        this.aiBusy = true;
+        this.aiError = '';
+
+        try {
+            await this.aiRequest(this.draftUrl(config.approveUrl, this.aiDraftId), { preset: index });
+            window.location.reload();
+        } catch (error) {
+            this.aiError = error.message;
+        } finally {
+            this.aiBusy = false;
+        }
+    },
+
+    async approveDraft() {
+        this.aiBusy = true;
+        this.aiError = '';
+
+        try {
+            await this.aiRequest(
+                this.draftUrl(config.approveUrl, this.aiDraftId),
+                this.hasDirection ? { copy: this.aiDraft.copy } : null,
+            );
+
+            if (this.hasDirection) {
+                window.location.reload();
+
+                return;
+            }
+
+            this.aiOpen = false;
+            this.aiMessage = 'Draft approved.';
+        } catch (error) {
+            this.aiError = error.message;
+        } finally {
+            this.aiBusy = false;
+        }
+    },
+
+    async discardDraft() {
+        this.aiBusy = true;
+        this.aiError = '';
+
+        try {
+            await this.aiRequest(this.draftUrl(config.discardUrl, this.aiDraftId));
+            this.aiOpen = false;
+            this.aiDraft = null;
+            this.aiDraftId = null;
+        } catch (error) {
+            this.aiError = error.message;
+        } finally {
+            this.aiBusy = false;
+        }
+    },
+
+    closeAi() {
+        this.aiOpen = false;
+        this.aiError = '';
+    },
+
+    async copyAiText() {
+        if (! this.aiText) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(this.aiText);
+            this.aiMessage = 'Suggestion copied. Paste it into the fields you want to keep.';
+        } catch (error) {
+            this.aiError = 'Copying is not available in this browser. Select the text and copy it manually.';
         }
     },
 
@@ -990,5 +1384,44 @@ Alpine.data('addToCartButton', (config = {}) => ({
         requestAnimationFrame(() => {
             this.adding = false;
         });
+    },
+}));
+
+Alpine.data('categoryAiPreview', (config = {}) => ({
+    loading: ! config.result,
+    result: config.result ?? null,
+    applyUrl: config.applyUrl ?? '',
+    error: '',
+    timer: null,
+
+    init() {
+        if (! this.result) {
+            this.poll();
+        }
+    },
+
+    async poll() {
+        try {
+            const response = await fetch(config.statusUrl, { headers: { Accept: 'application/json' } });
+            const data = await response.json();
+            const task = data.task || {};
+
+            if (['completed', 'partially_completed', 'failed', 'cancelled'].includes(task.status)) {
+                const operation = (task.operations || []).find((item) => item.status === 'succeeded');
+                this.result = operation ? operation.output : null;
+                this.loading = false;
+
+                if (! this.result) {
+                    this.error = task.status === 'cancelled'
+                        ? 'Category generation was cancelled.'
+                        : 'Category generation failed. Try again.';
+                }
+            } else {
+                this.timer = window.setTimeout(() => this.poll(), 2000);
+            }
+        } catch (error) {
+            this.error = 'Could not load category suggestions.';
+            this.loading = false;
+        }
     },
 }));

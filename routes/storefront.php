@@ -17,6 +17,7 @@ Route::get('/service-worker.js', [PwaController::class, 'merchantServiceWorker']
 Route::get('/offline', [PwaController::class, 'merchantOffline'])->name('storefront.pwa.offline');
 Route::get('/pwa/icon/{size}', [PwaController::class, 'merchantIcon'])->whereIn('size', ['192', '512'])->name('storefront.pwa.icon');
 Route::get('/about', [StorefrontController::class, 'about'])->name('storefront.about');
+Route::get('/policies/{policy}', [StorefrontController::class, 'policy'])->whereIn('policy', ['terms', 'privacy', 'refunds', 'delivery', 'cancellation'])->name('storefront.policy');
 Route::get('/contact', [StorefrontController::class, 'contact'])->name('storefront.contact');
 Route::get('/products', [StorefrontController::class, 'products'])->name('storefront.products');
 Route::get('/search', [StorefrontController::class, 'search'])->middleware('throttle:30,1')->name('storefront.search');

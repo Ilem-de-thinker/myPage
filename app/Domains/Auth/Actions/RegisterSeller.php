@@ -2,6 +2,7 @@
 
 namespace App\Domains\Auth\Actions;
 
+use App\Domains\Admin\Models\Policy;
 use App\Domains\Auth\Events\SellerRegistered;
 use App\Domains\Billing\Actions\SubscriptionManager;
 use App\Domains\Billing\Models\Plan;
@@ -26,9 +27,9 @@ class RegisterSeller
                 'password' => $data['password'],
                 'status' => 'active',
                 'terms_accepted_at' => now(),
-                'terms_version' => config('legal.terms_version'),
+                'terms_version' => Policy::currentVersion('terms') ?? config('legal.terms_version'),
                 'privacy_accepted_at' => now(),
-                'privacy_version' => config('legal.privacy_version'),
+                'privacy_version' => Policy::currentVersion('privacy') ?? config('legal.privacy_version'),
             ]);
 
             $this->startTrial($seller);

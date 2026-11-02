@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class AiOperation extends Model
 {
-    protected $fillable = ['seller_id', 'store_page_id', 'task', 'status', 'input', 'output', 'error', 'started_at', 'completed_at'];
+    protected $fillable = ['seller_id', 'store_page_id', 'ai_task_id', 'task', 'status', 'input', 'output', 'error', 'started_at', 'completed_at'];
 
     protected function casts(): array
     {

@@ -16,6 +16,7 @@ use Prism\Prism\Enums\StructuredMode;
 use Prism\Prism\Facades\Prism;
 use Prism\Prism\Facades\Tool;
 use Prism\Prism\Schema\ArraySchema;
+use Prism\Prism\Schema\BooleanSchema;
 use Prism\Prism\Schema\ObjectSchema;
 use Prism\Prism\Schema\StringSchema;
 use Prism\Prism\ValueObjects\Media\Image;
@@ -178,6 +179,11 @@ class PrismAiManager implements AiManager
     private function normalizeStructuredResult(string $task, array $result): array
     {
         $spec = $this->resultSpec($task);
+
+        if ($spec['passthrough'] ?? false) {
+            return $result;
+        }
+
         $normalized = [];
 
         foreach ($spec['strings'] ?? [] as $field) {
@@ -229,16 +235,19 @@ class PrismAiManager implements AiManager
     }
 
     /**
-     * @return array{strings?: list<string>, string_arrays?: list<string>, nested_int_arrays?: list<string>, object_arrays?: array<string, array<string, string>>, objects?: array<string, array<string, string>>}
+     * @return array{passthrough?: bool, strings?: list<string>, string_arrays?: list<string>, nested_int_arrays?: list<string>, object_arrays?: array<string, array<string, string>>, objects?: array<string, array<string, string>>}
      */
     private function resultSpec(string $task): array
     {
         return match ($task) {
+            'storefront_direction' => ['passthrough' => true],
             'theme_and_color_preset' => ['strings' => ['theme_key', 'brand_color', 'accent_color', 'reason']],
             'listing_from_photo', 'listing_copy' => ['strings' => ['name', 'description', 'category', 'price_hint', 'seo_title', 'seo_description'], 'string_arrays' => ['tags', 'variants']],
             'listing_photo_grouping' => ['strings' => ['reason'], 'nested_int_arrays' => ['groups']],
             'service_listing' => ['strings' => ['title', 'description', 'duration', 'what_to_expect', 'price_hint', 'seo_title', 'seo_description'], 'string_arrays' => ['packages', 'faq', 'booking_questions']],
             'copy_rewrite', 'translate' => ['strings' => ['text']],
+            'category_structure' => ['strings' => ['summary'], 'object_arrays' => ['categories' => ['name' => 'string', 'parent' => 'string'], 'assignments' => ['item_index' => 'string', 'category_name' => 'string']]],
+            'description_generation' => ['strings' => ['description', 'seo_title', 'seo_description', 'insufficient_info'], 'string_arrays' => ['flags']],
             'service_booking_assistant' => ['strings' => ['reply', 'brief', 'handoff']],
             'order_chat_assist' => ['strings' => ['suggested_reply', 'summary', 'status_draft']],
             'insights_digest' => ['strings' => ['summary'], 'string_arrays' => ['recommendations']],
@@ -281,6 +290,7 @@ class PrismAiManager implements AiManager
     private function schema(string $task): ObjectSchema
     {
         return match ($task) {
+            'storefront_direction' => $this->storefrontDirectionSchema(),
             'theme_and_color_preset' => new ObjectSchema('theme_preset', 'Theme recommendation', [
                 new StringSchema('theme_key', 'A registered theme key'), new StringSchema('brand_color', 'A hex brand color'), new StringSchema('accent_color', 'A hex accent color'), new StringSchema('reason', 'Short reason'),
             ], ['theme_key', 'brand_color', 'accent_color', 'reason']),
@@ -295,6 +305,12 @@ class PrismAiManager implements AiManager
                 new StringSchema('title', 'Service title'), new StringSchema('description', 'Service description'), new ArraySchema('packages', 'Service packages', new StringSchema('package', 'Package or tier')), new StringSchema('duration', 'Suggested duration'), new StringSchema('what_to_expect', 'What to expect'), new ArraySchema('faq', 'Service FAQ', new StringSchema('question', 'Question and answer')), new StringSchema('price_hint', 'Optional suggested price range'), new ArraySchema('booking_questions', 'Booking questions', new StringSchema('question', 'Booking question')), new StringSchema('seo_title', 'SEO title'), new StringSchema('seo_description', 'SEO description'),
             ], ['title', 'description', 'packages', 'duration', 'what_to_expect', 'faq', 'price_hint', 'booking_questions', 'seo_title', 'seo_description']),
             'copy_rewrite' => new ObjectSchema('copy', 'Rewritten copy', [new StringSchema('text', 'Rewritten text')], ['text']),
+            'category_structure' => new ObjectSchema('category_structure', 'Proposed category structure', [
+                new StringSchema('summary', 'Summary'),
+                new ArraySchema('categories', 'Proposed categories', new ObjectSchema('category', 'Category', [new StringSchema('name', 'Category name'), new StringSchema('parent', 'Parent category name or empty')], ['name', 'parent'])),
+                new ArraySchema('assignments', 'Item to category mapping', new ObjectSchema('assignment', 'Assignment', [new StringSchema('item_index', 'Zero-based item index'), new StringSchema('category_name', 'Category name')], ['item_index', 'category_name'])),
+            ], ['summary', 'categories', 'assignments']),
+            'description_generation' => new ObjectSchema('description', 'Generated description', [new StringSchema('description', 'Description'), new StringSchema('seo_title', 'SEO title'), new StringSchema('seo_description', 'SEO meta description'), new StringSchema('insufficient_info', 'What information is missing'), new ArraySchema('flags', 'Flags', new StringSchema('flag', 'Flag'))], ['description', 'seo_title', 'seo_description', 'insufficient_info', 'flags']),
             'service_booking_assistant' => new ObjectSchema('booking_brief', 'Booking qualification', [new StringSchema('reply', 'Safe reply'), new StringSchema('brief', 'Merchant brief'), new StringSchema('handoff', 'Handoff status')], ['reply', 'brief', 'handoff']),
             'order_chat_assist' => new ObjectSchema('chat_assist', 'Suggested reply', [new StringSchema('suggested_reply', 'Draft reply'), new StringSchema('summary', 'Thread summary'), new StringSchema('status_draft', 'Optional status update')], ['suggested_reply', 'summary', 'status_draft']),
             'insights_digest' => new ObjectSchema('insights', 'Analytics digest', [new StringSchema('summary', 'Summary'), new ArraySchema('recommendations', 'Recommendations', new StringSchema('recommendation', 'Recommendation'))], ['summary', 'recommendations']),
@@ -317,6 +333,74 @@ class PrismAiManager implements AiManager
             ], ['business_type', 'theme_key', 'brand_color', 'accent_color', 'tagline', 'about', 'faqs', 'seo', 'categories', 'listings', 'review_flags']),
             default => new ObjectSchema('site_builder', 'AI draft', [new StringSchema('summary', 'Summary'), new StringSchema('content', 'Draft content')], ['summary', 'content']),
         };
+    }
+
+    private function storefrontDirectionSchema(): ObjectSchema
+    {
+        $heading = fn (string $name, string $description): ObjectSchema => new ObjectSchema($name, $description, [
+            new StringSchema('heading', 'Section heading'),
+        ], []);
+
+        return new ObjectSchema('storefront_direction', 'Reviewable storefront direction', [
+            new StringSchema('theme_key', 'A registered theme preset key'),
+            new StringSchema('brand_color', 'Six-digit hex brand colour'),
+            new StringSchema('accent_color', 'Six-digit hex accent colour'),
+            new StringSchema('surface', 'Surface key from the registry'),
+            new StringSchema('radius', 'Corner radius key from the registry'),
+            new StringSchema('hero_style', 'immersive, split, or minimal'),
+            new StringSchema('hero_alignment', 'left or center'),
+            new StringSchema('hero_overlay', 'soft, deep, or none'),
+            new BooleanSchema('carousel_autoplay', 'Whether the hero carousel advances automatically'),
+            new BooleanSchema('show_trust_strip', 'Whether to show the platform trust strip'),
+            new BooleanSchema('show_metrics', 'Whether to show store metrics'),
+            new ArraySchema('hidden_sections', 'Home sections to hide', new StringSchema('section', 'Block key')),
+            new ObjectSchema('copy', 'Editable page copy', [
+                new ObjectSchema('home', 'Home page copy', [
+                    new ObjectSchema('hero', 'Hero copy', [
+                        new StringSchema('headline', 'Hero headline'),
+                        new StringSchema('subtext', 'One line under the headline'),
+                        new StringSchema('button_label', 'Hero button label'),
+                    ], []),
+                    $heading('featured', 'Featured products section'),
+                    $heading('categories', 'Categories section'),
+                    $heading('products', 'All products section'),
+                    $heading('services', 'Services section'),
+                    $heading('team', 'Team section'),
+                    $heading('booking', 'Booking section'),
+                    $heading('gallery', 'Gallery section'),
+                    $heading('reviews', 'Reviews section'),
+                    new ObjectSchema('about', 'About section', [
+                        new StringSchema('heading', 'Section heading'),
+                        new StringSchema('body', 'Short story'),
+                    ], []),
+                    new ObjectSchema('faq', 'FAQ section', [
+                        new StringSchema('heading', 'Section heading'),
+                        new ArraySchema('items', 'Questions and answers', new ObjectSchema('faq_item', 'FAQ row', [
+                            new StringSchema('question', 'Question'),
+                            new StringSchema('answer', 'Answer'),
+                        ], ['question', 'answer'])),
+                    ], []),
+                    $heading('contact', 'Contact section'),
+                ], []),
+                new ObjectSchema('about', 'About page copy', [
+                    new ObjectSchema('story', 'Story block', [
+                        new StringSchema('heading', 'Page heading'),
+                        new StringSchema('body', 'Story'),
+                    ], []),
+                ], []),
+                new ObjectSchema('contact', 'Contact page copy', [
+                    new ObjectSchema('intro', 'Contact intro block', [
+                        new StringSchema('intro', 'A line above the contact details'),
+                        new StringSchema('hours', 'Opening hours'),
+                    ], []),
+                ], []),
+            ], []),
+            new StringSchema('reason', 'One short reason for the direction'),
+        ], [
+            'theme_key', 'brand_color', 'accent_color', 'surface', 'radius',
+            'hero_style', 'hero_alignment', 'hero_overlay', 'carousel_autoplay',
+            'show_trust_strip', 'show_metrics', 'hidden_sections', 'copy', 'reason',
+        ]);
     }
 
     private function rules(string $task): array
@@ -342,6 +426,25 @@ class PrismAiManager implements AiManager
                 'listings.*.price_hint' => ['present', 'string', 'max:255'],
                 'review_flags' => ['present', 'array', 'max:30'],
                 'review_flags.*' => ['string', 'max:500'],
+            ],
+            'storefront_direction' => [
+                'theme_key' => ['required', 'string', 'max:80'],
+                'brand_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+                'surface' => ['required', 'string', 'max:40'],
+                'radius' => ['required', 'string', 'max:40'],
+                'hero_style' => ['required', 'in:immersive,split,minimal'],
+                'hero_alignment' => ['required', 'in:left,center'],
+                'hero_overlay' => ['required', 'in:soft,deep,none'],
+                'carousel_autoplay' => ['required', 'boolean'],
+                'show_trust_strip' => ['required', 'boolean'],
+                'show_metrics' => ['required', 'boolean'],
+                'hidden_sections' => ['present', 'array', 'max:20'],
+                'hidden_sections.*' => ['string', 'max:80'],
+                'copy' => ['required', 'array'],
+                'copy.*' => ['array'],
+                'copy.*.*' => ['array'],
+                'reason' => ['required', 'string', 'max:500'],
             ],
             'theme_and_color_preset' => [
                 'theme_key' => ['required', 'string', 'max:80'],

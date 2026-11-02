@@ -63,7 +63,7 @@
                 <summary class="cursor-pointer list-none text-xs font-semibold text-brand-text hover:underline">View KYC details</summary>
                 <dl class="mt-2 space-y-1.5">
                   <div><dt class="text-ink-3">Registered legal name</dt><dd class="font-semibold text-ink">{{ $application->registered_legal_name ?: 'Not supplied' }}</dd></div>
-                  <div><dt class="text-ink-3">CAC/RC or ID number</dt><dd class="font-mono font-semibold text-ink">{{ $application->registration_number ?: 'Not supplied' }}</dd></div>
+                  <div><dt class="text-ink-3">CAC/RC or ID number</dt><dd class="font-mono font-semibold text-ink">{{ $application->registration_number ? $application->maskedRegistrationNumber() : 'Not supplied' }}</dd></div>
                   <div><dt class="text-ink-3">Document</dt><dd class="font-semibold text-ink">{{ strtoupper($application->document_type) }}</dd></div>
                   <div><dt class="text-ink-3">Document expiry</dt><dd class="font-semibold text-ink">{{ $application->document_expires_at?->format('j M Y') ?: 'Not applicable / not supplied' }}</dd></div>
                   <div><dt class="text-ink-3">Retention until</dt><dd class="font-semibold text-ink">{{ $application->retention_until?->format('j M Y') ?: '—' }}</dd></div>
@@ -72,7 +72,7 @@
                   <p class="mt-2 rounded-lg bg-surface p-2 text-ink-2">{{ $application->note }}</p>
                 @endif
                 @if ($application->hasDocument())
-                  <a href="{{ route('admin.badges.document', $application) }}" target="_blank" rel="noopener"
+                  <a href="{{ $application->documentUrl() }}" target="_blank" rel="noopener"
                      class="mt-2 inline-block text-xs font-semibold text-brand-text hover:underline">
                     View uploaded KYC document securely
                   </a>
@@ -113,12 +113,26 @@
                         Reject
                       </button>
                     </form>
+
+                    <form method="POST" action="{{ route('admin.badges.decide', $application) }}" class="space-y-2">
+                      @csrf
+                      <input type="hidden" name="decision" value="needs_more_info">
+                      <label class="block">
+                        <span class="text-xs font-semibold text-ink">Ask for a better document</span>
+                        <textarea name="rejection_reason" rows="2" required
+                                  class="mt-1 w-full rounded-lg border border-rule px-3 py-2 text-sm"
+                                  placeholder="The photo is blurred; upload a clear copy of the CAC certificate"></textarea>
+                      </label>
+                      <button class="w-full rounded-xl border border-sky-300 px-4 py-2.5 text-xs font-semibold text-sky-800 hover:bg-sky-50">
+                        Request more information
+                      </button>
+                    </form>
                   </div>
                 </details>
               @else
                 <div class="space-y-1">
                   @if ($application->rejection_reason)
-                    <p class="text-ink-2">Rejected: {{ $application->rejection_reason }}</p>
+                    <p class="text-ink-2">{{ $application->status->label() }}: {{ $application->rejection_reason }}</p>
                   @endif
                   <p class="text-ink-3">
                     Decided {{ $application->reviewed_at?->diffForHumans() }}
@@ -127,6 +141,25 @@
                     @endif
                   </p>
                 </div>
+
+                @if ($application->status === \App\Domains\Admin\Models\BadgeStatus::Approved)
+                  <details class="mt-3">
+                    <summary class="cursor-pointer text-xs font-semibold text-danger-text">Revoke verification</summary>
+                    <form method="POST" action="{{ route('admin.badges.decide', $application) }}" class="mt-2 space-y-2">
+                      @csrf
+                      <input type="hidden" name="decision" value="revoke">
+                      <textarea name="rejection_reason" rows="2" required placeholder="Why is the verification being revoked?"
+                                class="w-full rounded-lg border border-rule px-3 py-2 text-sm"></textarea>
+                      <button class="w-full rounded-xl border border-danger-edge px-4 py-2 text-xs font-semibold text-danger-text">Revoke</button>
+                    </form>
+                  </details>
+                @elseif ($application->canResubmit())
+                  <form method="POST" action="{{ route('admin.badges.decide', $application) }}" class="mt-3">
+                    @csrf
+                    <input type="hidden" name="decision" value="reopen">
+                    <button class="w-full rounded-xl border border-rule px-4 py-2 text-xs font-semibold text-ink-2">Reopen for review</button>
+                  </form>
+                @endif
               @endif
             </td>
           </tr>

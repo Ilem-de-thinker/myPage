@@ -2,6 +2,11 @@
 
 namespace App\Domains\Catalog\Http\Controllers;
 
+use App\Domains\Ai\Jobs\RunAiOperation;
+use App\Domains\Ai\Models\AiOperation;
+use App\Domains\Ai\Models\AiTask;
+use App\Domains\Ai\Services\AiCreditService;
+use App\Domains\Ai\Services\AiLimits;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Catalog\Actions\AdjustStock;
 use App\Domains\Catalog\Enums\DeliveryMode;
@@ -158,6 +163,134 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('products.index')->with('status', 'Product deleted.');
+    }
+
+    public function generateDescriptions(Request $request): RedirectResponse
+    {
+        $page = $request->user()->storePages()->firstOrFail();
+        abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'tone' => ['nullable', Rule::in(['professional', 'friendly', 'playful', 'luxury', 'concise'])],
+            'length' => ['nullable', Rule::in(['short', 'medium', 'long'])],
+            'language' => ['nullable', Rule::in(['English', 'Nigerian Pidgin', 'Yoruba', 'Igbo', 'Hausa'])],
+            'overwrite' => ['sometimes', 'boolean'],
+        ]);
+        $ids = $data['ids'];
+        $tone = $data['tone'] ?? 'professional';
+        $length = $data['length'] ?? 'medium';
+        $language = $data['language'] ?? 'English';
+        $overwrite = $request->boolean('overwrite');
+
+        $limits = app(AiLimits::class);
+        $credits = app(AiCreditService::class);
+        $limits->throttle($page);
+        $limits->assertWithinTaskCap(count($ids));
+        $limits->assertCanQueue($page, 1);
+        $estimate = $credits->estimate($page, count($ids), 'description_generation');
+        $slots = $limits->availableSlots($page);
+        abort_if($slots < 1 || $estimate['allowed'] < 1, 429, 'This store has reached its monthly Mercho limit for descriptions.');
+
+        $allowed = min($estimate['allowed'], $slots, $limits->maxBatchItems());
+        $ids = array_slice($ids, 0, $allowed);
+
+        $products = Product::where('store_page_id', $page->id)->whereIn('id', $ids)->orderBy('id')->get();
+        abort_if($products->isEmpty(), 422, 'Select at least one product from this store.');
+
+        $task = AiTask::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'type' => 'descriptions', 'status' => 'queued', 'total' => $products->count()]);
+
+        foreach ($products as $product) {
+            $operation = AiOperation::create([
+                'seller_id' => $page->seller_id,
+                'store_page_id' => $page->id,
+                'ai_task_id' => $task->id,
+                'task' => 'description_generation',
+                'status' => 'queued',
+                'input' => [
+                    'feature' => 'descriptions',
+                    '_no_draft' => true,
+                    'item' => ['name' => $product->name, 'category' => $product->category?->name, 'price' => $product->price_kobo / 100, 'attributes' => $product->ai_metadata],
+                    'options' => ['tone' => $tone, 'length' => $length, 'language' => $language, 'overwrite' => $overwrite],
+                    'product_id' => $product->id,
+                ],
+            ]);
+            RunAiOperation::dispatch($operation);
+        }
+        $task->update(['status' => 'processing', 'started_at' => now()]);
+
+        return redirect()->route('dashboard.ai.tasks.show', $task)->with('status', 'Generating descriptions in the background.');
+    }
+
+    public function applyDescriptions(Request $request, int $task): RedirectResponse
+    {
+        $page = $request->user()->storePages()->firstOrFail();
+        $taskModel = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
+        $previous = [];
+        $previousMetadata = [];
+        foreach ($taskModel->operations()->where('status', 'succeeded')->get() as $op) {
+            $productId = $op->input['product_id'] ?? null;
+            $product = $productId ? Product::where('store_page_id', $page->id)->find($productId) : null;
+            if (! $product) {
+                continue;
+            }
+
+            $output = $op->output ?? [];
+            $overwrite = $op->input['options']['overwrite'] ?? false;
+            if (! $overwrite && filled($product->description)) {
+                continue;
+            }
+            if (blank($output['description'] ?? null)) {
+                continue;
+            }
+
+            $previous[$product->id] = $product->description;
+            $previousMetadata[$product->id] = $product->ai_metadata;
+            $metadata = $product->ai_metadata ?? [];
+            $metadata['seo'] = [
+                'title' => $output['seo_title'] ?? ($metadata['seo']['title'] ?? null),
+                'description' => $output['seo_description'] ?? ($metadata['seo']['description'] ?? null),
+            ];
+            $metadata['ai_description'] = [
+                'insufficient_info' => $output['insufficient_info'] ?? null,
+                'flags' => array_values((array) ($output['flags'] ?? [])),
+            ];
+            $product->update([
+                'description' => $output['description'],
+                'ai_metadata' => $metadata,
+            ]);
+        }
+
+        $taskModel->update([
+            'summary' => array_merge($taskModel->summary ?? [], [
+                'previous_descriptions' => $previous,
+                'previous_ai_metadata' => $previousMetadata,
+            ]),
+        ]);
+
+        return redirect()->route('products.index')->with('status', 'Descriptions applied. Review the products, or undo from the task page.');
+    }
+
+    public function undoDescriptions(Request $request, int $task): RedirectResponse
+    {
+        $page = $request->user()->storePages()->firstOrFail();
+        $taskModel = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
+        $previous = $taskModel->summary['previous_descriptions'] ?? [];
+        $previousMetadata = $taskModel->summary['previous_ai_metadata'] ?? [];
+
+        foreach ($previous as $productId => $description) {
+            Product::where('store_page_id', $page->id)->whereKey($productId)->update([
+                'description' => $description,
+                'ai_metadata' => $previousMetadata[$productId] ?? null,
+            ]);
+        }
+
+        $taskModel->update(['summary' => array_merge($taskModel->summary ?? [], [
+            'previous_descriptions' => [],
+            'previous_ai_metadata' => [],
+        ])]);
+
+        return redirect()->route('products.index')->with('status', 'Descriptions restored.');
     }
 
     private function validated(Request $request): array

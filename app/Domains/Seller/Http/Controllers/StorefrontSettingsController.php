@@ -3,6 +3,7 @@
 namespace App\Domains\Seller\Http\Controllers;
 
 use App\Domains\Admin\Models\PlatformSetting;
+use App\Domains\Ai\Support\StorefrontDirection;
 use App\Domains\Billing\Services\Feature;
 use App\Domains\Seller\Enums\PriceTier;
 use App\Domains\Seller\Enums\Theme;
@@ -74,6 +75,7 @@ class StorefrontSettingsController extends Controller
             'brandFontNote' => 'Typeface locked to the selected theme direction.',
             'carouselSlides' => $page->carouselSlides()->get(),
             'carouselEnabled' => PlatformSetting::value("theme.{$page->theme->value}.carousel", true),
+            'merchoPreview' => StorefrontDirection::preview($page),
             'heroStylesEnabled' => PlatformSetting::value("theme.{$page->theme->value}.hero_styles", true),
             'layoutOptions' => collect(config("themes.{$page->theme->value}.pages.home.blocks", []))
                 ->reject(fn (string $key): bool => in_array($key, config("themes.{$page->theme->value}.required", []), true))

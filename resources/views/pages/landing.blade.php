@@ -83,6 +83,23 @@
             </div>
           </div>
 
+          @php
+            $heroDemoStore = config('mypage.demo.store');
+            $heroDemoService = config('mypage.demo.service');
+          @endphp
+          @if ($heroDemoStore || $heroDemoService)
+            <div data-reveal style="--stagger-index: 2.5" class="mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--platform-ink-muted)]">
+              <span class="font-semibold text-[var(--platform-ink)]">Live demos:</span>
+              @if ($heroDemoStore)
+                <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($heroDemoStore) }}" class="link-draw hover:text-[var(--platform-brand)]">Retail Store Demo</a>
+              @endif
+              @if ($heroDemoService)
+                <span>·</span>
+                <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($heroDemoService) }}" class="link-draw hover:text-[var(--platform-brand)]">Service Booking Demo</a>
+              @endif
+            </div>
+          @endif
+
           <div data-reveal style="--stagger-index: 3" class="mt-8 flex items-center gap-6 border-t border-[var(--platform-line)] pt-6 text-xs text-[var(--platform-ink-muted)]">
             <span class="flex items-center gap-2">
               <svg class="size-4 text-[var(--platform-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
@@ -138,50 +155,7 @@
   </div>
 
   {{-- ==========================================
-       SECTION 2: CATEGORY STRIP / RAIL
-       ========================================== --}}
-  @if ($categories->isNotEmpty())
-    <section class="border-b border-[var(--platform-line)] bg-[var(--platform-paper)] py-16 lg:py-24">
-      <div class="mx-auto max-w-7xl px-4 sm:px-8">
-        <div data-reveal class="flex flex-wrap items-end justify-between gap-4 mb-8">
-          <div>
-            <span class="platform-kicker">Curated Domains</span>
-            <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Browse by Nigerian Discipline</h2>
-          </div>
-          <a href="{{ route('directory.products') }}" class="link-draw text-xs font-bold text-[var(--platform-brand)]">View all directory categories ↗</a>
-        </div>
-
-        {{-- Mobile: Swipeable snap rail / Desktop: Hover-expanding strip --}}
-        <div class="category-rail-container lg:category-strip gap-3 pb-4">
-          @foreach ($categories->take(6) as $cat)
-            @php
-              $catName = is_array($cat) ? $cat['name'] : $cat->name;
-              $catCount = is_array($cat) ? ($cat['count'].' items') : (($cat->live_products_count ?? '').' items');
-            @endphp
-            <a href="{{ route('directory.category', $catName) }}" class="category-rail-item category-strip-tile w-[260px] sm:w-[280px] lg:w-auto rounded-2xl border border-[var(--platform-line)] bg-[var(--platform-card)] p-5 transition-all hover:border-[var(--platform-brand)] hover:shadow-md flex flex-col justify-between min-h-[200px] group">
-              <div class="flex items-start justify-between">
-                <span class="rounded-full bg-[var(--platform-surface)] px-2.5 py-1 text-[10px] font-bold text-[var(--platform-ink-muted)]">
-                  {{ $catCount }}
-                </span>
-                <svg class="size-4 text-[var(--platform-ink-muted)] group-hover:text-[var(--platform-brand)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </div>
-
-              <div>
-                <x-platform.visual.placeholder silhouette="garment" class="aspect-[16/9] w-full rounded-xl my-3" />
-                <h3 class="font-display text-lg font-bold text-[var(--platform-ink)] group-hover:text-[var(--platform-brand)] transition-colors line-clamp-1">
-                  {{ $catName }}
-                </h3>
-                <p class="mt-1 text-[11px] text-[var(--platform-ink-muted)] truncate">Direct merchant catalogue</p>
-              </div>
-            </a>
-          @endforeach
-        </div>
-      </div>
-    </section>
-  @endif
-
-  {{-- ==========================================
-       SECTION 3: HELP ME BUY SHOWCASE
+       SECTION 2: HELP ME BUY SHOWCASE
        ========================================== --}}
   <x-platform.sections.help-me-buy-showcase :products="$products" :services="$services" />
 

@@ -5,6 +5,7 @@
     use App\Domains\Admin\Models\BadgeStatus;
 
     $status = $application?->status;
+    $expired = $application?->isExpired() ?? false;
 @endphp
 
     <x-ui.page-header
@@ -14,6 +15,24 @@
     />
 
     <div class="max-w-2xl mx-auto space-y-4">
+        <div class="rounded-2xl border border-rule bg-card p-5">
+            <p class="text-xs font-semibold text-ink">Verification tiers</p>
+            <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                @foreach ($tiers as $tier)
+                    <div class="rounded-xl border px-3 py-3 {{ $tier['done'] ? 'border-ok-edge bg-ok-wash' : 'border-rule bg-surface' }}">
+                        <p class="text-[11px] font-bold uppercase tracking-wide {{ $tier['done'] ? 'text-ok-text' : 'text-ink-3' }}">
+                            {{ $tier['label'] }}
+                        </p>
+                        <p class="mt-1 text-[11px] leading-5 text-ink-3">{{ $tier['description'] }}</p>
+                        <p class="mt-2 text-[10px] font-bold {{ $tier['done'] ? 'text-ok-text' : 'text-ink-3' }}">
+                            {{ $tier['done'] ? 'Complete' : 'Open' }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
+            <p class="mt-3 text-[11px] text-ink-3">Higher tiers add trust. They do not change how buyer payments settle: buyer money still goes directly to your own gateway account.</p>
+        </div>
+
         @if ($status !== null && $status !== BadgeStatus::Approved)
             <div class="rounded-2xl border border-rule bg-card px-6 py-5">
                 <p class="text-xs font-semibold text-ink">While you wait, this is what is locked</p>
@@ -26,16 +45,29 @@
             </div>
         @endif
 
-        @if ($status === BadgeStatus::Approved)
+        @if ($status === BadgeStatus::Approved && ! $expired)
             <div class="rounded-2xl border border-ok-edge bg-ok-wash p-6 text-center">
                 <p class="text-sm font-semibold text-ok-text">Your page is verified.</p>
                 <p class="mt-1 text-xs text-ok-text">
                     The tick now shows on {{ $page->name }}'s public page.
                 </p>
             </div>
-        @elseif ($status === BadgeStatus::Rejected)
+        @elseif ($expired)
+            <div class="rounded-2xl border border-warn-edge bg-warn-wash p-6">
+                <p class="text-sm font-semibold text-warn-text">Your verification document has expired.</p>
+                <p class="mt-1 text-xs text-warn-text">
+                    The tick is paused until you upload a current document below.
+                </p>
+            </div>
+        @elseif ($status === BadgeStatus::NeedsMoreInfo)
+            <div class="rounded-2xl border border-sky-300 bg-sky-50 p-6">
+                <p class="text-sm font-semibold text-sky-900">We need one more thing.</p>
+                <p class="mt-1 text-xs text-sky-900">{{ $application->rejection_reason }}</p>
+                <p class="mt-2 text-xs text-sky-900">Upload the corrected document below.</p>
+            </div>
+        @elseif ($status === BadgeStatus::Rejected || $status === BadgeStatus::Revoked)
             <div class="rounded-2xl border border-danger-edge bg-danger-wash p-6">
-                <p class="text-sm font-semibold text-danger-text">We could not verify that one.</p>
+                <p class="text-sm font-semibold text-danger-text">{{ $status === BadgeStatus::Revoked ? 'Verification was revoked.' : 'We could not verify that one.' }}</p>
                 <p class="mt-1 text-xs text-danger-text">{{ $application->rejection_reason }}</p>
                 <p class="mt-2 text-xs text-danger-text">
                     Fix what was asked for and send it again below.
@@ -47,12 +79,17 @@
                     Waiting on us — sent {{ $application->submitted_at->diffForHumans() }}.
                 </p>
                 <p class="mt-1 text-xs text-warn-text">
-                    Applications are looked at every weekday. You can send a better document below if the
-                    one you sent is wrong.
+                    Applications are looked at every weekday. We will notify you here when a decision is ready.
                 </p>
             </div>
         @endif
 
+        @if ($status !== BadgeStatus::Approved || $expired)
+            @if ($status === BadgeStatus::Pending)
+                <div class="rounded-2xl border border-rule bg-card px-6 py-5 text-xs text-ink-3">
+                    Your document is in the review queue. You can upload a new document once this application is decided.
+                </div>
+            @else
         <form method="POST" action="{{ route('badge.submit') }}" enctype="multipart/form-data" class="rounded-2xl border border-rule bg-card p-6 space-y-4">
             @csrf
 
@@ -107,5 +144,7 @@
                 Send for review
             </button>
         </form>
+            @endif
+        @endif
     </div>
 @endsection

@@ -35,7 +35,10 @@
               'endpoint' => route('dashboard.ai.contextual'),
               'csrf' => csrf_token(),
               'feature' => $tab === 'brand' ? 'appearance' : 'content',
-              'text' => 'Improve the copy for the '.$tab.' page of '.$page->name.'. Keep all facts, prices, dates, links, and policies unchanged.',
+              'text' => 'Describe the look that suits '.$page->name.' for a '.$page->businessType().' business.',
+              'preview' => $merchoPreview,
+              'approveUrl' => route('dashboard.ai.drafts.approve', ['draft' => '__DRAFT__']),
+              'discardUrl' => route('dashboard.ai.drafts.discard', ['draft' => '__DRAFT__']),
           ]))">
         @csrf
 
@@ -44,16 +47,23 @@
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-bold text-ink">Mercho for this page</p>
-                        <p class="mt-1 text-[11px] text-ink-3">Get a copy suggestion for the {{ $allTabs[$tab] ?? $tab }} page. Review and paste only what you want to keep.</p>
+                        <p class="mt-1 text-[11px] text-ink-3">
+                            @if ($tab === 'brand')
+                                Get a complete storefront direction: theme, colours, layout and the words for every page. Review it before anything is applied.
+                            @else
+                                Get a copy suggestion for the {{ $allTabs[$tab] ?? $tab }} page. Review and paste only what you want to keep.
+                            @endif
+                        </p>
                     </div>
                     <button type="button" @click="draftPageCopy" :disabled="aiLoading" class="min-h-10 rounded-xl bg-brand px-3.5 text-xs font-bold text-brand-ink disabled:opacity-50">
                         <span x-text="aiLoading ? 'Preparing…' : 'Improve with Mercho'"></span>
                     </button>
                 </div>
-                <div x-show="aiDraft" x-cloak class="mt-3 rounded-xl border border-brand-edge bg-card p-3">
-                    <pre x-text="format(aiDraft)" class="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-5 text-ink"></pre>
-                </div>
-                <p x-show="aiError" x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
+                <p x-show="aiLoading" x-cloak class="mt-3 text-[11px] text-ink-3">
+                    Mercho is preparing {{ $tab === 'brand' ? 'a complete storefront direction' : 'a copy suggestion' }}. Review it before anything is applied.
+                </p>
+                <p x-show="aiMessage" x-cloak class="mt-2 text-[11px] font-semibold text-ok-text" x-text="aiMessage"></p>
+                <p x-show="aiError" x-cloak x-text="aiError" class="mt-2 text-[11px] text-danger-text"></p>
             </div>
         @endif
 
@@ -730,6 +740,33 @@
                                 </div>
                             </div>
 
+                        @elseif ($name === 'hours')
+                            <div x-data="hoursEditor(@jsExpr([
+                                'value' => old($name, $value),
+                                'placeholder' => $field['placeholder'] ?? 'Monday to Friday, 9am - 6pm',
+                            ]))">
+                                <span class="text-xs font-semibold text-ink">{{ $field['label'] }}</span>
+                                <p class="mt-1 text-[11px] text-ink-3">Add one row for each set of opening times.</p>
+
+                                <div class="mt-2 space-y-2">
+                                    <template x-for="(row, index) in rows" :key="index">
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" x-model="rows[index]" :placeholder="placeholder"
+                                                   class="min-h-10 w-full rounded-xl border border-rule-strong bg-card px-3 text-sm focus:border-brand focus:outline-none">
+                                            <button type="button" @click="remove(index)"
+                                                    class="min-h-10 shrink-0 rounded-xl border border-rule-strong px-3 text-xs font-bold text-danger-text">Remove</button>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <button type="button" @click="add()"
+                                        class="mt-2 rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-ink-2 hover:bg-surface">
+                                    Add time
+                                </button>
+
+                                <input type="hidden" name="blocks[{{ $block->key }}][{{ $name }}]" value="{{ old($name, $value) }}" :value="joined">
+                            </div>
+
                         @elseif (($field['type'] ?? '') === 'textarea')
                             <label class="block">
                                 <span class="text-xs font-semibold text-ink">{{ $field['label'] }}</span>
@@ -758,6 +795,148 @@
                 </div>
             </div>
         @endforeach
+
+        {{-- Mercho review modal. Nothing is applied until the seller chooses a
+             direction or approves the suggestion. --}}
+        <div x-show="aiOpen" x-cloak class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Review Mercho suggestion">
+            <div class="absolute inset-0 bg-ink/45" @click="closeAi()"></div>
+            <section class="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] border border-rule bg-card text-ink shadow-2xl sm:rounded-2xl">
+                <header class="flex shrink-0 items-start justify-between gap-4 border-b border-rule px-5 py-4">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-3">Mercho suggestion</p>
+                        <h2 class="mt-1 text-lg font-bold" x-text="hasDirection ? 'Review your storefront direction' : (hasPresets ? 'Choose a visual direction' : 'Review this copy')"></h2>
+                        <p class="mt-1 text-xs text-ink-3" x-text="hasDirection ? 'One direction for the whole storefront. Edit any words you want to change, then apply it. You can change everything again later.' : (hasPresets ? 'Preview each direction, then apply the one you want. You can change it again later.' : 'Read the suggestion, copy what you want to keep, then paste it into your fields.')"></p>
+                    </div>
+                    <button type="button" @click="closeAi()" class="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-ink-3 hover:bg-tint hover:text-ink" aria-label="Close review">
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+
+                <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                    <p x-show="aiError" x-cloak role="alert" class="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" x-text="aiError"></p>
+
+                    <div x-show="hasDirection" x-cloak class="space-y-4">
+                        <div class="rounded-2xl border border-rule bg-surface p-4">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-3">Look &amp; feel</p>
+                                    <p class="mt-1 text-sm font-bold text-ink" x-text="directionThemeLabel"></p>
+                                    <p class="mt-1 text-xs leading-5 text-ink-2" x-text="aiDraft.reason"></p>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-2">
+                                    <span class="size-8 rounded-full border border-rule" :style="'background:' + aiDraft.brand_color" :title="aiDraft.brand_color"></span>
+                                    <span class="size-8 rounded-full border border-rule" :style="'background:' + aiDraft.accent_color" :title="aiDraft.accent_color"></span>
+                                </div>
+                            </div>
+
+                            <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
+                                <div><dt class="text-ink-3">Surface</dt><dd class="font-semibold text-ink" x-text="directionSurfaceLabel"></dd></div>
+                                <div><dt class="text-ink-3">Corners</dt><dd class="font-semibold text-ink" x-text="directionRadiusLabel"></dd></div>
+                                <div><dt class="text-ink-3">Hero</dt><dd class="font-semibold text-ink" x-text="directionHeroStyleLabel"></dd></div>
+                                <div><dt class="text-ink-3">Alignment</dt><dd class="font-semibold text-ink" x-text="directionHeroAlignmentLabel"></dd></div>
+                                <div><dt class="text-ink-3">Image</dt><dd class="font-semibold text-ink" x-text="directionHeroOverlayLabel"></dd></div>
+                                <div><dt class="text-ink-3">Carousel</dt><dd class="font-semibold text-ink" x-text="aiDraft.carousel_autoplay ? 'Auto-advance' : 'Manual'"></dd></div>
+                                <div><dt class="text-ink-3">Trust strip</dt><dd class="font-semibold text-ink" x-text="aiDraft.show_trust_strip ? 'Shown' : 'Hidden'"></dd></div>
+                                <div><dt class="text-ink-3">Metrics</dt><dd class="font-semibold text-ink" x-text="aiDraft.show_metrics ? 'Shown' : 'Hidden'"></dd></div>
+                            </dl>
+
+                            <div x-show="directionHiddenLabels.length > 0" class="mt-3 border-t border-rule pt-3">
+                                <p class="text-[11px] font-semibold text-ink-3">Hidden sections</p>
+                                <p class="mt-1 text-xs text-ink-2" x-text="directionHiddenLabels.join(', ')"></p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template x-for="page in copySections" :key="page.key">
+                                <details open class="rounded-2xl border border-rule bg-card p-4">
+                                    <summary class="cursor-pointer text-sm font-bold text-ink" x-text="page.label + ' page'"></summary>
+
+                                    <div class="mt-4 space-y-3">
+                                        <template x-for="block in page.blocks" :key="block.key">
+                                            <div class="rounded-xl border border-rule bg-surface p-3">
+                                                <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-3" x-text="block.label"></p>
+
+                                                <div class="mt-2 space-y-2">
+                                                    <template x-for="field in block.fields" :key="field.name">
+                                                        <div>
+                                                            <span class="text-[11px] font-semibold text-ink-2" x-text="field.label"></span>
+
+                                                            <template x-if="field.type === 'text'">
+                                                                <input type="text" maxlength="500" x-model="aiDraft.copy[page.key][block.key][field.name]" class="mt-1 w-full rounded-lg border border-rule-strong bg-card px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none">
+                                                            </template>
+
+                                                            <template x-if="field.type !== 'text' && field.type !== 'repeater'">
+                                                                <textarea rows="3" x-model="aiDraft.copy[page.key][block.key][field.name]" class="mt-1 w-full rounded-lg border border-rule-strong bg-card px-3 py-2 text-sm leading-6 text-ink focus:border-brand focus:outline-none"></textarea>
+                                                            </template>
+
+                                                            <template x-if="field.type === 'repeater'">
+                                                                <div class="mt-2 space-y-2">
+                                                                    <template x-for="(row, rowIndex) in repeaterRows(page.key, block.key, field.name)" :key="rowIndex">
+                                                                        <div class="rounded-lg border border-rule bg-card p-2">
+                                                                            <template x-for="sub in field.fields" :key="sub.name">
+                                                                                <label class="block">
+                                                                                    <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-3" x-text="sub.label"></span>
+                                                                                    <textarea rows="2" x-model="aiDraft.copy[page.key][block.key][field.name][rowIndex][sub.name]" class="mt-1 w-full rounded-lg border border-rule-strong bg-card px-2 py-1.5 text-xs leading-5 text-ink focus:border-brand focus:outline-none"></textarea>
+                                                                                </label>
+                                                                            </template>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </details>
+                            </template>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand-edge bg-brand-wash/40 p-3">
+                            <p class="text-[11px] leading-5 text-ink-3">
+                                Mercho never writes reviews, prices, stock or policies. Check every word and every hidden section before you apply.
+                            </p>
+                            <button type="button" @click="approveDraft()" :disabled="aiBusy || !aiDraftId" class="min-h-10 rounded-xl bg-brand px-4 text-xs font-bold text-brand-ink disabled:opacity-50">Apply this direction</button>
+                        </div>
+                    </div>
+
+                    <div x-show="hasPresets" class="space-y-3">
+                        <template x-for="(preset, index) in aiPresets" :key="index">
+                            <article class="rounded-2xl border border-rule bg-surface p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-bold text-ink" x-text="'Preset ' + (index + 1) + ' · ' + preset.theme_key"></p>
+                                        <p class="mt-1 text-xs leading-5 text-ink-2" x-text="preset.reason"></p>
+                                    </div>
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        <span class="size-8 rounded-full border border-rule" :style="'background:' + preset.brand_color" :title="preset.brand_color"></span>
+                                        <span class="size-8 rounded-full border border-rule" :style="'background:' + preset.accent_color" :title="preset.accent_color"></span>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                    <p class="text-[11px] text-ink-3"><span x-text="preset.brand_color"></span> · <span x-text="preset.accent_color"></span></p>
+                                    <button type="button" @click="applyPreset(index)" :disabled="aiBusy" class="min-h-10 rounded-xl bg-brand px-4 text-xs font-bold text-brand-ink disabled:opacity-50">Apply this direction</button>
+                                </div>
+                            </article>
+                        </template>
+                    </div>
+
+                    <div x-show="!hasPresets && !hasDirection" class="space-y-3">
+                        <textarea readonly rows="12" :value="aiText" class="w-full rounded-xl border border-rule-strong bg-surface p-3 text-sm leading-6 text-ink"></textarea>
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <button type="button" @click="copyAiText()" class="min-h-10 rounded-xl border border-rule-strong px-3 text-xs font-bold text-ink-2">Copy text</button>
+                            <button type="button" @click="approveDraft()" :disabled="aiBusy" class="min-h-10 rounded-xl bg-brand px-4 text-xs font-bold text-brand-ink disabled:opacity-50">Approve draft</button>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-rule px-5 py-4">
+                    <button type="button" @click="discardDraft()" :disabled="aiBusy || !aiDraftId" class="min-h-10 rounded-xl border border-rule-strong px-3 text-xs font-bold text-ink-2 disabled:opacity-50">Discard draft</button>
+                    <button type="button" @click="closeAi()" class="min-h-10 rounded-xl border border-rule-strong px-3 text-xs font-bold text-ink-2">Keep editing</button>
+                </footer>
+            </section>
+        </div>
 
         <div class="flex flex-wrap items-center gap-3">
             <button class="rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-hover">

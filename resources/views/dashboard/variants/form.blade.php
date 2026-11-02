@@ -51,8 +51,8 @@
                    @change="addFiles($event)">
             <button type="button" @click="previewOpen = true" :disabled="previews.length === 0"
                     class="mt-2 text-xs font-semibold text-brand disabled:text-ink-3 disabled:cursor-not-allowed">Preview photo</button>
-            <div x-cloak x-show="previewOpen" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">
-                <div class="bg-card rounded-2xl p-6 w-full max-w-lg">
+            <div x-cloak x-show="previewOpen" class="app-modal fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">
+                <div class="app-modal-panel bg-card rounded-2xl p-6 w-full max-w-lg">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-display font-bold text-ink">Photo preview</h3>
                         <button type="button" @click="previewOpen = false" class="text-ink-3 text-lg leading-none">&times;</button>

@@ -5,6 +5,7 @@ use App\Domains\Admin\Http\Controllers\AdminController;
 use App\Domains\Admin\Http\Controllers\AdminDashboardController;
 use App\Domains\Admin\Http\Controllers\AdminTeamController;
 use App\Domains\Admin\Http\Controllers\PlatformSettingsController;
+use App\Domains\Admin\Http\Controllers\PolicyAdminController;
 use App\Domains\Admin\Http\Controllers\SupportController;
 use App\Domains\Ai\Http\Controllers\AiSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -22,7 +23,7 @@ Route::name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('index');
     Route::get('analytics', AdminAnalyticsController::class)->name('analytics');
     Route::get('badges', [AdminController::class, 'badges'])->name('badges');
-    Route::get('badges/{application}/document', [AdminController::class, 'badgeDocument'])->name('badges.document');
+    Route::get('badges/{application}/document', [AdminController::class, 'badgeDocument'])->middleware('signed')->name('badges.document');
     Route::get('stores', [AdminController::class, 'stores'])->name('stores');
     Route::get('transactions', [AdminController::class, 'transactions'])->name('transactions');
     Route::get('reports', [AdminController::class, 'reports'])->name('reports');
@@ -51,6 +52,10 @@ Route::name('admin.')->group(function () {
         Route::post('features', [AdminController::class, 'updateFeature'])->name('features.update');
         Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings');
         Route::post('settings', [PlatformSettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('policies', [PolicyAdminController::class, 'index'])->name('policies');
+        Route::get('policies/{policy}/edit', [PolicyAdminController::class, 'edit'])->name('policies.edit');
+        Route::post('policies/{policy}', [PolicyAdminController::class, 'update'])->name('policies.update');
 
         Route::get('ai-settings', [AiSettingsController::class, 'edit'])->name('ai-settings');
         Route::post('ai-settings', [AiSettingsController::class, 'update'])->name('ai-settings.update');

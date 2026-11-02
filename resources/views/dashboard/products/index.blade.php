@@ -35,5 +35,35 @@
         extra-route="products.variants.index"
         extra-label="Variants"
         empty-text="No products yet. Add your first product."
-    />
+    >
+        <x-slot:bulkActions>
+            <form method="POST" action="{{ route('products.generate-descriptions') }}" class="flex flex-wrap items-center gap-2">
+                @csrf
+                <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                <select name="tone" class="rounded-lg border border-rule-strong bg-card px-2 py-1.5 text-xs">
+                    <option value="professional">Professional</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="playful">Playful</option>
+                    <option value="luxury">Luxury</option>
+                    <option value="concise">Concise</option>
+                </select>
+                <select name="length" class="rounded-lg border border-rule-strong bg-card px-2 py-1.5 text-xs">
+                    <option value="short">Short</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="long">Long</option>
+                </select>
+                <select name="language" class="rounded-lg border border-rule-strong bg-card px-2 py-1.5 text-xs">
+                    <option>English</option>
+                    <option>Nigerian Pidgin</option>
+                    <option>Yoruba</option>
+                    <option>Igbo</option>
+                    <option>Hausa</option>
+                </select>
+                <label class="inline-flex items-center gap-1.5 text-xs text-ink-2">
+                    <input type="checkbox" name="overwrite" value="1"> Overwrite existing
+                </label>
+                <button class="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-brand-ink">Generate descriptions</button>
+            </form>
+        </x-slot:bulkActions>
+    </x-ui.data-table>
 @endsection

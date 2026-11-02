@@ -2,6 +2,7 @@
 
 use App\Domains\Ai\Http\Controllers\AiController;
 use App\Domains\Ai\Http\Controllers\AiDraftController;
+use App\Domains\Ai\Http\Controllers\AiTaskController;
 use App\Domains\Analytics\Http\Controllers\AnalyticsController;
 use App\Domains\Auth\Http\Controllers\DataSubjectRequestController;
 use App\Domains\Auth\Http\Controllers\EmailVerificationController;
@@ -116,7 +117,7 @@ Route::get('/offline', [PwaController::class, 'platformOffline'])->name('pwa.off
 Route::get('/pwa/icon/{size}', [PwaController::class, 'platformIcon'])->whereIn('size', ['192', '512'])->name('pwa.icon');
 
 Route::get('/legal/{policy}', [PolicyController::class, 'show'])
-    ->whereIn('policy', ['terms', 'privacy', 'refunds', 'merchant-agreement', 'cookies', 'acceptable-use', 'disputes', 'ip', 'contact'])
+    ->whereIn('policy', ['terms', 'privacy', 'refunds', 'merchant-agreement', 'cookies', 'acceptable-use', 'disputes', 'ip', 'contact', 'kyc-verification', 'ai-usage', 'prohibited-items', 'faq', 'about'])
     ->name('legal.policy');
 Route::get('/data-request', [PolicyController::class, 'requestData'])->name('legal.data-request');
 Route::post('/data-request', [DataSubjectRequestController::class, 'store'])
@@ -154,7 +155,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:6,1');
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1')->name('login.store');
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:20,1')->name('login.store');
 
     /*
         Google sign-in.
@@ -196,6 +197,11 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify')->middleware('throttle:6,1');
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])->name('verification.send')->middleware('throttle:6,1');
 
+    // Re-acceptance when a published policy version changes. Kept outside the
+    // dashboard group so the middleware cannot redirect this screen to itself.
+    Route::get('/legal/consent', [PolicyController::class, 'consent'])->name('legal.consent');
+    Route::post('/legal/consent', [PolicyController::class, 'accept'])->name('legal.consent.accept');
+
     // Email verification protects the dashboard. Business verification is a
     // buyer-facing trust signal and is deliberately not a dashboard gate.
     //
@@ -205,8 +211,9 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     //
     // subscription.valid gates dashboard writes only. It is deliberately absent
     // from the storefront routes: a failed debit must never take a shop offline.
-    Route::middleware(['verified', 'onboarding.complete', 'subscription.valid'])->group(function () {
+    Route::middleware(['verified', 'onboarding.complete', 'subscription.valid', 'policies.current'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read', [NotificationController::class, 'readAll'])->name('notifications.read');
         Route::get('orders', [OrderController::class, 'index'])->name('dashboard.orders.index');
         Route::get('orders/{order}', [OrderController::class, 'show'])->name('dashboard.orders.show');
@@ -228,6 +235,12 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::post('ai/drafts/{draft}/regenerate', [AiDraftController::class, 'regenerate'])->name('dashboard.ai.drafts.regenerate');
         Route::post('ai/drafts/{draft}/undo', [AiDraftController::class, 'undo'])->name('dashboard.ai.drafts.undo');
         Route::post('ai/drafts/confirm-selected', [AiDraftController::class, 'confirmSelected'])->name('dashboard.ai.drafts.confirm-selected');
+        Route::get('ai/tasks', [AiTaskController::class, 'history'])->name('dashboard.ai.tasks.index');
+        Route::get('ai/tasks/active', [AiTaskController::class, 'active'])->name('dashboard.ai.tasks.active');
+        Route::get('ai/tasks/{task}', [AiTaskController::class, 'show'])->name('dashboard.ai.tasks.show');
+        Route::post('ai/tasks/{task}/cancel', [AiTaskController::class, 'cancel'])->name('dashboard.ai.tasks.cancel');
+        Route::post('ai/tasks/{task}/retry-failed', [AiTaskController::class, 'retryFailed'])->name('dashboard.ai.tasks.retry-failed');
+        Route::get('ai/tasks/{task}/status', [AiTaskController::class, 'status'])->name('dashboard.ai.tasks.status');
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('dashboard.analytics.index');
         Route::post('analytics/digest', [AnalyticsController::class, 'digest'])->middleware('throttle:5,1')->name('dashboard.analytics.digest');
         Route::post('analytics/ask', [AnalyticsController::class, 'ask'])->middleware('throttle:12,1')->name('dashboard.analytics.ask');
@@ -326,11 +339,17 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::post('/page/publish', [StorePageController::class, 'publish'])->name('page.publish');
         Route::post('/page/unpublish', [StorePageController::class, 'unpublish'])->name('page.unpublish');
         Route::post('products/bulk-destroy', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
+        Route::post('products/generate-descriptions', [ProductController::class, 'generateDescriptions'])->name('products.generate-descriptions');
+        Route::post('products/apply-descriptions/{task}', [ProductController::class, 'applyDescriptions'])->name('products.apply-descriptions');
+        Route::post('products/undo-descriptions/{task}', [ProductController::class, 'undoDescriptions'])->name('products.undo-descriptions');
         Route::post('products/import', [ProductImportController::class, 'store'])->name('products.import');
         Route::patch('products/{product}/stock', [ProductController::class, 'adjustStock'])->name('products.stock');
         Route::resource('products.variants', ProductVariantController::class)->shallow();
         Route::resource('products', ProductController::class)->except(['show']);
         Route::post('categories/bulk-destroy', [CategoryController::class, 'bulkDestroy'])->name('categories.bulk-destroy');
+        Route::post('categories/generate-ai', [CategoryController::class, 'generateWithAi'])->name('categories.generate-ai');
+        Route::post('categories/apply-ai/{task}', [CategoryController::class, 'applyGeneratedCategories'])->name('categories.apply-ai');
+        Route::post('categories/undo-ai/{task}', [CategoryController::class, 'undoGeneratedCategories'])->name('categories.undo-ai');
         Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     });
 
@@ -338,7 +357,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     // without business verification already being present.
     Route::middleware(['verified', 'onboarding.complete'])->group(function () {
         Route::get('verified', [BadgeController::class, 'create'])->name('badge.apply');
-        Route::post('verified', [BadgeController::class, 'store'])->name('badge.submit');
+        Route::post('verified', [BadgeController::class, 'store'])->middleware('throttle:6,1')->name('badge.submit');
     });
 
     // The wizard needs a confirmed email but no badge: a seller who cannot get

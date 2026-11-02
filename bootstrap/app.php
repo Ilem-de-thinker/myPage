@@ -2,6 +2,7 @@
 
 use App\Domains\Admin\Middleware\EnsureUserIsAdmin;
 use App\Domains\Admin\Middleware\EnsureUserIsCoreAdmin;
+use App\Domains\Auth\Http\Middleware\EnsurePoliciesAreCurrent;
 use App\Domains\Shared\Middleware\EnsureStoreIsOpen;
 use App\Domains\Shared\Middleware\EnsureSubscriptionValid;
 use App\Shared\Middleware\EnsureApexHost;
@@ -101,6 +102,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'feature' => EnsureFeatureIsEnabled::class,
             'forward.custom.domain' => ForwardCustomDomainToStorefront::class,
             'apex.host' => EnsureApexHost::class,
+            'policies.current' => EnsurePoliciesAreCurrent::class,
         ]);
 
         // Gateway deliveries are signed, not session-authenticated.

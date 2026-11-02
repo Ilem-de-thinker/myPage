@@ -260,3 +260,130 @@ it('shows the floating AI launcher only on registered seller pages', function ()
 
     actingAs($seller)->get('/ai')->assertRedirect(route('dashboard'));
 });
+
+it('returns one complete storefront direction and applies it only after approval', function () {
+    [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    $direction = [
+        'theme_key' => 'store',
+        'brand_color' => '#112233',
+        'accent_color' => '#445566',
+        'surface' => 'dark',
+        'radius' => 'plush',
+        'hero_style' => 'split',
+        'hero_alignment' => 'left',
+        'hero_overlay' => 'soft',
+        'carousel_autoplay' => true,
+        'show_trust_strip' => false,
+        'show_metrics' => true,
+        'hidden_sections' => ['categories', 'not-a-section'],
+        'copy' => [
+            'home' => [
+                'hero' => ['headline' => 'Ankara, cut for you', 'subtext' => 'Made in Surulere.', 'button_label' => 'Shop the studio'],
+                'about' => ['heading' => 'The studio', 'body' => 'We cut and sew in the same room.'],
+                'faq' => ['heading' => 'Good to know', 'items' => [['question' => 'Do you deliver?', 'answer' => 'Yes, nationwide.']]],
+                'reviews' => ['heading' => 'What buyers say'],
+            ],
+            'about' => ['story' => ['heading' => 'Our story', 'body' => 'One machine and a stall.']],
+            'contact' => ['intro' => ['intro' => 'Visit the studio.', 'hours' => 'Mon-Fri 9-6']],
+            'unknown' => ['block' => ['field' => 'nope']],
+        ],
+        'reason' => 'Warm editorial direction.',
+    ];
+    $fake = Prism::fake([StructuredResponseFake::make()->withStructured($direction)]);
+
+    $response = actingAs($seller)->postJson('/ai/contextual', [
+        'feature' => 'appearance',
+        'input' => ['text' => 'Ada Textiles sells fabrics.'],
+    ])->assertOk()
+        ->assertJsonPath('result.theme_key', 'editorial-luxe')
+        ->assertJsonPath('result.hidden_sections', ['categories'])
+        ->assertJsonPath('result.copy.home.faq.items.0.question', 'Do you deliver?')
+        ->assertJsonMissingPath('result.copy.home.reviews')
+        ->assertJsonMissingPath('result.copy.contact.intro.hours')
+        ->assertJsonMissingPath('result.copy.unknown');
+
+    $fake->assertRequest(function (array $requests): void {
+        expect((string) $requests[0]->prompt())
+            ->toContain('"key":"catalog"')
+            ->toContain('"copy_registry"')
+            ->not->toContain('"key":"store"');
+    });
+
+    expect($page->fresh()->brand_color)->not->toBe('#112233');
+
+    actingAs($seller)->postJson("/ai/drafts/{$response->json('draft_id')}/approve")->assertOk();
+
+    $page = $page->fresh();
+
+    expect($page->brand_color)->toBe('#112233')
+        ->and($page->settings['theme_preset'])->toBe('editorial-luxe')
+        ->and($page->settings['surface'])->toBe('dark')
+        ->and($page->settings['radius'])->toBe('plush')
+        ->and($page->settings['hero_style'])->toBe('split')
+        ->and($page->settings['carousel_autoplay'])->toBeTrue()
+        ->and($page->settings['show_trust_strip'])->toBeFalse()
+        ->and($page->settings['hidden_sections']['home'])->toBe(['categories'])
+        ->and($page->block('home', 'hero')->content['headline'])->toBe('Ankara, cut for you')
+        ->and($page->block('home', 'faq')->content['items'][0]['answer'])->toBe('Yes, nationwide.')
+        ->and($page->block('about', 'story')->content['body'])->toBe('One machine and a stall.')
+        ->and($page->block('home', 'reviews'))->toBeNull()
+        ->and($page->block('contact', 'intro')->content)->not->toHaveKey('hours');
+});
+
+it('restores the page blocks when a storefront direction is undone', function () {
+    [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    $page->blocks()->create(['page' => 'home', 'key' => 'hero', 'content' => ['headline' => 'Before AI']]);
+
+    $draft = AiDraft::create([
+        'seller_id' => $seller->id,
+        'store_page_id' => $page->id,
+        'task' => 'storefront_direction',
+        'version' => 1,
+        'status' => 'pending',
+        'payload' => [
+            'theme_key' => 'catalog',
+            'brand_color' => '#112233',
+            'accent_color' => '#445566',
+            'surface' => 'light',
+            'radius' => 'rounded',
+            'hero_style' => 'immersive',
+            'hero_alignment' => 'center',
+            'hero_overlay' => 'deep',
+            'carousel_autoplay' => false,
+            'show_trust_strip' => true,
+            'show_metrics' => false,
+            'hidden_sections' => [],
+            'copy' => ['home' => ['hero' => ['headline' => 'After AI']]],
+            'reason' => 'A clean catalogue.',
+        ],
+    ]);
+
+    actingAs($seller)->postJson("/ai/drafts/{$draft->id}/approve")->assertOk();
+    expect($page->block('home', 'hero')->content['headline'])->toBe('After AI');
+
+    actingAs($seller)->postJson("/ai/drafts/{$draft->id}/undo")->assertOk();
+    expect($page->fresh()->block('home', 'hero')->content['headline'])->toBe('Before AI');
+});
+
+it('applies a compatible preset when an older draft carries a theme enum key', function () {
+    [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    $draft = AiDraft::create([
+        'seller_id' => $seller->id,
+        'store_page_id' => $page->id,
+        'task' => 'theme_and_color_preset',
+        'version' => 1,
+        'status' => 'pending',
+        'payload' => ['presets' => [[
+            'theme_key' => 'store',
+            'brand_color' => '#112233',
+            'accent_color' => '#445566',
+            'reason' => 'An older draft.',
+        ]]],
+    ]);
+
+    actingAs($seller)->postJson("/ai/drafts/{$draft->id}/approve", ['preset' => 0])->assertOk();
+
+    expect(in_array($page->fresh()->settings['theme_preset'], array_keys(config('themes.presets')), true))->toBeTrue()
+        ->and($page->fresh()->brand_color)->toBe('#112233')
+        ->and($draft->fresh()->status)->toBe('approved');
+});

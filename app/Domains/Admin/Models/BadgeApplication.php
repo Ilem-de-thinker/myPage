@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 /** @use HasFactory<BadgeApplicationFactory> */
 class BadgeApplication extends Model
@@ -61,6 +62,32 @@ class BadgeApplication extends Model
         return $this->status === BadgeStatus::Pending;
     }
 
+    public function isExpired(): bool
+    {
+        return $this->document_expires_at !== null && $this->document_expires_at->isPast();
+    }
+
+    public function canResubmit(): bool
+    {
+        return in_array($this->status, [
+            BadgeStatus::Rejected,
+            BadgeStatus::NeedsMoreInfo,
+            BadgeStatus::Expired,
+            BadgeStatus::Revoked,
+        ], true);
+    }
+
+    public function maskedRegistrationNumber(): string
+    {
+        $value = (string) $this->registration_number;
+
+        if (strlen($value) <= 6) {
+            return str_repeat('•', strlen($value));
+        }
+
+        return substr($value, 0, 3).str_repeat('•', strlen($value) - 6).substr($value, -3);
+    }
+
     /**
      * Uploads are never trusted to be images of documents. The name is forced and
      * the extension is taken from the stored path, so a seller cannot get a
@@ -68,7 +95,7 @@ class BadgeApplication extends Model
      */
     public function documentUrl(): string
     {
-        return route('admin.badges.document', $this);
+        return URL::temporarySignedRoute('admin.badges.document', now()->addMinutes(10), $this);
     }
 
     public function hasDocument(): bool

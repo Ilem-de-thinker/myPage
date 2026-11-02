@@ -225,3 +225,25 @@ it('cannot touch another sellers blocks', function () {
     expect($otherHero->refresh()->content)->toBe($before)
         ->and($page->blocks()->where('key', 'hero')->firstOrFail()->content['headline'])->toBe('Mine now');
 });
+
+it('gives opening hours an add-time editor instead of a free-text array', function () {
+    [$seller] = settingsPage();
+
+    actingAs($seller)->get('/storefront?tab=contact')
+        ->assertOk()
+        ->assertSee('Opening hours')
+        ->assertSee('Add time')
+        ->assertSee('hoursEditor', false);
+});
+
+it('shows Mercho suggestions in a review modal instead of raw JSON', function () {
+    [$seller] = settingsPage();
+
+    actingAs($seller)->get('/storefront?tab=brand')
+        ->assertOk()
+        ->assertSee('Review Mercho suggestion')
+        ->assertSee('Review your storefront direction')
+        ->assertSee('Apply this direction')
+        ->assertSee('complete storefront direction')
+        ->assertDontSee('<pre x-text="format(aiDraft)"', false);
+});

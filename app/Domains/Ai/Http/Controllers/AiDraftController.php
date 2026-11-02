@@ -5,29 +5,55 @@ namespace App\Domains\Ai\Http\Controllers;
 use App\Domains\Ai\Contracts\AiManager;
 use App\Domains\Ai\Models\AiDraft;
 use App\Domains\Ai\Support\AiFeatureRegistry;
+use App\Domains\Ai\Support\StorefrontDirection;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Models\Service;
+use App\Domains\Catalog\Jobs\ProcessProductImage;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AiDraftController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|View
     {
         $page = $request->user()->storePages()->firstOrFail();
+        $query = AiDraft::query()->where('store_page_id', $page->id)->with('parent');
 
-        return response()->json(['drafts' => AiDraft::query()->where('store_page_id', $page->id)->with('parent')->latest()->limit(30)->get()]);
+        // The floating "drafts ready" badge polls this endpoint, so JSON callers
+        // keep the original latest-30 response. A browser navigation gets the
+        // review page instead of a wall of raw JSON.
+        if ($request->expectsJson()) {
+            return response()->json(['drafts' => $query->latest('created_at')->latest('id')->limit(30)->get()]);
+        }
+
+        $status = (string) $request->query('status', 'pending');
+        $status = in_array($status, ['pending', 'approved', 'rejected', 'discarded', 'undone', 'all'], true) ? $status : 'pending';
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $drafts = $query->latest('created_at')->latest('id')->paginate(10)->withQueryString();
+        $counts = AiDraft::query()
+            ->where('store_page_id', $page->id)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('dashboard.ai.drafts.index', compact('page', 'drafts', 'status', 'counts'));
     }
 
     public function versions(Request $request, int $draft): JsonResponse
@@ -45,7 +71,7 @@ class AiDraftController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         $draft = AiDraft::query()->where('store_page_id', $page->id)->where('status', 'pending')->findOrFail($draft);
         $payload = $draft->payload;
-        $undoPage = ($draft->task === 'site_builder' || ($payload['_logo_colors'] ?? false) || ($payload['presets'] ?? null))
+        $undoPage = ($draft->task === 'site_builder' || $draft->task === 'storefront_direction' || ($payload['_logo_colors'] ?? false) || ($payload['presets'] ?? null))
             ? $this->pageSnapshot($page)
             : null;
 
@@ -78,10 +104,42 @@ class AiDraftController extends Controller
             $draft->update(['status' => 'approved', 'approved_at' => now(), 'reviewed_by' => $request->user()->id]);
         }
 
+        if ($draft->task === 'storefront_direction') {
+            // The review modal lets the merchant edit copy before approving, so
+            // accept that edited copy and normalise it again on the way in.
+            $edited = $request->input('copy');
+
+            if (is_array($edited)) {
+                $payload['copy'] = $edited;
+            }
+
+            $direction = StorefrontDirection::sanitize($page, $payload);
+            StorefrontDirection::apply($page, $direction);
+
+            if (is_array($edited)) {
+                $draft->update(['payload' => [...$draft->payload, 'copy' => $direction['copy']]]);
+            }
+        }
+
         if ($draft->payload['presets'] ?? null) {
             $choice = $request->validate(['preset' => ['required', 'integer', 'min:0', 'max:2']])['preset'];
             $preset = $draft->payload['presets'][$choice] ?? null;
-            validator($preset, ['theme_key' => ['required', 'string', Rule::in(array_keys(config('themes.presets', [])))], 'brand_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/']])->validate();
+
+            $available = collect(config('themes.presets', []))
+                ->filter(fn (array $definition): bool => in_array($page->theme->value, $definition['business_types'] ?? [], true))
+                ->keys()
+                ->values()
+                ->all();
+            $fallback = $available[0] ?? array_key_first(config('themes.presets', []));
+
+            // Drafts generated before the registry fix can carry a theme enum
+            // ("store") instead of a preset key. Keep the suggested colours but
+            // apply a compatible direction rather than rejecting the whole draft.
+            if (is_array($preset) && ! in_array($preset['theme_key'] ?? null, $available, true)) {
+                $preset['theme_key'] = $fallback;
+            }
+
+            validator($preset, ['theme_key' => ['required', 'string', Rule::in($available)], 'brand_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/']])->validate();
             $settings = $page->settings ?? [];
             $settings['theme_preset'] = $preset['theme_key'];
             $settings['accent_color'] = $preset['accent_color'];
@@ -194,6 +252,22 @@ class AiDraftController extends Controller
                 'bio' => $snapshot['bio'] ?? $page->bio,
                 'settings' => $snapshot['settings'] ?? $page->settings,
             ])->save();
+
+            if (isset($snapshot['blocks']) && is_array($snapshot['blocks'])) {
+                $page->blocks()->delete();
+
+                foreach ($snapshot['blocks'] as $row) {
+                    if (! is_array($row) || ! isset($row['page'], $row['key'])) {
+                        continue;
+                    }
+
+                    $page->blocks()->create([
+                        'page' => $row['page'],
+                        'key' => $row['key'],
+                        'content' => is_array($row['content'] ?? null) ? $row['content'] : [],
+                    ]);
+                }
+            }
         }
 
         $draft->update(['status' => 'undone', 'reviewed_by' => $request->user()->id]);
@@ -223,6 +297,7 @@ class AiDraftController extends Controller
             $priceRaw = $draft->payload['price'] ?? $draft->payload['price_hint'] ?? 0;
             $priceKobo = (int) round((float) preg_replace('/[^0-9.]/', '', (string) $priceRaw) * 100);
 
+            $relativePaths = array_values(array_filter((array) ($draft->payload['_media_relative_paths'] ?? [])));
             $created = DB::transaction(function () use ($feature, $page, $request, $draft, $name, $description, $categoryId, $priceKobo): ?Model {
                 if ($feature === 'products') {
                     return Product::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'category_id' => $categoryId, 'name' => $name, 'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)), 'description' => $description, 'ai_metadata' => $draft->payload, 'price_kobo' => $priceKobo, 'sku' => 'AI-'.strtoupper(Str::random(8)), 'status' => 'draft', 'stock_qty' => 0]);
@@ -232,13 +307,28 @@ class AiDraftController extends Controller
 
                 return null;
             });
+            if ($created !== null && $feature === 'products' && $relativePaths !== []) {
+                foreach (array_values($relativePaths) as $i => $relativePath) {
+                    if (! is_string($relativePath) || ! Storage::disk('public')->exists($relativePath)) {
+                        continue;
+                    }
+                    $image = $created->images()->create(['path' => $relativePath, 'position' => $i]);
+                    ProcessProductImage::dispatch($image->getKey());
+                }
+            }
+            if ($created !== null && $feature === 'services' && $relativePaths !== []) {
+                $first = $relativePaths[0] ?? null;
+                if (is_string($first) && Storage::disk('public')->exists($first)) {
+                    $created->update(['image_path' => $first]);
+                }
+            }
             $draft->update(['applied_type' => $created?->getMorphClass() ?? null, 'applied_id' => $created?->getKey()]);
         }
         $draft->update(['status' => 'approved', 'approved_at' => now(), 'reviewed_by' => $request->user()->id]);
     }
 
     /**
-     * @return array{theme: string, brand_color: string, tagline: ?string, bio: ?string, settings: array<string, mixed>}
+     * @return array{theme: string, brand_color: string, tagline: ?string, bio: ?string, settings: array<string, mixed>, blocks: list<array{page: string, key: string, content: array<string, mixed>}>}
      */
     private function pageSnapshot(StorePage $page): array
     {
@@ -248,6 +338,14 @@ class AiDraftController extends Controller
             'tagline' => $page->tagline,
             'bio' => $page->bio,
             'settings' => $page->settings ?? [],
+            'blocks' => $page->blocks()->get(['page', 'key', 'content'])
+                ->map(fn ($block): array => [
+                    'page' => $block->page,
+                    'key' => $block->key,
+                    'content' => $block->content ?? [],
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }

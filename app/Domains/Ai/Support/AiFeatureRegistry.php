@@ -15,7 +15,7 @@ final class AiFeatureRegistry
         'store-creation' => ['label' => 'Create with Mercho', 'task' => 'site_builder', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],
         'products' => ['label' => 'Use Mercho for products', 'task' => 'listing_copy', 'business_types' => ['store', 'both'], 'plan' => 'ai'],
         'services' => ['label' => 'Use Mercho for services', 'task' => 'service_listing', 'business_types' => ['service', 'both'], 'plan' => 'ai'],
-        'appearance' => ['label' => 'Use Mercho for appearance', 'task' => 'theme_and_color_preset', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],
+        'appearance' => ['label' => 'Use Mercho for appearance', 'task' => 'storefront_direction', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],
         'content' => ['label' => 'Improve with Mercho', 'task' => 'copy_rewrite', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],
         'analytics' => ['label' => 'Use Mercho for analytics', 'task' => 'insights_digest', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],
         'order-chat' => ['label' => 'Use Mercho in chat', 'task' => 'order_chat_assist', 'business_types' => ['store', 'service', 'both'], 'plan' => 'ai'],

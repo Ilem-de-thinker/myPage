@@ -24,6 +24,7 @@ class BadgeController extends Controller
     public function create(Request $request): View
     {
         $page = $this->page($request);
+        $seller = $page->seller;
 
         return view('dashboard.badge.index', [
             'page' => $page,
@@ -31,6 +32,23 @@ class BadgeController extends Controller
                 ->latest('submitted_at')
                 ->first(),
             'statuses' => BadgeStatus::cases(),
+            'tiers' => [
+                [
+                    'label' => 'Tier 1 · Account',
+                    'description' => 'Confirm your email address and keep a reachable phone number on the account.',
+                    'done' => $seller?->email_verified_at !== null,
+                ],
+                [
+                    'label' => 'Tier 2 · Identity',
+                    'description' => 'Send a government ID or CAC certificate for a human review.',
+                    'done' => $seller?->kyc_verified_at !== null,
+                ],
+                [
+                    'label' => 'Tier 3 · Business details',
+                    'description' => 'We store the verified legal name, registration type and registration number on the account.',
+                    'done' => filled($seller?->legal_registration_number),
+                ],
+            ],
         ]);
     }
 
@@ -49,6 +67,18 @@ class BadgeController extends Controller
             'document' => ['required', 'file', 'mimetypes:application/pdf,image/jpeg,image/png', 'max:8192'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        $duplicate = BadgeApplication::query()
+            ->where('seller_id', '!=', $page->seller_id)
+            ->where('registration_number', $data['registration_number'])
+            ->whereIn('status', [BadgeStatus::Pending->value, BadgeStatus::Approved->value])
+            ->exists();
+
+        if ($duplicate) {
+            throw ValidationException::withMessages([
+                'registration_number' => 'This registration number is already linked to another account. Contact support if this is your business.',
+            ]);
+        }
 
         try {
             $review->submit($page, $data, $request->file('document'));

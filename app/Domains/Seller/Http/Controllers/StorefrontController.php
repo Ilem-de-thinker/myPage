@@ -30,6 +30,7 @@ use App\Domains\Seller\Actions\RecordStorePageView;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\BlockRenderer;
 use App\Domains\Seller\Models\StorePage;
+use App\Domains\Seller\Support\StorePolicies;
 use App\Shared\Support\Money;
 use App\Shared\Support\PhoneNumber;
 use App\Shared\Support\StoreUrl;
@@ -58,9 +59,12 @@ class StorefrontController extends Controller
 
         // Counted here and not in middleware: the storefront group also serves
         // products, cart and checkout, and a visit that never reaches the home
-        // page is not what this counter is measuring.
-        $views->handle($page);
-        $events->handle($page, 'view', $request);
+        // page is not what this counter is measuring. The event decides whether
+        // this is a new visitor for today, so a duplicate visit does not move
+        // the discovery counter either.
+        if ($events->handle($page, 'view', $request)) {
+            $views->handle($page);
+        }
 
         return view("themes.{$page->theme->value}.page", [
             'page' => $page,
@@ -74,6 +78,23 @@ class StorefrontController extends Controller
                 // one extra query.
                 ? Product::query()->with(['images', 'category'])->active()->where('store_page_id', $page->id)->latest()->limit(8)->get()
                 : null,
+        ]);
+    }
+
+    /**
+     * The merchant's own policy pages. A seller can override any section through
+     * settings.policies; otherwise the store's contact and delivery details fill
+     * in a plain-language default that makes clear the seller, not the platform,
+     * is the merchant.
+     */
+    public function policy(StorePage $page, string $policy, StorePolicies $policies): View
+    {
+        abort_unless(in_array($policy, StorePolicies::slugs(), true), 404);
+
+        return view('themes.shared.pages.store-policy', [
+            'page' => $page,
+            'policy' => $policies->forPage($page, $policy),
+            'slug' => $policy,
         ]);
     }
 
@@ -157,8 +178,9 @@ class StorefrontController extends Controller
             ->where('slug', $productSlug)
             ->firstOrFail();
 
-        $views->handle($product);
-        $events->handle($page, 'product_view', $request, ['product_id' => $product->id]);
+        if ($events->handle($page, 'product_view', $request, ['product_id' => $product->id])) {
+            $views->handle($product);
+        }
 
         // Eager-loaded, and only the approved ones. The scope is here rather than
         // in the view so no template can be handed a pending row by accident —
@@ -281,8 +303,9 @@ class StorefrontController extends Controller
 
         abort_if($service === null, 404);
 
-        $views->handle($service);
-        $events->handle($page, 'service_view', $request, ['service_id' => $service->id]);
+        if ($events->handle($page, 'service_view', $request, ['service_id' => $service->id])) {
+            $views->handle($service);
+        }
 
         $service->load(['reviews' => fn ($query) => $query
             ->published()

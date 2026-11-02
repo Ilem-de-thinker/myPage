@@ -47,8 +47,8 @@
                 @endforeach
             </select>
 
-            <div x-cloak x-show="newCat" x-transition class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" @keydown.escape.window="newCat = false">
-                <div class="bg-card rounded-2xl p-6 w-full max-w-sm shadow-xl" @click.outside="newCat = false">
+            <div x-cloak x-show="newCat" x-transition class="app-modal fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" @keydown.escape.window="newCat = false">
+                <div class="app-modal-panel bg-card rounded-2xl p-6 w-full max-w-sm shadow-xl" @click.outside="newCat = false">
                     <h3 class="font-display font-bold text-ink mb-3">New category</h3>
                     <input type="text" x-model="name" placeholder="e.g. Fabrics" class="w-full px-4 py-2.5 rounded-xl border border-rule-strong text-sm mb-2">
                     <p x-show="error" x-text="error" class="text-danger-text text-[11px] mb-2"></p>
@@ -167,8 +167,8 @@
                    @change="addFiles($event)">
             <button type="button" @click="previewOpen = true" :disabled="previews.length === 0"
                     class="mt-2 text-xs font-semibold text-brand disabled:text-ink-3 disabled:cursor-not-allowed">Preview images</button>
-            <div x-cloak x-show="previewOpen" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">
-                <div class="bg-card rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div x-cloak x-show="previewOpen" class="app-modal fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" @keydown.escape.window="previewOpen = false">
+                <div class="app-modal-panel bg-card rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-display font-bold text-ink">Image preview</h3>
                         <button type="button" @click="previewOpen = false" class="text-ink-3 text-lg leading-none">&times;</button>

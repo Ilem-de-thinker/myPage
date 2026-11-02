@@ -54,16 +54,16 @@
              the design system's own default and the OS preference. --}}
         <x-ui.theme-toggle />
 
-        @if ($demoStore)
-          <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($demoStore) }}" class="hidden sm:inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] transition-colors whitespace-nowrap">
-          <x-ui.icon name="storefront" class="mr-1.5 size-3.5" /> <span>Store Demo</span>
+        @guest
+          <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] transition-colors whitespace-nowrap">
+            Log in
           </a>
-        @endif
-        @if ($demoService)
-          <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($demoService) }}" class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-[var(--radius)] bg-amber-500/10 text-amber-800 dark:text-amber-200 border border-amber-500/30 hover:bg-amber-500/20 transition-colors whitespace-nowrap">
-          <x-ui.icon name="calendar" class="mr-1.5 size-3.5" /> <span>Service Demo</span>
+        @endguest
+        @auth
+          <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-[var(--radius)] bg-[var(--brand-wash)] text-[var(--brand-text)] border border-[var(--brand-edge)] hover:bg-[var(--brand-wash-2)] transition-colors whitespace-nowrap">
+            Dashboard
           </a>
-        @endif
+        @endauth
         <a href="{{ route('home') }}#pricing" class="hidden md:inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-[var(--radius)] bg-[var(--brand)] text-[var(--brand-ink)] hover:opacity-90 transition-opacity whitespace-nowrap">
           Claim Handle
         </a>
@@ -84,23 +84,6 @@
          @click.away="mobileNavOpen = false"
          class="platform-mobile-nav lg:hidden border-b px-6 py-5 shadow-lg space-y-3 text-sm font-medium"
          style="display: none;">
-      @if ($demoStore || $demoService)
-        <div class="p-3 rounded-[var(--radius)] bg-[var(--surface)] border border-[var(--rule)] space-y-2 mb-2">
-          <span class="text-[10px] font-bold text-[var(--ink-3)] uppercase tracking-wider block">Live Storefront Demos</span>
-          @if ($demoService)
-            <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($demoService) }}" class="flex items-center justify-between p-2 rounded bg-amber-500/10 text-amber-800 dark:text-amber-200 font-bold text-xs border border-amber-500/30">
-              <span class="inline-flex items-center"><x-ui.icon name="calendar" class="mr-2 size-3.5" />Service Booking Demo</span>
-              <span>&rarr;</span>
-            </a>
-          @endif
-          @if ($demoStore)
-            <a href="{{ \App\Shared\Support\StoreUrl::homeForSlug($demoStore) }}" class="flex items-center justify-between p-2 rounded bg-[var(--brand-wash)] text-[var(--brand-text)] font-bold text-xs border border-[var(--brand-edge)]">
-              <span class="inline-flex items-center"><x-ui.icon name="storefront" class="mr-2 size-3.5" />Retail Store Demo</span>
-              <span>&rarr;</span>
-            </a>
-          @endif
-        </div>
-      @endif
       @if ($showDiscovery)
         <a href="{{ route('discovery.index') }}" @class([
           'block py-1',

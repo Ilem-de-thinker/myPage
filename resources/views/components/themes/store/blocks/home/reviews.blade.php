@@ -149,14 +149,14 @@
     <div x-show="reviewModalOpen"
          x-transition.opacity.duration.200ms
          @keydown.escape.window="reviewModalOpen = false"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         class="app-modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          style="display: none;"
          role="dialog"
          aria-modal="true"
          aria-labelledby="store-review-title">
 
       <div @click.away="reviewModalOpen = false"
-           class="w-full max-w-lg bg-[var(--card)] p-6 sm:p-8 rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-[var(--shadow-lift)] max-h-[85dvh] overflow-y-auto">
+           class="app-modal-panel w-full max-w-lg bg-[var(--card)] p-6 sm:p-8 rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-[var(--shadow-lift)] max-h-[85dvh] overflow-y-auto">
 
         <div class="flex items-center justify-between pb-3 border-b border-[var(--rule)] mb-4">
           <h3 id="store-review-title" class="text-base font-bold text-[var(--ink)]">Write a Customer Review</h3>

@@ -4,10 +4,13 @@ namespace App\Domains\Admin\Actions;
 
 use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Admin\Models\BadgeStatus;
+use App\Domains\Admin\Notifications\KycStatusChangedNotification;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -42,6 +45,73 @@ class ReviewBadgeApplication
         return $this->decide($application, $admin, BadgeStatus::Rejected, null, $reason);
     }
 
+    public function requestMoreInfo(BadgeApplication $application, Seller $admin, string $reason): BadgeApplication
+    {
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages([
+                'rejection_reason' => 'Tell the applicant what is missing so they can fix it.',
+            ]);
+        }
+
+        return $this->decide($application, $admin, BadgeStatus::NeedsMoreInfo, null, $reason);
+    }
+
+    public function revoke(BadgeApplication $application, Seller $admin, string $reason): BadgeApplication
+    {
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages([
+                'rejection_reason' => 'Record why the verification is being revoked.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($application, $admin, $reason) {
+            $locked = BadgeApplication::whereKey($application->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== BadgeStatus::Approved) {
+                return $locked;
+            }
+
+            $locked->update([
+                'status' => BadgeStatus::Revoked,
+                'reviewed_by_seller_id' => $admin->getKey(),
+                'rejection_reason' => $reason,
+                'reviewed_at' => now(),
+            ]);
+
+            $locked->storePage?->forceFill(['verified_at' => null])->save();
+            $locked->seller?->forceFill(['kyc_verified_at' => null])->save();
+
+            $this->audit->handle($admin, 'badge.revoked', $locked, $reason);
+            $this->notifyStatus($locked, BadgeStatus::Revoked, $reason);
+
+            return $locked;
+        });
+    }
+
+    public function reopen(BadgeApplication $application, Seller $admin, ?string $note = null): BadgeApplication
+    {
+        return DB::transaction(function () use ($application, $admin, $note) {
+            $locked = BadgeApplication::whereKey($application->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->canResubmit()) {
+                return $locked;
+            }
+
+            $locked->update([
+                'status' => BadgeStatus::Pending,
+                'reviewed_by_seller_id' => null,
+                'rejection_reason' => null,
+                'reviewed_at' => null,
+                'submitted_at' => now(),
+            ]);
+
+            $this->audit->handle($admin, 'badge.reopened', $locked, $note);
+            $this->notifyStatus($locked, BadgeStatus::Pending, $note);
+
+            return $locked;
+        });
+    }
+
     public function submit(
         StorePage $page,
         array $data,
@@ -60,7 +130,11 @@ class ReviewBadgeApplication
                 ]);
             }
 
-            $stored = $document->store("badges/{$page->getKey()}", 'local');
+            // Encrypted before it touches disk. The signed admin link decrypts
+            // it only for the reviewer, and the marker lets old plaintext rows
+            // keep working until they age out.
+            $stored = "badges/{$page->getKey()}/".Str::uuid().'.enc';
+            Storage::disk('local')->put($stored, 'enc:v1:'.Crypt::encryptString($document->get()));
 
             return BadgeApplication::create([
                 'seller_id' => $page->seller_id,
@@ -130,8 +204,14 @@ class ReviewBadgeApplication
                 $locked,
                 $reason ?: $note,
             );
+            $this->notifyStatus($locked, $status, $reason);
 
             return $locked;
         });
+    }
+
+    private function notifyStatus(BadgeApplication $application, BadgeStatus $status, ?string $reason): void
+    {
+        $application->seller?->notify(new KycStatusChangedNotification($application->id, $status->value, $reason));
     }
 }
