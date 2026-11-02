@@ -19,7 +19,8 @@
     @if ($standalone)
         <div class="platform-support-launcher fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-3 md:bottom-6 md:right-6">
             @if ($aiFeature)
-                <x-ai.launcher :feature="$aiFeature" />
+                @php $aiCategories = $page ? collect(\App\Domains\Ai\Support\AiFeatureRegistry::featuresFor($page))->pluck('key')->all() ?: [] : []; @endphp>
+                <x-ai.launcher :feature="$aiFeature" :aiCategories="$aiCategories" />
             @endif
             <button type="button" @click="openSupport()" class="inline-flex min-h-16 items-center gap-2.5 rounded-full bg-brand px-6 py-4 text-base font-bold text-brand-ink shadow-xl shadow-ink/10 transition hover:-translate-y-0.5 hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2" aria-label="Open support form">
             <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.7 9.7 0 0 1-4.2-1L3 21l1.5-4.1A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z" /><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-linecap="round" /></svg>

@@ -69,7 +69,7 @@
                 <div x-show="questions.length && !loading" class="mt-5 rounded-[var(--radius)] bg-[var(--brand-wash)] p-4">
                     <p class="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--ink-2)]">One detail could help</p>
                     <template x-for="question in questions" :key="question">
-                        <button type="button" @click="message = question; $nextTick(() => $refs.input?.focus())" class="mt-2 block text-left text-sm font-semibold text-[var(--brand-text)] hover:underline" x-text="question"></button>
+                        <button type="button" @click="chooseQuestion(question)" class="mt-2 block text-left text-sm font-semibold text-[var(--brand-text)] hover:underline" x-text="question"></button>
                     </template>
                 </div>
 

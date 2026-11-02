@@ -9,6 +9,7 @@ use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
 use App\Domains\Booking\Models\Service;
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
@@ -210,11 +211,23 @@ class AiDraftController extends Controller
             }
             $name = trim((string) ($draft->payload['name'] ?? '')) ?: 'Untitled draft';
             $description = (string) ($draft->payload['description'] ?? '');
-            $created = DB::transaction(function () use ($feature, $page, $request, $draft, $name, $description): ?Model {
+            $categoryName = trim((string) ($draft->payload['category'] ?? ''));
+            $categoryId = null;
+            if ($categoryName !== '') {
+                $category = Category::firstOrCreate(
+                    ['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $categoryName],
+                    ['position' => $page->categories()->count()]
+                );
+                $categoryId = $category->id;
+            }
+            $priceRaw = $draft->payload['price'] ?? $draft->payload['price_hint'] ?? 0;
+            $priceKobo = (int) round((float) preg_replace('/[^0-9.]/', '', (string) $priceRaw) * 100);
+
+            $created = DB::transaction(function () use ($feature, $page, $request, $draft, $name, $description, $categoryId, $priceKobo): ?Model {
                 if ($feature === 'products') {
-                    return Product::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $name, 'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)), 'description' => $description, 'ai_metadata' => $draft->payload, 'price_kobo' => 0, 'sku' => 'AI-'.strtoupper(Str::random(8)), 'status' => 'draft', 'stock_qty' => 0]);
+                    return Product::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'category_id' => $categoryId, 'name' => $name, 'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)), 'description' => $description, 'ai_metadata' => $draft->payload, 'price_kobo' => $priceKobo, 'sku' => 'AI-'.strtoupper(Str::random(8)), 'status' => 'draft', 'stock_qty' => 0]);
                 } elseif ($feature === 'services') {
-                    return Service::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $name, 'description' => $description, 'ai_metadata' => $draft->payload, 'duration_min' => 60, 'price_kobo' => 0, 'deposit_type' => DepositType::None, 'deposit_value' => 0, 'billing_unit' => BillingUnit::PerProject, 'is_active' => false, 'position' => $page->services()->count()]);
+                    return Service::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $name, 'description' => $description, 'ai_metadata' => $draft->payload, 'duration_min' => 60, 'price_kobo' => $priceKobo, 'deposit_type' => DepositType::None, 'deposit_value' => 0, 'billing_unit' => BillingUnit::PerProject, 'is_active' => false, 'position' => $page->services()->count()]);
                 }
 
                 return null;

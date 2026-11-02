@@ -31,6 +31,7 @@
             </div>
 
             @php $page = $page ?? auth()->user()?->storePages()->first(); @endphp
+    @php $aiCategories = $page?->categories()->pluck('name')->all() ?? []; @endphp
             <div class="p-4 mx-3 my-3 bg-surface rounded-xl border border-rule/80 flex items-center justify-between">
                 <div class="truncate">
                     <div class="flex items-center gap-1">
@@ -199,6 +200,29 @@
     @endphp
     <x-support.floating-button seller :ai-feature="$aiPageAllowed ? $aiPageFeature : null" />
 
-    @yield('scripts')
-</body>
+    <div x-data="aiTaskStatus()" x-init="init()" x-show="count > 0" x-cloak class="fixed right-4 top-4 z-50">
+        <button type="button" @click="$dispatch('ai-open')" class="inline-flex min-h-9 items-center gap-2 rounded-full bg-brand px-4 text-xs font-bold text-brand-ink shadow-lg">
+            <span x-text="count"></span> drafts ready
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('aiTaskStatus', () => ({
+                count: 0,
+                init() {
+                    this.refresh();
+                    setInterval(() => this.refresh(), 5000);
+                },
+                async refresh() {
+                    try {
+                        const r = await fetch('/ai/drafts', { headers: { 'Accept': 'application/json' } });
+                        if (!r.ok) return;
+                        const d = await r.json();
+                        this.count = (d.drafts || []).filter(x => x.status === 'pending').length;
+                    } catch (e) {}
+                }
+            }));
+        });
+    </script>
 </html>

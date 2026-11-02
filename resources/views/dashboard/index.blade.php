@@ -129,8 +129,8 @@
 
                 <div x-show="digest" x-cloak class="mt-4 rounded-xl bg-surface p-4 text-sm text-ink">
                     <p class="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">Mercho summary</p>
-                    <p x-text="digest?.summary || digest?.error"></p>
-                    <ul x-show="digest?.recommendations?.length" class="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-2"><template x-for="recommendation in (digest?.recommendations || [])" :key="recommendation"><li x-text="recommendation"></li></template></ul>
+                    <p x-text="digest ? (digest.summary || digest.error) : ''"></p>
+                    <ul x-show="digest && digest.recommendations && digest.recommendations.length" class="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-2"><template x-for="recommendation in (digest && digest.recommendations ? digest.recommendations : [])" :key="recommendation"><li x-text="recommendation"></li></template></ul>
                 </div>
 
                 <form @submit.prevent="ask" class="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -138,7 +138,7 @@
                     <input id="dashboard-analytics-question" x-model="question" maxlength="1000" class="min-h-11 min-w-0 flex-1 rounded-xl border border-rule-strong bg-card px-3 text-sm text-ink" placeholder="Ask about your store data">
                     <button class="min-h-11 rounded-xl border border-rule-strong px-4 text-xs font-bold text-ink-2 hover:bg-surface" :disabled="loading">Ask your data</button>
                 </form>
-                <p x-show="answer" x-cloak x-text="answer?.answer || answer?.error" class="mt-3 rounded-xl bg-surface p-3 text-xs text-ink-2"></p>
+                <p x-show="answer" x-cloak x-text="answer ? (answer.answer || answer.error) : ''" class="mt-3 rounded-xl bg-surface p-3 text-xs text-ink-2"></p>
             </section>
 
             <div class="bg-card rounded-2xl border border-rule p-6">

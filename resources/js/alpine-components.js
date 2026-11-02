@@ -818,7 +818,20 @@ Alpine.data('storeSearch', (config = {}) => ({
     openPanel() {
         this.open = true;
         document.body.classList.add('sheet-open');
-        this.$nextTick(() => this.$refs.input?.focus());
+        this.$nextTick(() => {
+            if (this.$refs.input) {
+                this.$refs.input.focus();
+            }
+        });
+    },
+
+    chooseQuestion(question) {
+        this.message = question;
+        this.$nextTick(() => {
+            if (this.$refs.input) {
+                this.$refs.input.focus();
+            }
+        });
     },
 
     closePanel() {

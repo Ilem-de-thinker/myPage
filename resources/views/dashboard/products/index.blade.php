@@ -2,7 +2,7 @@
 
 @section('content')
     <x-ui.page-header title="Products" :subtitle="$products->total().' product(s) in your store'">
-        <div class="flex flex-wrap items-center gap-2"><button type="button" @click="$dispatch('ai-open', { text: '' })" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-edge bg-brand-wash px-4 py-2.5 text-xs font-semibold text-brand-text"><x-ui.icon name="spark" class="size-4" /> Use Mercho</button><a href="{{ route('products.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover"><x-ui.icon name="shopping-bag" class="size-4" /> Add product</a></div>
+        <div class="flex flex-wrap items-center gap-2"><button type="button" @click.stop="$dispatch('ai-open', { text: '' })" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-edge bg-brand-wash px-4 py-2.5 text-xs font-semibold text-brand-text"><x-ui.icon name="spark" class="size-4" /> Use Mercho</button><a href="{{ route('products.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-semibold text-white hover:bg-brand-hover"><x-ui.icon name="shopping-bag" class="size-4" /> Add product</a></div>
     </x-ui.page-header>
 
     <details class="mb-5 rounded-2xl border border-rule bg-card p-5">
