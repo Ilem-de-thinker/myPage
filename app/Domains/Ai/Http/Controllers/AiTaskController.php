@@ -2,9 +2,9 @@
 
 namespace App\Domains\Ai\Http\Controllers;
 
-use App\Domains\Ai\Jobs\RunAiOperation;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Models\AiTask;
+use App\Domains\Ai\Services\AiUsageReservations;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -17,7 +17,11 @@ class AiTaskController extends Controller
         $tasks = AiTask::query()
             ->where('store_page_id', $page->id)
             ->whereIn('status', ['queued', 'processing', 'completed', 'partially_completed', 'failed'])
-            ->latest()
+            ->where(fn ($query) => $query
+                ->whereIn('status', ['queued', 'processing'])
+                ->orWhere('completed_at', '>=', now()->subMinutes(15)))
+            ->latest('created_at')
+            ->latest('id')
             ->limit(10)
             ->get();
 
@@ -45,10 +49,16 @@ class AiTaskController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         $task = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
 
-        $task->update(['status' => 'cancelled', 'cancelled_at' => now(), 'completed_at' => now()]);
-        AiOperation::query()
+        $cancelledIds = AiOperation::query()
             ->where('ai_task_id', $task->id)
             ->whereIn('status', ['queued', 'running'])
+            ->pluck('id');
+
+        app(AiUsageReservations::class)->releaseMany($cancelledIds);
+
+        $task->update(['status' => 'cancelled', 'cancelled_at' => now(), 'completed_at' => now()]);
+        AiOperation::query()
+            ->whereIn('id', $cancelledIds)
             ->update(['status' => 'cancelled', 'completed_at' => now()]);
 
         return response()->json(['task' => $task->fresh()]);
@@ -74,7 +84,7 @@ class AiTaskController extends Controller
 
         foreach ($failed as $op) {
             $op->update(['status' => 'queued', 'error' => null, 'started_at' => null, 'completed_at' => null]);
-            RunAiOperation::dispatch($op);
+            app(AiUsageReservations::class)->reserveAndDispatch($op);
         }
 
         $task->refreshProgress();

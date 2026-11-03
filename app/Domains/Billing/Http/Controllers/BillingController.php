@@ -2,6 +2,7 @@
 
 namespace App\Domains\Billing\Http\Controllers;
 
+use App\Domains\Ai\Services\AiUsageSummary;
 use App\Domains\Billing\Actions\ConfirmSubscriptionPayment;
 use App\Domains\Billing\Actions\SubscriptionManager;
 use App\Domains\Billing\Models\Plan;
@@ -27,15 +28,18 @@ class BillingController extends Controller
         Request $request,
         SubscriptionAvailability $availability,
         GracePeriod $grace,
+        AiUsageSummary $usage,
     ): View {
         $seller = $request->user();
+        $page = $seller->storePages()->first();
 
         $subscription = Subscription::with('plan')
             ->where('seller_id', $seller->getKey())
             ->first();
 
         return view('dashboard.billing.index', [
-            'page' => $seller->storePages()->first(),
+            'page' => $page,
+            'aiUsage' => $usage->forPage($page),
             'subscription' => $subscription,
             'plans' => Plan::active()
                 ->where('slug', '!=', config('billing.trial_plan'))

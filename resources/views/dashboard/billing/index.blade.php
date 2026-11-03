@@ -79,6 +79,12 @@
                     @endif
                 </dl>
 
+                @if ($aiUsage)
+                    <div class="mt-5">
+                        <x-ai.usage-meter :summary="$aiUsage" />
+                    </div>
+                @endif
+
                 @if ($merchantStatus === \App\Domains\Billing\Enums\MerchantStatus::Grace)
                     <div class="mt-5 rounded-xl border border-warn-edge bg-warn-wash p-4">
                         <p class="text-xs font-semibold text-warn-text">

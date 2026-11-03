@@ -7,11 +7,19 @@ use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Carbon;
 
+/**
+ * Enforces Mercho's monthly allowance and resolves the seller's actual plan.
+ *
+ * The ledger remains the source of usage truth so every code path that records a
+ * successful provider call is counted here, regardless of which feature asked
+ * for it.
+ */
 class AiCreditService
 {
     public function __construct(
         private readonly SubscriptionAvailability $subscriptions,
         private readonly AiSettings $settings,
+        private readonly AiPlanLimits $plans,
     ) {}
 
     public function assertAvailable(?StorePage $page, ?string $task = null): void
@@ -60,23 +68,24 @@ class AiCreditService
             return ['plan' => 'platform', 'limit' => null, 'used' => 0, 'remaining' => null, 'requested' => $requested, 'allowed' => $allowed, 'task' => $task, 'feature_limit' => $featureLimit, 'feature_used' => $featureUsed, 'feature_remaining' => $featureRemaining];
         }
 
-        // A plan with its own credit entry gets that allowance. Anything else
-        // falls back to the paid bucket while writable and the free bucket when
-        // it is not, so an unconfigured plan is never accidentally unlimited.
-        $subscription = $page->seller?->subscriptions()->with('plan')->first();
-        $plan = $subscription?->canWrite()
-            ? ($subscription->plan?->slug ?? 'paid')
-            : 'free';
-        $limit = (int) (config("ai.plans.{$plan}.monthly_credits") ?? config('ai.plans.paid.monthly_credits', 0));
-        $used = AiUsageLedger::query()->where('seller_id', $page->seller_id)->where('created_at', '>=', Carbon::now()->startOfMonth())->count();
-        $remaining = $limit > 0 ? max(0, $limit - $used) : null;
+        // The plan row is authoritative. Config only kicks in for a seller with
+        // no writable subscription, and its fallback is finite by design.
+        $resolved = $this->plans->forPage($page);
+        $plan = $resolved['slug'];
+        $limit = $resolved['monthly_credits'];
+        $used = AiUsageLedger::query()
+            ->where('seller_id', $page->seller_id)
+            ->whereIn('status', ['pending', 'used'])
+            ->where('created_at', '>=', Carbon::now()->startOfMonth())
+            ->count();
+        $remaining = $limit === null ? null : max(0, $limit - $used);
         $allowed = $remaining === null ? $requested : min($requested, $remaining);
 
         if ($featureRemaining !== null) {
             $allowed = min($allowed, $featureRemaining);
         }
 
-        return ['plan' => $plan, 'limit' => $limit > 0 ? $limit : null, 'used' => $used, 'remaining' => $remaining, 'requested' => $requested, 'allowed' => $allowed, 'task' => $task, 'feature_limit' => $featureLimit, 'feature_used' => $featureUsed, 'feature_remaining' => $featureRemaining];
+        return ['plan' => $plan, 'limit' => $limit, 'used' => $used, 'remaining' => $remaining, 'requested' => $requested, 'allowed' => $allowed, 'task' => $task, 'feature_limit' => $featureLimit, 'feature_used' => $featureUsed, 'feature_remaining' => $featureRemaining];
     }
 
     public function remaining(?StorePage $page, ?string $task = null): ?int
@@ -91,6 +100,7 @@ class AiCreditService
         return AiUsageLedger::query()
             ->where('seller_id', $page->seller_id)
             ->where('task', $task)
+            ->whereIn('status', ['pending', 'used'])
             ->where('created_at', '>=', Carbon::now()->startOfMonth())
             ->count();
     }

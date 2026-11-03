@@ -3,19 +3,20 @@
 namespace App\Domains\Ai\Http\Controllers;
 
 use App\Domains\Ai\Contracts\AiManager;
-use App\Domains\Ai\Jobs\RunAiOperation;
 use App\Domains\Ai\Models\AiDraft;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Models\AiTask;
 use App\Domains\Ai\Services\AiCreditService;
+use App\Domains\Ai\Services\AiImageService;
 use App\Domains\Ai\Services\AiLimits;
 use App\Domains\Ai\Services\AiSettings;
+use App\Domains\Ai\Services\AiUsageReservations;
+use App\Domains\Ai\Services\AiUsageSummary;
 use App\Domains\Ai\Support\AiFeatureRegistry;
 use App\Domains\Ai\Support\StorefrontDirection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AiController extends Controller
@@ -110,36 +111,34 @@ class AiController extends Controller
         return response()->json(['brand_color' => $brandColor, 'accent_color' => $accentColor, 'draft_id' => $draft->id, 'approval_required' => true]);
     }
 
-    public function suggestPhotoGroups(Request $request, AiManager $ai): JsonResponse
+    public function suggestPhotoGroups(Request $request, AiManager $ai, AiImageService $images): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
         $this->limits->throttle($page);
+        $imageLimit = $this->limits->imageLimit($page);
         $data = $request->validate([
             'feature' => ['required', 'in:products,services'],
-            'photos' => ['required', 'array', 'min:2', 'max:12'],
+            'photos' => ['required', 'array', 'min:2', 'max:'.$imageLimit],
             'photos.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ], [
+            'photos.max' => __('ai.image_limit', ['limit' => $imageLimit]),
         ]);
-        abort_if(
-            count($data['photos']) > $this->limits->maxPhotoItems(),
-            422,
-            'This task can process at most '.$this->limits->maxPhotoItems().' photos at a time.'
-        );
+        $this->limits->assertImageCount($page, count($data['photos']));
         AiFeatureRegistry::authorize($page, $data['feature']);
 
-        $paths = [];
+        $relativePaths = [];
         try {
             foreach ($data['photos'] as $photo) {
-                $relativePath = $photo->store('ai/listing-inputs', 'local');
-                $paths[] = Storage::disk('local')->path($relativePath);
+                $relativePaths[] = $images->stage($photo, $page, 'grouping');
             }
 
-            $result = $ai->run('listing_photo_grouping', ['feature' => $data['feature'], 'photo_count' => count($paths), 'media_paths' => $paths], $page);
+            $result = $ai->run('listing_photo_grouping', [
+                'feature' => $data['feature'],
+                'photo_count' => count($relativePaths),
+                'media_relative_paths' => $relativePaths,
+            ], $page);
         } finally {
-            foreach ($paths as $path) {
-                if (is_string($path) && is_file($path)) {
-                    unlink($path);
-                }
-            }
+            $images->deleteMany($relativePaths);
         }
 
         $groups = collect($result['groups'] ?? [])->map(fn (array $group): array => collect($group)->map(fn (string|int $index): int => (int) $index)->filter(fn (int $index): bool => $index >= 1 && $index <= count($data['photos']))->values()->all())->filter()->values()->all();
@@ -149,6 +148,14 @@ class AiController extends Controller
         }
 
         return response()->json(['groups' => $groups, 'reason' => $result['reason'] ?? null]);
+    }
+
+    public function usage(Request $request, AiUsageSummary $usage): JsonResponse
+    {
+        $page = $request->user()->storePages()->firstOrFail();
+        $this->limits->throttle($page);
+
+        return response()->json($usage->forPage($page));
     }
 
     public function estimate(Request $request, AiCreditService $credits): JsonResponse
@@ -182,16 +189,36 @@ class AiController extends Controller
         $slots = $this->limits->availableSlots($page);
         abort_if($slots < 1, 429, 'This store already has the maximum number of Mercho tasks running. Wait for one to finish and try again.');
         $allowed = min($estimate['allowed'], $slots, $this->limits->maxBatchItems());
+        abort_if($allowed < 1, 429, 'This store has reached its monthly Mercho limit for listing copy.');
+
+        $aiTask = AiTask::create([
+            'seller_id' => $request->user()->id,
+            'store_page_id' => $page->id,
+            'type' => $data['feature'] === 'products' ? 'products' : 'services',
+            'status' => 'queued',
+            'total' => $allowed,
+        ]);
+
         $operations = [];
 
         foreach (array_slice($data['items'], 0, $allowed) as $index => $item) {
-            $operation = AiOperation::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'task' => $task, 'status' => 'queued', 'input' => ['feature' => $data['feature'], 'batch_index' => $index, ...$item]]);
-            RunAiOperation::dispatch($operation);
+            $operation = AiOperation::create([
+                'seller_id' => $request->user()->id,
+                'store_page_id' => $page->id,
+                'ai_task_id' => $aiTask->id,
+                'task' => $task,
+                'status' => 'queued',
+                'input' => ['feature' => $data['feature'], 'batch_index' => $index, ...$item],
+            ]);
+            app(AiUsageReservations::class)->reserveAndDispatch($operation);
             $operations[] = ['id' => $operation->id, 'status' => $operation->status, 'index' => $index];
         }
 
+        $aiTask->update(['status' => 'processing', 'started_at' => now()]);
+
         return response()->json([
             'operations' => $operations,
+            'task_id' => $aiTask->id,
             'estimate' => $estimate,
             'limit_reached' => $allowed < count($data['items']),
             'upgrade_required' => $allowed < count($data['items']),
@@ -240,35 +267,34 @@ class AiController extends Controller
         $estimate = app(AiCreditService::class)->estimate($page, 1, $data['task']);
         abort_if($estimate['allowed'] < 1, 429, 'This store has reached its monthly Mercho limit for '.AiSettings::taskLabel($data['task']).'.');
         $operation = AiOperation::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'task' => $data['task'], 'status' => 'queued', 'input' => ['feature' => $data['feature'], ...$data['input']]]);
-        RunAiOperation::dispatch($operation);
+        app(AiUsageReservations::class)->reserveAndDispatch($operation);
 
         return response()->json(['operation_id' => $operation->id, 'status' => $operation->status, 'estimate' => $estimate], 202);
     }
 
-    public function photoListing(Request $request, AiCreditService $credits): JsonResponse
+    public function photoListing(Request $request, AiCreditService $credits, AiImageService $images): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
+        $imageLimit = $this->limits->imageLimit($page);
         $data = $request->validate([
             'feature' => ['required', 'in:products,services'],
             'hint' => ['nullable', 'string', 'max:500'],
             'group' => ['sometimes', 'boolean'],
             'groups' => ['nullable', 'string'],
-            'photos' => ['required', 'array', 'min:1', 'max:12'],
+            'photos' => ['required', 'array', 'min:1', 'max:'.$imageLimit],
             'photos.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ], [
+            'photos.max' => __('ai.image_limit', ['limit' => $imageLimit]),
         ]);
+        $this->limits->assertImageCount($page, count($data['photos']));
         AiFeatureRegistry::authorize($page, $data['feature']);
         $this->limits->throttle($page);
-        abort_if(
-            count($data['photos']) > $this->limits->maxPhotoItems(),
-            422,
-            'This task can process at most '.$this->limits->maxPhotoItems().' photos at a time.'
-        );
 
         $taskType = $data['feature'] === 'products' ? 'listing_from_photo' : 'service_listing';
-        $groups = $this->photoGroups($data['groups'] ?? null, count($data['photos']));
+        $groups = $this->photoGroups($data['groups'] ?? null, count($data['photos']), $imageLimit);
         $requested = $groups !== null ? count($groups) : (($data['group'] ?? false) ? 1 : count($data['photos']));
         $estimate = $credits->estimate($page, $requested, $taskType);
-        $allowed = min($estimate['allowed'], $this->limits->availableSlots($page), $this->limits->maxPhotoItems());
+        $allowed = min($estimate['allowed'], $this->limits->availableSlots($page), $imageLimit);
         abort_if($allowed < 1, 429, 'This store already has the maximum number of Mercho tasks running. Wait for one to finish and try again.');
 
         $photos = $groups !== null
@@ -276,48 +302,37 @@ class AiController extends Controller
             : (($data['group'] ?? false) ? $data['photos'] : array_slice($data['photos'], 0, $allowed));
         $operations = [];
 
-        $storedPaths = [];
         $storedRelative = [];
         foreach ($photos as $photo) {
-            $relative = $photo->store('ai/listing-inputs', 'public');
-            $storedRelative[] = $relative;
-            $storedPaths[] = Storage::disk('public')->path($relative);
+            $storedRelative[] = $images->stage($photo, $page);
         }
         $relativeGroups = $groups !== null
             ? collect(array_slice($groups, 0, $allowed))->map(fn (array $group): array => collect($group)->map(fn (int $index): string => $storedRelative[$index - 1])->all())->all()
             : (($data['group'] ?? false) ? [$storedRelative] : array_map(fn (string $path): array => [$path], $storedRelative));
-        $photoGroups = $groups !== null
-            ? collect(array_slice($groups, 0, $allowed))->map(fn (array $group): array => collect($group)->map(fn (int $index): string => $storedPaths[$index - 1])->all())->all()
-            : (($data['group'] ?? false) ? [$storedPaths] : array_map(fn (string $path): array => [$path], $storedPaths));
 
         $aiTask = AiTask::create([
             'seller_id' => $request->user()->id,
             'store_page_id' => $page->id,
             'type' => $data['feature'] === 'products' ? 'products' : 'services',
             'status' => 'queued',
-            'total' => count($photoGroups),
+            'total' => count($relativeGroups),
         ]);
 
-        $usedPaths = [];
-        foreach ($photoGroups as $index => $photoGroup) {
-            $usedPaths = [...$usedPaths, ...$photoGroup];
+        $usedRelative = [];
+        foreach ($relativeGroups as $index => $relativeGroup) {
+            $usedRelative = [...$usedRelative, ...$relativeGroup];
             $operation = AiOperation::create([
                 'seller_id' => $request->user()->id,
                 'store_page_id' => $page->id,
                 'task' => $taskType,
                 'status' => 'queued',
-                'input' => ['feature' => $data['feature'], 'hint' => $data['hint'] ?? null, 'batch_index' => $index, 'media_paths' => $photoGroup, 'media_relative_paths' => $relativeGroups[$index] ?? []],
+                'input' => ['feature' => $data['feature'], 'hint' => $data['hint'] ?? null, 'batch_index' => $index, 'media_relative_paths' => $relativeGroup],
                 'ai_task_id' => $aiTask->id,
             ]);
-            RunAiOperation::dispatch($operation);
+            app(AiUsageReservations::class)->reserveAndDispatch($operation);
             $operations[] = ['id' => $operation->id, 'status' => $operation->status, 'index' => $index];
         }
-        foreach (array_diff($storedPaths, array_unique($usedPaths)) as $unusedPath) {
-            $relative = ltrim(str_replace(Storage::disk('public')->path(''), '', $unusedPath), '/');
-            if (Storage::disk('public')->exists($relative)) {
-                Storage::disk('public')->delete($relative);
-            }
-        }
+        $images->deleteMany(array_values(array_diff($storedRelative, array_unique($usedRelative))));
 
         $aiTask->update(['status' => 'processing', 'started_at' => now()]);
 
@@ -335,7 +350,10 @@ class AiController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         $operation = AiOperation::query()->where('store_page_id', $page->id)->where('status', 'failed')->findOrFail($operation);
         $operation->update(['status' => 'queued', 'error' => null, 'started_at' => null, 'completed_at' => null]);
-        RunAiOperation::dispatch($operation);
+        app(AiUsageReservations::class)->reserveAndDispatch($operation);
+        if ($operation->ai_task_id) {
+            AiTask::find($operation->ai_task_id)?->refreshProgress();
+        }
 
         return response()->json(['operation' => $operation->fresh()], 202);
     }
@@ -352,8 +370,10 @@ class AiController extends Controller
         return response()->json(['operation' => $operation, 'draft_id' => $draft?->id]);
     }
 
-    /** @return list<list<int>>|null */
-    private function photoGroups(?string $encodedGroups, int $photoCount): ?array
+    /**
+     * @return list<list<int>>|null
+     */
+    private function photoGroups(?string $encodedGroups, int $photoCount, int $imageLimit): ?array
     {
         if (blank($encodedGroups)) {
             return null;
@@ -364,7 +384,7 @@ class AiController extends Controller
             throw ValidationException::withMessages(['groups' => 'Photo groups are invalid.']);
         }
 
-        validator(['groups' => $groups], ['groups' => ['required', 'array', 'min:1', 'max:12'], 'groups.*' => ['required', 'array', 'min:1', 'max:12'], 'groups.*.*' => ['integer', 'min:1', 'max:'.$photoCount]])->validate();
+        validator(['groups' => $groups], ['groups' => ['required', 'array', 'min:1', 'max:'.$imageLimit], 'groups.*' => ['required', 'array', 'min:1', 'max:'.$photoCount], 'groups.*.*' => ['integer', 'min:1', 'max:'.$photoCount]])->validate();
 
         return array_map(fn (array $group): array => array_values(array_unique(array_map('intval', $group))), $groups);
     }

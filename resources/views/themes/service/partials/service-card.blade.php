@@ -29,7 +29,7 @@
 
     <div class="plate-media h-full">
       @if ($service->image_path)
-        <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
+        <img src="{{ $service->imageUrl() }}"
              alt="{{ $service->name }}"
              width="800"
              height="600"

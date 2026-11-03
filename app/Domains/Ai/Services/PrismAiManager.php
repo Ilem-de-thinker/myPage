@@ -9,6 +9,7 @@ use App\Domains\Analytics\Models\StoreEvent;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Prism\Prism\Enums\FinishReason;
@@ -72,10 +73,23 @@ class PrismAiManager implements AiManager
             : Prism::text();
 
         $media = [];
-        $mediaPaths = $input['media_paths'] ?? (isset($input['media_path']) ? [$input['media_path']] : []);
-        foreach ($mediaPaths as $mediaPath) {
-            if (filled($mediaPath) && File::exists($mediaPath)) {
-                $media[] = Image::fromLocalPath($mediaPath);
+        $mediaRelativePaths = array_values(array_filter((array) ($input['media_relative_paths'] ?? []), 'is_string'));
+
+        if ($mediaRelativePaths !== []) {
+            foreach ($mediaRelativePaths as $mediaPath) {
+                if (! Storage::disk('public')->exists($mediaPath)) {
+                    throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+                }
+
+                $media[] = Image::fromStoragePath($mediaPath, 'public');
+            }
+        } else {
+            // Older queued operations may still carry absolute local paths.
+            $mediaPaths = $input['media_paths'] ?? (isset($input['media_path']) ? [$input['media_path']] : []);
+            foreach ($mediaPaths as $mediaPath) {
+                if (filled($mediaPath) && File::exists($mediaPath)) {
+                    $media[] = Image::fromLocalPath($mediaPath);
+                }
             }
         }
 

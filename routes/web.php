@@ -226,6 +226,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::post('chat/{thread}/translate', [ChatController::class, 'translate'])->middleware('throttle:20,1')->name('dashboard.chat.translate');
         Route::post('chat-ai/toggle', [ChatController::class, 'toggleAi'])->name('dashboard.chat.ai-toggle');
         Route::get('ai', fn () => redirect()->route('dashboard'))->name('dashboard.ai.index');
+        Route::get('ai/usage', [AiController::class, 'usage'])->middleware('throttle:30,1')->name('dashboard.ai.usage');
         Route::get('ai/drafts', [AiDraftController::class, 'index'])->name('dashboard.ai.drafts');
         Route::get('ai/drafts/{draft}/versions', [AiDraftController::class, 'versions'])->name('dashboard.ai.drafts.versions');
         Route::post('ai/drafts/{draft}/approve', [AiDraftController::class, 'approve'])->name('dashboard.ai.drafts.approve');
@@ -269,6 +270,9 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::get('bookings/{booking}/reschedule', [RescheduleBookingController::class, 'show'])->name('bookings.reschedule.show');
         Route::post('bookings/{booking}/reschedule', [RescheduleBookingController::class, 'store'])->name('bookings.reschedule.store');
         Route::post('carousel/{slide}/move/{direction}', [CarouselSlideController::class, 'move'])->whereIn('direction', ['up', 'down'])->name('carousel.move');
+        Route::post('services/generate-descriptions', [ServiceController::class, 'generateDescriptions'])->name('services.generate-descriptions');
+        Route::post('services/apply-descriptions/{task}', [ServiceController::class, 'applyDescriptions'])->name('services.apply-descriptions');
+        Route::post('services/undo-descriptions/{task}', [ServiceController::class, 'undoDescriptions'])->name('services.undo-descriptions');
         Route::resource('services', ServiceController::class)->except(['show']);
         // Reviews. Moderation is the whole feature: nothing a customer writes
         // reaches the public page without passing through this queue.

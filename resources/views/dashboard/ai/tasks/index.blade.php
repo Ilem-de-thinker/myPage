@@ -12,7 +12,7 @@
                 @foreach ($tasks as $task)
                     <li class="rounded-xl border border-rule bg-card p-4 flex items-center justify-between">
                         <div>
-                            <p class="font-semibold">{{ ucfirst($task->type) }}</p>
+                            <p class="font-semibold">{{ $task->label() }}</p>
                             <p class="text-xs text-ink-3">{{ $task->status }} · {{ $task->completed }}/{{ $task->total }} done · {{ $task->failed }} failed</p>
                         </div>
                         <a href="{{ route('dashboard.ai.tasks.show', $task) }}" class="text-sm text-brand">View</a>

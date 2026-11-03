@@ -105,14 +105,16 @@ it('attaches draft photos to an approved product and keeps the files', function 
     $product = Product::query()->where('store_page_id', $page->id)->firstOrFail();
     $images = $product->images()->orderBy('position')->get();
 
+    $paths = $images->pluck('path')->all();
+
     expect($images)->toHaveCount(2)
-        ->and($images->pluck('path')->all())->toBe([
-            'ai/listing-inputs/first.jpg',
-            'ai/listing-inputs/second.jpg',
-        ])
+        ->and($paths[0])->toStartWith("products/{$product->id}/first-")
+        ->and($paths[1])->toStartWith("products/{$product->id}/second-")
         ->and($images->pluck('position')->all())->toBe([0, 1]);
 
     Queue::assertPushed(ProcessProductImage::class, 2);
+    // Staging is kept so the draft preview still has a file after the product
+    // copy is converted to WebP by ProcessProductImage.
     Storage::disk('public')->assertExists('ai/listing-inputs/first.jpg');
     Storage::disk('public')->assertExists('ai/listing-inputs/second.jpg');
     Storage::disk('public')->assertMissing('ai/listing-inputs/missing.jpg');
@@ -142,6 +144,7 @@ it('uses the first draft photo as an approved service image', function () {
 
     $service = Service::query()->where('store_page_id', $page->id)->firstOrFail();
 
-    expect($service->image_path)->toBe('ai/listing-inputs/service.jpg')
+    expect($service->image_path)->toStartWith("booking/{$page->id}/services/service-")
         ->and($service->is_active)->toBeFalse();
+    Storage::disk('public')->assertExists('ai/listing-inputs/service.jpg');
 });

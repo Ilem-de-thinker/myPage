@@ -14,10 +14,10 @@ use Illuminate\Database\Seeder;
  * quietly undo that edit and leave the local price disagreeing with what the
  * gateway actually charges — the one failure this arrangement exists to prevent.
  *
- * So descriptive fields (name, description, limits, trial) stay config's, and
- * the three fields money depends on — price, interval, gateway plan code — are
- * written once and then only by a human. Changing a price means changing it in
- * the admin panel; that is the point of the panel.
+ * So descriptive fields (name, description, product/staff limits, trial) stay
+ * config's, while money fields and Mercho allowances are written once and then
+ * only by a human. Changing a price or an AI limit means changing it in the
+ * admin panel; that is the point of the panel.
  */
 class PlanSeeder extends Seeder
 {
@@ -43,6 +43,8 @@ class PlanSeeder extends Seeder
                     'price_kobo' => $definition['price_kobo'],
                     'interval' => $definition['interval'] ?? 'monthly',
                     'gateway_plan_code' => $definition['gateway_plan_code'] ?? null,
+                    'ai_monthly_credits' => $definition['ai_monthly_credits'] ?? null,
+                    'ai_max_images_per_request' => $definition['ai_max_images_per_request'] ?? config('ai.limits.default_photo_items', 4),
                 ]);
             }
 

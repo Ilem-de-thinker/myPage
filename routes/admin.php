@@ -69,6 +69,7 @@ Route::name('admin.')->group(function () {
         Route::get('plans', [AdminController::class, 'plans'])->name('plans');
         Route::post('plans/{plan}/connect', [AdminController::class, 'createGatewayPlan'])->name('plans.connect');
         Route::post('plans/{plan}/price', [AdminController::class, 'updatePlanPrice'])->name('plans.price');
+        Route::post('plans/{plan}/limits', [AdminController::class, 'updatePlanLimits'])->name('plans.limits');
 
         Route::post('stores/{storePage}/grace', [AdminController::class, 'updateSubscriptionGrace'])->name('stores.grace');
     });

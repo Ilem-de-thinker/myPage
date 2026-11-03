@@ -51,7 +51,7 @@
                     <div class="plate aspect-[16/9] mb-6">
                         <div class="plate-media h-full">
                             @if ($service->image_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
+                                <img src="{{ $service->imageUrl() }}"
                                      alt="{{ $service->name }}"
                                      width="1200" height="675"
                                      fetchpriority="high" decoding="async"

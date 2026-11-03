@@ -510,6 +510,50 @@ class AdminController extends Controller
             : "{$plan->name} is now {$this->readable($plan, $priceKobo)}. Existing subscribers keep their price.");
     }
 
+    /**
+     * Change the Mercho allowances that belong to a plan.
+     *
+     * These are local-only limits, so there is no gateway call to sequence. The
+     * audit entry is written before the row changes, matching every other admin
+     * action, and a blank monthly allowance is stored as null: the explicit
+     * "unlimited" value used by the AI services.
+     */
+    public function updatePlanLimits(Plan $plan, Request $request, RecordAdminAction $audit): RedirectResponse
+    {
+        $data = $request->validate([
+            'ai_monthly_credits' => ['nullable', 'integer', 'min:0'],
+            'ai_max_images_per_request' => ['required', 'integer', 'min:1', 'max:'.config('ai.limits.absolute_max_photo_items', 20)],
+        ]);
+
+        $credits = $data['ai_monthly_credits'] === null ? null : (int) $data['ai_monthly_credits'];
+        $images = (int) $data['ai_max_images_per_request'];
+
+        if ($credits === $plan->ai_monthly_credits && $images === $plan->ai_max_images_per_request) {
+            return back()->with('status', 'Those are already the Mercho limits.');
+        }
+
+        $audit->handle(
+            $request->user(),
+            'plan.ai_limits.update',
+            $plan,
+            sprintf(
+                '%s: Mercho credits %s -> %s, images per request %s -> %s',
+                $plan->name,
+                $plan->ai_monthly_credits ?? 'unlimited',
+                $credits ?? 'unlimited',
+                $plan->ai_max_images_per_request,
+                $images,
+            ),
+        );
+
+        $plan->update([
+            'ai_monthly_credits' => $credits,
+            'ai_max_images_per_request' => $images,
+        ]);
+
+        return back()->with('status', "{$plan->name} Mercho limits updated.");
+    }
+
     private function readable(Plan $plan, int $priceKobo): string
     {
         return Money::format($priceKobo).' per '.rtrim($plan->interval, 'ly');

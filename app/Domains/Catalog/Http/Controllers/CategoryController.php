@@ -2,11 +2,11 @@
 
 namespace App\Domains\Catalog\Http\Controllers;
 
-use App\Domains\Ai\Jobs\RunAiOperation;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Models\AiTask;
 use App\Domains\Ai\Services\AiCreditService;
 use App\Domains\Ai\Services\AiLimits;
+use App\Domains\Ai\Services\AiUsageReservations;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Models\StorePage;
@@ -191,7 +191,7 @@ class CategoryController extends Controller
             ],
         ]);
         $task->update(['status' => 'processing', 'started_at' => now()]);
-        RunAiOperation::dispatch($operation);
+        app(AiUsageReservations::class)->reserveAndDispatch($operation);
 
         return redirect()->route('categories.index', ['task' => $task->id])->with('status', 'Generating categories in the background.');
     }

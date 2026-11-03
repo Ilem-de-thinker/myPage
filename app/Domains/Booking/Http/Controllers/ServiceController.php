@@ -2,6 +2,11 @@
 
 namespace App\Domains\Booking\Http\Controllers;
 
+use App\Domains\Ai\Models\AiOperation;
+use App\Domains\Ai\Models\AiTask;
+use App\Domains\Ai\Services\AiCreditService;
+use App\Domains\Ai\Services\AiLimits;
+use App\Domains\Ai\Services\AiUsageReservations;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Booking\Enums\BillingUnit;
 use App\Domains\Booking\Enums\DepositType;
@@ -115,6 +120,147 @@ class ServiceController extends Controller
         $service->update(['is_active' => false]);
 
         return back()->with('status', "{$name} is no longer offered. Its bookings were kept.");
+    }
+
+    public function generateDescriptions(Request $request): RedirectResponse
+    {
+        $page = $this->page($request);
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'tone' => ['nullable', Rule::in(['professional', 'friendly', 'playful', 'luxury', 'concise'])],
+            'length' => ['nullable', Rule::in(['short', 'medium', 'long'])],
+            'language' => ['nullable', Rule::in(['English', 'Nigerian Pidgin', 'Yoruba', 'Igbo', 'Hausa'])],
+            'overwrite' => ['sometimes', 'boolean'],
+        ]);
+
+        $limits = app(AiLimits::class);
+        $credits = app(AiCreditService::class);
+        $limits->throttle($page);
+        $limits->assertWithinTaskCap(count($data['ids']));
+        $limits->assertCanQueue($page, 1);
+        $estimate = $credits->estimate($page, count($data['ids']), 'description_generation');
+        $slots = $limits->availableSlots($page);
+        abort_if($slots < 1 || $estimate['allowed'] < 1, 429, 'This store has reached its monthly Mercho limit for descriptions.');
+
+        $allowed = min($estimate['allowed'], $slots, $limits->maxBatchItems());
+        $services = $page->services()
+            ->whereIn('id', array_slice($data['ids'], 0, $allowed))
+            ->orderBy('id')
+            ->get();
+        abort_if($services->isEmpty(), 422, 'Select at least one service from this store.');
+
+        $task = AiTask::create([
+            'seller_id' => $page->seller_id,
+            'store_page_id' => $page->id,
+            'type' => 'service_descriptions',
+            'status' => 'queued',
+            'total' => $services->count(),
+        ]);
+
+        foreach ($services as $service) {
+            $operation = AiOperation::create([
+                'seller_id' => $page->seller_id,
+                'store_page_id' => $page->id,
+                'ai_task_id' => $task->id,
+                'task' => 'description_generation',
+                'status' => 'queued',
+                'input' => [
+                    'feature' => 'service_descriptions',
+                    '_no_draft' => true,
+                    'item' => [
+                        'name' => $service->name,
+                        'price' => $service->price_kobo / 100,
+                        'duration' => $service->duration_min,
+                        'attributes' => $service->ai_metadata,
+                    ],
+                    'options' => [
+                        'tone' => $data['tone'] ?? 'professional',
+                        'length' => $data['length'] ?? 'medium',
+                        'language' => $data['language'] ?? 'English',
+                        'overwrite' => $request->boolean('overwrite'),
+                    ],
+                    'service_id' => $service->id,
+                ],
+            ]);
+            app(AiUsageReservations::class)->reserveAndDispatch($operation);
+        }
+
+        $task->update(['status' => 'processing', 'started_at' => now()]);
+
+        return redirect()->route('dashboard.ai.tasks.show', $task)->with('status', 'Generating service descriptions in the background.');
+    }
+
+    public function applyDescriptions(Request $request, int $task): RedirectResponse
+    {
+        $page = $this->page($request);
+        $taskModel = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
+        $previous = [];
+        $previousMetadata = [];
+
+        foreach ($taskModel->operations()->where('status', 'succeeded')->get() as $operation) {
+            $serviceId = $operation->input['service_id'] ?? null;
+            $service = $serviceId ? $page->services()->find($serviceId) : null;
+            if (! $service) {
+                continue;
+            }
+
+            $output = $operation->output ?? [];
+            $overwrite = $operation->input['options']['overwrite'] ?? false;
+            if (! $overwrite && filled($service->description)) {
+                continue;
+            }
+            if (blank($output['description'] ?? null)) {
+                continue;
+            }
+
+            $previous[$service->id] = $service->description;
+            $previousMetadata[$service->id] = $service->ai_metadata;
+            $metadata = $service->ai_metadata ?? [];
+            $metadata['seo'] = [
+                'title' => $output['seo_title'] ?? ($metadata['seo']['title'] ?? null),
+                'description' => $output['seo_description'] ?? ($metadata['seo']['description'] ?? null),
+            ];
+            $metadata['ai_description'] = [
+                'insufficient_info' => $output['insufficient_info'] ?? null,
+                'flags' => array_values((array) ($output['flags'] ?? [])),
+            ];
+            $service->update([
+                'description' => Html::sanitize($output['description']),
+                'ai_metadata' => $metadata,
+            ]);
+        }
+
+        $taskModel->update([
+            'summary' => array_merge($taskModel->summary ?? [], [
+                'previous_service_descriptions' => $previous,
+                'previous_service_ai_metadata' => $previousMetadata,
+            ]),
+        ]);
+
+        return redirect()->route('services.index')->with('status', 'Service descriptions applied. Review them, or undo from the task page.');
+    }
+
+    public function undoDescriptions(Request $request, int $task): RedirectResponse
+    {
+        $page = $this->page($request);
+        $taskModel = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
+        $previous = $taskModel->summary['previous_service_descriptions'] ?? [];
+        $previousMetadata = $taskModel->summary['previous_service_ai_metadata'] ?? [];
+
+        foreach ($previous as $serviceId => $description) {
+            $page->services()->whereKey($serviceId)->update([
+                'description' => $description,
+                'ai_metadata' => $previousMetadata[$serviceId] ?? null,
+            ]);
+        }
+
+        $taskModel->update(['summary' => array_merge($taskModel->summary ?? [], [
+            'previous_service_descriptions' => [],
+            'previous_service_ai_metadata' => [],
+        ])]);
+
+        return redirect()->route('services.index')->with('status', 'Service descriptions restored.');
     }
 
     /**

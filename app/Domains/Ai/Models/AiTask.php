@@ -18,6 +18,11 @@ class AiTask extends Model
         return ['summary' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime'];
     }
 
+    public function label(): string
+    {
+        return str_replace('_', ' ', ucfirst($this->type));
+    }
+
     public function operations(): HasMany
     {
         return $this->hasMany(AiOperation::class, 'ai_task_id');

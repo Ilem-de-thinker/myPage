@@ -96,6 +96,10 @@
               @if ($plan->trial_days)
                 <p class="mt-0.5 text-ink-3">{{ $plan->trial_days }}-day trial</p>
               @endif
+              <p class="mt-1 text-ink-3">
+                {{ $plan->ai_monthly_credits === null ? 'Unlimited Mercho credits' : $plan->ai_monthly_credits.' Mercho credits / month' }}
+              </p>
+              <p class="mt-0.5 text-ink-3">{{ $plan->ai_max_images_per_request }} photos per Mercho request</p>
             </td>
 
             <td class="block px-0 py-2 md:table-cell md:px-4 md:py-4">
@@ -134,6 +138,32 @@
                     <button class="w-full rounded-xl border border-rule px-4 py-2.5 text-xs font-semibold text-ink-2 hover:bg-surface"
                             @if ($linked) onclick="return confirm('Change the price to this amount?')" @endif>
                       Save price
+                    </button>
+                  </form>
+                </details>
+
+                <details class="group">
+                  <summary class="cursor-pointer list-none rounded-xl border border-rule px-4 py-2 text-center text-xs font-semibold text-ink-2 hover:bg-surface">Change Mercho limits</summary>
+                  <form method="POST" action="{{ route('admin.plans.limits', $plan) }}" class="mt-2 min-w-64 space-y-2">
+                    @csrf
+                    <div>
+                      <label for="ai-credits-{{ $plan->slug }}" class="block text-[11px] font-semibold text-ink-3">Monthly Mercho credits</label>
+                      <input id="ai-credits-{{ $plan->slug }}" name="ai_monthly_credits" type="number" min="0" step="1"
+                             value="{{ old('ai_monthly_credits', $plan->ai_monthly_credits) }}"
+                             placeholder="Leave blank for unlimited"
+                             class="mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                      @error('ai_monthly_credits') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                      <label for="ai-images-{{ $plan->slug }}" class="block text-[11px] font-semibold text-ink-3">Photos per request</label>
+                      <input id="ai-images-{{ $plan->slug }}" name="ai_max_images_per_request" type="number" min="1"
+                             max="{{ config('ai.limits.absolute_max_photo_items', 20) }}" step="1"
+                             value="{{ old('ai_max_images_per_request', $plan->ai_max_images_per_request) }}"
+                             class="mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                      @error('ai_max_images_per_request') <p class="mt-1 text-[11px] text-danger-text">{{ $message }}</p> @enderror
+                    </div>
+                    <button class="w-full rounded-xl border border-rule px-4 py-2.5 text-xs font-semibold text-ink-2 hover:bg-surface">
+                      Save Mercho limits
                     </button>
                   </form>
                 </details>

@@ -24,6 +24,8 @@ class PlanFactory extends Factory
             'trial_days' => 14,
             'max_products' => 100,
             'max_staff' => null,
+            'ai_monthly_credits' => 100,
+            'ai_max_images_per_request' => 8,
             'is_default' => false,
             'is_featured' => false,
             'is_active' => true,

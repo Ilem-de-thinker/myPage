@@ -11,7 +11,11 @@ return [
     'limits' => [
         'requests_per_minute' => (int) env('AI_REQUESTS_PER_MINUTE', 30),
         'max_batch_items' => (int) env('AI_MAX_BATCH_ITEMS', 25),
-        'max_photo_items' => (int) env('AI_MAX_PHOTO_ITEMS', 12),
+        'max_photo_items' => (int) env('AI_MAX_PHOTO_ITEMS', 20),
+        'absolute_max_photo_items' => (int) env('AI_ABSOLUTE_MAX_PHOTO_ITEMS', 20),
+        'default_photo_items' => (int) env('AI_DEFAULT_PHOTO_ITEMS', 4),
+        'fallback_monthly_credits' => (int) env('AI_FALLBACK_MONTHLY_CREDITS', 25),
+        'reservation_ttl_minutes' => (int) env('AI_RESERVATION_TTL_MINUTES', 30),
         'max_active_operations' => (int) env('AI_MAX_ACTIVE_OPERATIONS', 50),
     ],
     'default_timeout' => (int) env('AI_DEFAULT_TIMEOUT', 30),
@@ -27,9 +31,9 @@ return [
         'timeout' => (int) env('AI_EMBEDDINGS_TIMEOUT', 20),
     ],
     'plans' => [
-        'free' => ['monthly_credits' => (int) env('AI_FREE_MONTHLY_CREDITS', 25)],
-        'trial' => ['monthly_credits' => (int) env('AI_TRIAL_MONTHLY_CREDITS', 50)],
-        'paid' => ['monthly_credits' => (int) env('AI_PAID_MONTHLY_CREDITS', 500)],
+        'free' => ['monthly_credits' => (int) env('AI_FREE_MONTHLY_CREDITS', 25), 'max_images_per_request' => 4],
+        'trial' => ['monthly_credits' => (int) env('AI_TRIAL_MONTHLY_CREDITS', 50), 'max_images_per_request' => 4],
+        'paid' => ['monthly_credits' => (int) env('AI_PAID_MONTHLY_CREDITS', 500), 'max_images_per_request' => 8],
     ],
     'tasks' => [
         'site_builder' => ['provider' => env('AI_SITE_BUILDER_PROVIDER', 'groq'), 'model' => env('AI_SITE_BUILDER_MODEL', 'openai/gpt-oss-120b'), 'temperature' => 0.2, 'max_tokens' => 3000, 'timeout' => 60, 'structured' => true, 'structured_mode' => env('AI_SITE_BUILDER_STRUCTURED_MODE', 'auto'), 'provider_options' => ['schema' => ['strict' => true]], 'prompt_version' => 'v1', 'fallback' => [['provider' => 'groq', 'model' => 'openai/gpt-oss-20b']]],

@@ -44,7 +44,7 @@
 
                 @if ($editing && $service->image_path)
                     <div class="mt-2 flex items-center gap-4">
-                        <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
+                        <img src="{{ $service->imageUrl() }}"
                              alt="{{ $service->name }}" class="h-24 w-24 rounded-xl object-cover">
                         <label class="flex items-center gap-2 text-xs text-ink-2">
                             <input type="checkbox" name="remove_image" value="1" class="rounded border-rule-strong">

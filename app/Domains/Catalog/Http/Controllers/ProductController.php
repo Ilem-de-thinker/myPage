@@ -2,11 +2,11 @@
 
 namespace App\Domains\Catalog\Http\Controllers;
 
-use App\Domains\Ai\Jobs\RunAiOperation;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Models\AiTask;
 use App\Domains\Ai\Services\AiCreditService;
 use App\Domains\Ai\Services\AiLimits;
+use App\Domains\Ai\Services\AiUsageReservations;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
 use App\Domains\Catalog\Actions\AdjustStock;
 use App\Domains\Catalog\Enums\DeliveryMode;
@@ -215,7 +215,7 @@ class ProductController extends Controller
                     'product_id' => $product->id,
                 ],
             ]);
-            RunAiOperation::dispatch($operation);
+            app(AiUsageReservations::class)->reserveAndDispatch($operation);
         }
         $task->update(['status' => 'processing', 'started_at' => now()]);
 

@@ -19,7 +19,7 @@
         @forelse ($services as $service)
             <div class="flex flex-wrap items-center gap-3 border-b border-rule px-4 py-3 last:border-0 hover:bg-surface/60">
                 @if ($service->image_path)
-                    <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
+                    <img src="{{ $service->imageUrl() }}"
                          alt="{{ $service->name }}" class="h-12 w-12 shrink-0 rounded-xl object-cover">
                 @else
                     {{-- No photo yet: the initial stands in, so the row is not a
@@ -58,6 +58,11 @@
                     @endif
                 </div>
 
+                <form method="POST" action="{{ route('services.generate-descriptions') }}">
+                    @csrf
+                    <input type="hidden" name="ids[]" value="{{ $service->id }}">
+                    <button class="text-xs font-semibold text-brand">Write description</button>
+                </form>
                 <a href="{{ route('services.edit', $service) }}" class="text-xs font-semibold text-brand">Edit</a>
             </div>
         @empty

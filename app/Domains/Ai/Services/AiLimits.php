@@ -5,9 +5,12 @@ namespace App\Domains\Ai\Services;
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Seller\Models\StorePage;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 class AiLimits
 {
+    public function __construct(private readonly AiPlanLimits $plans) {}
+
     public function throttle(StorePage $page): void
     {
         $key = $this->key($page);
@@ -62,9 +65,55 @@ class AiLimits
         return max(1, (int) config('ai.limits.max_batch_items', 25));
     }
 
+    /**
+     * The effective per-request image allowance.
+     *
+     * The plan supplies the product decision, while the absolute and legacy
+     * caps protect the provider from a misconfigured plan row. Keeping the
+     * legacy cap means an installation that already tuned AI_MAX_PHOTO_ITEMS
+     * can still lower the ceiling without editing every plan.
+     */
+    public function imageLimit(StorePage $page): int
+    {
+        return max(1, min(
+            $this->plans->imageLimit($page),
+            $this->absoluteMaxPhotoItems(),
+            $this->maxPhotoItems(),
+        ));
+    }
+
+    /**
+     * Reject an upload before any file is staged.
+     *
+     * Runs separately from Laravel's `max` rule so the response is a normal
+     * field error and can point the merchant at an upgrade instead of exposing
+     * a raw provider-facing limit.
+     */
+    public function assertImageCount(StorePage $page, int $count): void
+    {
+        $limit = $this->imageLimit($page);
+
+        if ($count <= $limit) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'photos' => __('ai.image_limit', ['limit' => $limit]),
+        ]);
+    }
+
+    /**
+     * Legacy global ceiling. New code should use imageLimit(), which folds in
+     * the plan allowance as well.
+     */
     public function maxPhotoItems(): int
     {
-        return max(1, (int) config('ai.limits.max_photo_items', 12));
+        return max(1, (int) config('ai.limits.max_photo_items', 20));
+    }
+
+    private function absoluteMaxPhotoItems(): int
+    {
+        return max(1, (int) config('ai.limits.absolute_max_photo_items', 20));
     }
 
     public function maxActiveOperations(): int

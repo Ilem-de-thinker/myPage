@@ -22,11 +22,11 @@ class ProductImage extends Model
 
     public function url(): string
     {
-        return Storage::url($this->path);
+        return Storage::disk('public')->url($this->path);
     }
 
     public function thumbnailUrl(): string
     {
-        return Storage::url($this->thumbnail_path ?: $this->path);
+        return Storage::disk('public')->url($this->thumbnail_path ?: $this->path);
     }
 }

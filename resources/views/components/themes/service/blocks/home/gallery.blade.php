@@ -27,7 +27,7 @@
         <a href="{{ \App\Shared\Support\StoreUrl::path('storefront.service', ['slug' => $page->slug, 'serviceSlug' => $service->slug]) }}"
            class="plate group block">
           <div class="plate-media bg-[var(--brand-wash)]">
-            <img src="{{ \Illuminate\Support\Facades\Storage::url($service->image_path) }}"
+            <img src="{{ $service->imageUrl() }}"
                  alt="{{ $service->name }}" width="600" height="600" class="aspect-square w-full object-cover" loading="lazy" decoding="async">
           </div>
           <p class="t-title mt-3">{{ $service->name }}</p>

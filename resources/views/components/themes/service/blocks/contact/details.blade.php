@@ -309,7 +309,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3">
         <div class="plate aspect-[4/3] md:aspect-auto">
           <div class="plate-media h-full">
-            <img src="{{ \Illuminate\Support\Facades\Storage::url($showroom[0]->image_path) }}"
+            <img src="{{ $showroom[0]->imageUrl() }}"
                  loading="lazy"
                  alt="{{ $showroom[0]->name }}"
                  class="w-full h-full object-cover">
@@ -318,7 +318,7 @@
 
         <div class="plate aspect-[4/3] md:aspect-auto border-t md:border-t-0 md:border-x border-[var(--rule)]">
           <div class="plate-media h-full">
-            <img src="{{ \Illuminate\Support\Facades\Storage::url($showroom[1]->image_path) }}"
+            <img src="{{ $showroom[1]->imageUrl() }}"
                  loading="lazy"
                  alt="{{ $showroom[1]->name }}"
                  class="w-full h-full object-cover">

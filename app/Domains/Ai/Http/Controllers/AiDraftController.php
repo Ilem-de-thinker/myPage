@@ -4,6 +4,7 @@ namespace App\Domains\Ai\Http\Controllers;
 
 use App\Domains\Ai\Contracts\AiManager;
 use App\Domains\Ai\Models\AiDraft;
+use App\Domains\Ai\Services\AiImageService;
 use App\Domains\Ai\Support\AiFeatureRegistry;
 use App\Domains\Ai\Support\StorefrontDirection;
 use App\Domains\Billing\Services\SubscriptionEntitlements;
@@ -15,18 +16,20 @@ use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AiDraftController extends Controller
 {
+    public function __construct(private readonly AiImageService $images) {}
+
     public function index(Request $request): JsonResponse|View
     {
         $page = $request->user()->storePages()->firstOrFail();
@@ -163,6 +166,7 @@ class AiDraftController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
         $draft = AiDraft::query()->where('store_page_id', $page->id)->where('status', 'pending')->findOrFail($draft);
+        $this->images->deleteDraftMedia($draft);
         $draft->update(['status' => 'rejected', 'rejected_at' => now(), 'reviewed_by' => $request->user()->id]);
 
         return response()->json(['draft' => $draft]);
@@ -201,6 +205,7 @@ class AiDraftController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
         $draft = AiDraft::query()->where('store_page_id', $page->id)->where('status', 'pending')->findOrFail($draft);
+        $this->images->deleteDraftMedia($draft);
         $draft->update(['status' => 'discarded', 'rejected_at' => now(), 'reviewed_by' => $request->user()->id]);
 
         return response()->json(['draft' => $draft]);
@@ -214,9 +219,20 @@ class AiDraftController extends Controller
         abort_unless(is_string($feature), 422, 'This draft cannot be regenerated here.');
         AiFeatureRegistry::authorize($page, $feature);
         $task = AiFeatureRegistry::get($feature)['task'];
-        $result = $ai->run($task, ['text' => trim(($draft->payload['name'] ?? '')."\n".($draft->payload['description'] ?? ''))], $page);
+        $media = array_values(array_filter((array) ($draft->payload['_media_relative_paths'] ?? []), 'is_string'));
+        $input = ['text' => trim(($draft->payload['name'] ?? '')."\n".($draft->payload['description'] ?? ''))];
+        if ($media !== []) {
+            $input['media_relative_paths'] = $media;
+        }
+
+        $result = $ai->run($task, $input, $page);
+        $payload = [...(is_array($result) ? $result : ['text' => $result]), '_feature' => $feature];
+        if ($media !== []) {
+            $payload['_media_relative_paths'] = $media;
+        }
+
         $previous = $draft->parent_id ?: $draft->id;
-        $newDraft = AiDraft::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'parent_id' => $previous, 'task' => $task, 'version' => $draft->version + 1, 'status' => 'pending', 'payload' => [...(is_array($result) ? $result : ['text' => $result]), '_feature' => $feature]]);
+        $newDraft = AiDraft::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'ai_task_id' => $draft->ai_task_id, 'parent_id' => $previous, 'task' => $task, 'version' => $draft->version + 1, 'status' => 'pending', 'payload' => $payload]);
 
         return response()->json(['draft' => $newDraft]);
     }
@@ -295,36 +311,61 @@ class AiDraftController extends Controller
                 $categoryId = $category->id;
             }
             $priceRaw = $draft->payload['price'] ?? $draft->payload['price_hint'] ?? 0;
-            $priceKobo = (int) round((float) preg_replace('/[^0-9.]/', '', (string) $priceRaw) * 100);
+            $priceKobo = Money::toKobo($priceRaw);
 
             $relativePaths = array_values(array_filter((array) ($draft->payload['_media_relative_paths'] ?? [])));
             $created = DB::transaction(function () use ($feature, $page, $request, $draft, $name, $description, $categoryId, $priceKobo): ?Model {
                 if ($feature === 'products') {
                     return Product::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'category_id' => $categoryId, 'name' => $name, 'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)), 'description' => $description, 'ai_metadata' => $draft->payload, 'price_kobo' => $priceKobo, 'sku' => 'AI-'.strtoupper(Str::random(8)), 'status' => 'draft', 'stock_qty' => 0]);
                 } elseif ($feature === 'services') {
-                    return Service::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $name, 'description' => $description, 'ai_metadata' => $draft->payload, 'duration_min' => 60, 'price_kobo' => $priceKobo, 'deposit_type' => DepositType::None, 'deposit_value' => 0, 'billing_unit' => BillingUnit::PerProject, 'is_active' => false, 'position' => $page->services()->count()]);
+                    return Service::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'name' => $name, 'description' => $description, 'ai_metadata' => $draft->payload, 'duration_min' => $this->durationMinutes($draft->payload['duration'] ?? null), 'price_kobo' => $priceKobo, 'deposit_type' => DepositType::None, 'deposit_value' => 0, 'billing_unit' => BillingUnit::PerProject, 'is_active' => false, 'position' => $page->services()->count()]);
                 }
 
                 return null;
             });
-            if ($created !== null && $feature === 'products' && $relativePaths !== []) {
+            if ($created instanceof Product && $relativePaths !== []) {
                 foreach (array_values($relativePaths) as $i => $relativePath) {
-                    if (! is_string($relativePath) || ! Storage::disk('public')->exists($relativePath)) {
+                    if (! is_string($relativePath)) {
                         continue;
                     }
-                    $image = $created->images()->create(['path' => $relativePath, 'position' => $i]);
-                    ProcessProductImage::dispatch($image->getKey());
+
+                    $image = $this->images->attachToProduct($created, $relativePath, $i);
+                    if ($image) {
+                        ProcessProductImage::dispatch($image->getKey());
+                    }
                 }
             }
-            if ($created !== null && $feature === 'services' && $relativePaths !== []) {
+            if ($created instanceof Service && $relativePaths !== []) {
                 $first = $relativePaths[0] ?? null;
-                if (is_string($first) && Storage::disk('public')->exists($first)) {
-                    $created->update(['image_path' => $first]);
+                if (is_string($first)) {
+                    $target = $this->images->attachToService($created, $first);
+                    if ($target !== null) {
+                        $created->update(['image_path' => $target]);
+                    }
                 }
             }
             $draft->update(['applied_type' => $created?->getMorphClass() ?? null, 'applied_id' => $created?->getKey()]);
         }
         $draft->update(['status' => 'approved', 'approved_at' => now(), 'reviewed_by' => $request->user()->id]);
+    }
+
+    private function durationMinutes(mixed $value, int $default = 60): int
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return $default;
+        }
+
+        $text = mb_strtolower(trim((string) $value));
+        if (! preg_match('/(\d+(?:\.\d+)?)/', $text, $matches)) {
+            return $default;
+        }
+
+        $minutes = (int) round((float) $matches[1]);
+        if (str_contains($text, 'hour') || str_contains($text, 'hr')) {
+            $minutes *= 60;
+        }
+
+        return max(15, min(10080, $minutes));
     }
 
     /**
