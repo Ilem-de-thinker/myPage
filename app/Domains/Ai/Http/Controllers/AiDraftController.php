@@ -25,6 +25,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AiDraftController extends Controller
 {
@@ -250,6 +251,44 @@ class AiDraftController extends Controller
         return response()->json(['confirmed' => $drafts->pluck('id')->values()]);
     }
 
+    /**
+     * Serve a staged draft image over an authorized route.
+     *
+     * Staging files live on the private 'local' disk until the product or
+     * service goes live, so the only way to see one is as the signed-in
+     * seller whose page staged it. Anything else is a 404 — a tenant must
+     * never be able to guess another tenant's staging path.
+     */
+    public function media(Request $request): BinaryFileResponse
+    {
+        $page = $request->user()->storePages()->firstOrFail();
+
+        $path = ltrim(str_replace('\\', '/', (string) $request->query('path', '')), '/');
+
+        abort_unless(
+            $path !== ''
+                && ! str_contains($path, '..')
+                && ! str_contains($path, './')
+                && str_starts_with($path, "ai/{$page->id}/"),
+            404,
+        );
+
+        $disk = Storage::disk('local');
+
+        abort_unless($disk->exists($path), 404);
+
+        $mime = (string) ($disk->mimeType($path) ?: '');
+
+        abort_unless(str_starts_with($mime, 'image/'), 404);
+
+        return response()->file($disk->path($path), [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="ai-media"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     public function undo(Request $request, int $draft): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
@@ -296,9 +335,6 @@ class AiDraftController extends Controller
         $feature = $draft->payload['_feature'] ?? null;
         if ($feature) {
             AiFeatureRegistry::authorize($page, $feature);
-            if (in_array($feature, ['products', 'services'], true)) {
-                app(SubscriptionEntitlements::class)->assertCanCreateListing($page);
-            }
             $name = trim((string) ($draft->payload['name'] ?? '')) ?: 'Untitled draft';
             $description = (string) ($draft->payload['description'] ?? '');
             $categoryName = trim((string) ($draft->payload['category'] ?? ''));
@@ -315,6 +351,12 @@ class AiDraftController extends Controller
 
             $relativePaths = array_values(array_filter((array) ($draft->payload['_media_relative_paths'] ?? [])));
             $created = DB::transaction(function () use ($feature, $page, $request, $draft, $name, $description, $categoryId, $priceKobo): ?Model {
+                // Held in the same transaction as the insert so the plan-limit
+                // lock covers the listing this approves.
+                if (in_array($feature, ['products', 'services'], true)) {
+                    app(SubscriptionEntitlements::class)->assertCanCreateListing($page);
+                }
+
                 if ($feature === 'products') {
                     return Product::create(['seller_id' => $request->user()->id, 'store_page_id' => $page->id, 'category_id' => $categoryId, 'name' => $name, 'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)), 'description' => $description, 'ai_metadata' => $draft->payload, 'price_kobo' => $priceKobo, 'sku' => 'AI-'.strtoupper(Str::random(8)), 'status' => 'draft', 'stock_qty' => 0]);
                 } elseif ($feature === 'services') {

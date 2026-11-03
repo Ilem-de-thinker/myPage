@@ -40,11 +40,15 @@ class ReviewInboxController extends Controller
         $status = ReviewStatus::tryFrom((string) $request->query('status'))
             ?? ReviewStatus::Pending;
 
-        $reviews = $page->reviews()
+        // Every review for this page — business, product or service — sits in
+        // the same queue. The reviewable is loaded for its name.
+        $reviews = Review::query()
+            ->where('store_page_id', $page->id)
             ->where('status', $status->value)
             // The reviewable is loaded for its name. The query itself is already
             // seller-scoped by the BelongsToSeller global scope on Review.
             ->with('reviewable')
+            ->orderByDesc('is_featured')
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -86,11 +90,16 @@ class ReviewInboxController extends Controller
     {
         $this->authorise($request, $review);
 
+        // Only a published review can be featured. Pinning a pending or
+        // declined row would sort a review the buyer cannot see to the top of
+        // the shelf the customer actually reads.
+        abort_unless($review->status === ReviewStatus::Approved, 422, 'Only an approved review can be featured.');
+
         $review->update(['is_featured' => ! $review->is_featured]);
 
         return back()->with('status', $review->is_featured
-            ? 'Pinned to the top of the list.'
-            : 'Unpinned.');
+            ? 'Featured at the top of your reviews.'
+            : 'Removed from featured.');
     }
 
     /**
@@ -101,7 +110,8 @@ class ReviewInboxController extends Controller
      */
     private function counts(StorePage $page): array
     {
-        $counts = $page->reviews()
+        $counts = Review::query()
+            ->where('store_page_id', $page->id)
             ->toBase()
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')

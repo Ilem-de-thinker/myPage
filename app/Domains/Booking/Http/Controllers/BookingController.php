@@ -4,6 +4,7 @@ namespace App\Domains\Booking\Http\Controllers;
 
 use App\Domains\Booking\Actions\UpdateBookingStatus;
 use App\Domains\Booking\Enums\BookingStatus;
+use App\Domains\Booking\Exceptions\InvalidTransition;
 use App\Domains\Booking\Models\Booking;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -119,7 +121,11 @@ class BookingController extends Controller
 
         $status = BookingStatus::from($data['status']);
 
-        $updateBookingStatus->handle($booking, $status, $request->user());
+        try {
+            $updateBookingStatus->handle($booking, $status, $request->user());
+        } catch (InvalidTransition $exception) {
+            throw ValidationException::withMessages(['status' => 'That move is not allowed from the current state.']);
+        }
 
         return back()->with('status', "Booking {$booking->reference} marked as {$status->label()}.");
     }
@@ -138,12 +144,20 @@ class BookingController extends Controller
 
         abort_unless($booking->store_page_id === $page->id, 404);
 
-        $updateBookingStatus->handle(
-            $booking,
-            BookingStatus::Cancelled,
-            $request->user(),
-            $request->input('note'),
-        );
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $updateBookingStatus->handle(
+                $booking,
+                BookingStatus::Cancelled,
+                $request->user(),
+                $data['note'] ?? null,
+            );
+        } catch (InvalidTransition $exception) {
+            throw ValidationException::withMessages(['status' => 'That move is not allowed from the current state.']);
+        }
 
         return back()->with('status', "Booking {$booking->reference} cancelled. The slot is free again.");
     }

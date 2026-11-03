@@ -58,15 +58,33 @@ class RescheduleBookingController
         abort_unless($booking->store_page_id === $this->pageId($request), 404);
 
         $data = $request->validate([
-            'starts_at' => ['required', 'string'],
+            'starts_at' => ['required', 'date', 'max:40'],
             'staff' => ['nullable', 'integer'],
         ]);
+
+        $staff = null;
+
+        if (! empty($data['staff'])) {
+            // The booking can only be parked on somebody from this store.
+            $staff = $booking->storePage->staffMembers()->whereKey($data['staff'])->first();
+
+            abort_unless($staff, 404);
+        }
+
+        $timezone = app(AvailabilityService::class)->timezoneFor($booking->service);
+
+        try {
+            $startsAt = Carbon::parse($data['starts_at'], $timezone);
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages(['starts_at' => 'That start time is not valid.']);
+        }
 
         try {
             $rescheduleBooking->handle(
                 $booking,
-                Carbon::parse($data['starts_at']),
+                $startsAt,
                 $request->user(),
+                $staff,
             );
         } catch (OutsideCancellationWindow|SlotUnavailable $exception) {
             throw ValidationException::withMessages(['starts_at' => $exception->getMessage()]);

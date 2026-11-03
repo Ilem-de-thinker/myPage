@@ -42,10 +42,10 @@ Route::get('/book/confirmation', [PublicBookingController::class, 'confirmation'
     with as well as the reference, because a reference alone is a string anybody
     can be handed.
 */
-Route::get('/book/manage', [StorefrontController::class, 'manageBooking'])->name('storefront.manage-booking');
-Route::get('/book/manage/reschedule', [StorefrontController::class, 'rescheduleBookingForm'])->name('storefront.booking-reschedule');
+Route::get('/book/manage', [StorefrontController::class, 'manageBooking'])->middleware('throttle:30,1')->name('storefront.manage-booking');
+Route::get('/book/manage/reschedule', [StorefrontController::class, 'rescheduleBookingForm'])->middleware('throttle:30,1')->name('storefront.booking-reschedule');
 Route::post('/book/manage/reschedule', [StorefrontController::class, 'rescheduleBooking'])->middleware('throttle:10,1')->name('storefront.booking-reschedule.store');
-Route::post('/book', [PublicBookingController::class, 'store'])->name('storefront.booking.store');
+Route::post('/book', [PublicBookingController::class, 'store'])->middleware('throttle:10,1')->name('storefront.booking.store');
 Route::post('/book/whatsapp', [PublicBookingController::class, 'requestWhatsApp'])
     ->middleware('throttle:20,1')
     ->name('storefront.booking.whatsapp');

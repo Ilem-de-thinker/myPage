@@ -20,6 +20,7 @@ use App\Domains\Orders\Listeners\NotifySellerOfNewOrder;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Payments\Data\GatewayCredentials;
 use App\Domains\Payments\Events\PaymentConfirmed;
+use App\Domains\Payments\Listeners\SettleBookingAfterPayment;
 use App\Domains\Payments\Listeners\SettleOrderAfterPayment;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use App\Domains\Payments\Services\GatewayFactory;
@@ -68,6 +69,7 @@ class DomainServiceProvider extends ServiceProvider
 
         Event::listen(SellerRegistered::class, SendWelcomeEmail::class);
         Event::listen(PaymentConfirmed::class, SettleOrderAfterPayment::class);
+        Event::listen(PaymentConfirmed::class, SettleBookingAfterPayment::class);
         Event::listen(OrderStatusChanged::class, TrackCustomerLifetimeValue::class);
         Event::listen(OrderStatusChanged::class, NotifyBuyerOfStatusChange::class);
         Event::listen(OrderPlaced::class, NotifySellerOfNewOrder::class);

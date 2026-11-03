@@ -21,11 +21,10 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        $status = Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->only('email'));
 
-        return $status === Password::ResetLinkSent
-            ? back()->with('status', __($status))
-            : back()->withErrors(['email' => __($status)]);
+        // Never reveal whether the address is registered.
+        return back()->with('status', 'If an account exists for that email, we have sent a password reset link.');
     }
 
     public function showResetForm(Request $request, string $token): View

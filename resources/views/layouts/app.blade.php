@@ -89,6 +89,7 @@
                 <x-ui.nav-link :href="route('billing.index')" label="Payments" icon="credit-card" :active="request()->routeIs('billing.*')" />
                 <x-ui.nav-link :href="route('payments.gateways.index')" label="Payment keys" icon="key" :active="request()->routeIs('payments.gateways.*')" />
                 <x-ui.nav-link :href="route('support.index')" label="Support" icon="life-buoy" :active="request()->routeIs('support.*')" />
+                <x-ui.nav-link :href="route('account.password')" label="Password" icon="key" :active="request()->routeIs('account.*')" />
                 <x-ui.nav-link :href="route('badge.apply')" label="Get verified" icon="badge" :active="request()->routeIs('badge.*')" />
                 @if (auth()->user()->isAdmin())
                     <x-ui.nav-link :href="route('admin.index')" label="Admin panel" icon="shield" :active="request()->routeIs('admin.*')" />

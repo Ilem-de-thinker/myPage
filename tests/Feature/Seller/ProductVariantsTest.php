@@ -131,6 +131,21 @@ it('rejects a duplicate variant sku', function () {
         ->assertSessionHasErrors('sku');
 });
 
+it('scopes variant skus to one store so two sellers may reuse a code', function () {
+    [$seller, $page, $product] = sellerWithProduct();
+
+    actingAs($seller)->post("/products/{$product->id}/variants", ['name' => 'A', 'sku' => 'BAG-001'])
+        ->assertRedirect();
+
+    [$otherSeller, , $otherProduct] = sellerWithProduct();
+
+    actingAs($otherSeller)->post("/products/{$otherProduct->id}/variants", ['name' => 'A', 'sku' => 'BAG-001'])
+        ->assertRedirect();
+
+    expect(ProductVariant::withoutGlobalScopes()->where('sku', 'BAG-001')->count())->toBe(2)
+        ->and(ProductVariant::withoutGlobalScopes()->where('sku', 'BAG-001')->where('store_page_id', $page->id)->count())->toBe(1);
+});
+
 it('lets a variant keep its own sku when it is edited', function () {
     [$seller, , $product] = sellerWithProduct();
 

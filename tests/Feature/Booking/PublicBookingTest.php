@@ -131,7 +131,7 @@ it('books a genuinely free slot and shows the confirmation', function () {
     expect($booking->status)->toBe(BookingStatus::Confirmed)
         ->and($booking->customer_name)->toBe('Ada Buyer');
 
-    get(storeUrl($page->slug, "/book/confirmation?booking={$booking->reference}"))
+    get(storeUrl($page->slug, "/book/confirmation?booking={$booking->reference}&contact=08031234567"))
         ->assertOk()
         ->assertSee('Braid consultation')
         ->assertSee($booking->reference);

@@ -158,7 +158,13 @@ class RunAiOperation implements ShouldQueue
             if ($this->operation->ai_task_id) {
                 AiTask::find($this->operation->ai_task_id)?->refreshProgress();
             }
-            throw $exception;
+
+            // Deliberately not rethrown: the framework's retry would re-claim
+            // this operation (the claim set includes 'failed') and call the
+            // provider again for a call that can never succeed. The failure
+            // state, the reservation release and the notification are all
+            // handled above; report() keeps the error visible in the logs.
+            report($exception);
         }
     }
 

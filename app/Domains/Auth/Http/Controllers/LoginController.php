@@ -27,13 +27,14 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         $seller = Auth::user();
-        $seller->forceFill(['last_login_at' => now()])->save();
 
         if (! $seller->isActive()) {
             Auth::logout();
 
             return back()->withErrors(['email' => 'Your account is suspended. Contact support.']);
         }
+
+        $seller->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended($seller->isAdmin() ? route('admin.index') : route('dashboard'));
     }

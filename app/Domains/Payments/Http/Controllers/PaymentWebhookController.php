@@ -11,7 +11,6 @@ use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
 use App\Domains\Payments\Services\GatewayFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -109,8 +108,18 @@ class PaymentWebhookController
      */
     private function storeAndDispatch(string $gateway, array $payload, mixed $eventId): void
     {
+        /*
+         * Every gateway delivery should carry an id. When it does not, fall
+         * back to a content hash so a redelivery of the same payload is still
+         * a no-op — a random UUID would silently disable the dedupe and let
+         * the handler process the same event twice.
+         */
+        $eventId = ((is_string($eventId) && $eventId !== '') || is_int($eventId))
+            ? (string) $eventId
+            : 'payload:'.hash('sha256', $gateway.'|'.(json_encode($payload) ?: ''));
+
         $event = WebhookEvent::firstOrCreate(
-            ['gateway' => $gateway, 'event_id' => (string) ($eventId ?: Str::uuid())],
+            ['gateway' => $gateway, 'event_id' => $eventId],
             ['payload' => $payload],
         );
 

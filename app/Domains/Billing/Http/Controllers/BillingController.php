@@ -7,11 +7,15 @@ use App\Domains\Billing\Actions\ConfirmSubscriptionPayment;
 use App\Domains\Billing\Actions\SubscriptionManager;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\ManualTransferSubmitted;
+use App\Domains\Billing\Notifications\PlanGatewayMismatch;
 use App\Domains\Billing\Services\GracePeriod;
 use App\Domains\Billing\Services\SubscriptionAvailability;
 use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Payments\Models\Transaction;
 use App\Domains\Payments\Services\Contracts\PaymentGatewayInterface;
+use App\Domains\Seller\Models\Seller;
+use App\Shared\Support\CoreAdmins;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -69,6 +73,16 @@ class BillingController extends Controller
 
         // The trial is started automatically at signup, never bought.
         abort_if($plan->slug === config('billing.trial_plan'), 422, 'The trial plan cannot be purchased.');
+
+        $mismatch = $this->planGatewayMismatch($plan, $this->gateways());
+
+        if ($mismatch !== null) {
+            CoreAdmins::send(new PlanGatewayMismatch($mismatch));
+
+            return back()->withErrors([
+                'plan' => 'This plan cannot be activated right now. The team has been notified and will fix it.',
+            ]);
+        }
 
         // Written as past_due, not active: only a confirmed payment makes it
         // live. A seller who abandons checkout is never marked paying.
@@ -137,14 +151,18 @@ class BillingController extends Controller
 
         abort_if($plan->slug === config('billing.trial_plan'), 422, 'The trial plan cannot be purchased.');
 
-        $subscriptions->start($request->user(), $plan, 'manual');
+        $subscriptions->start($request->user(), $plan, 'manual', $data['reference']);
 
-        Subscription::where('seller_id', $request->user()->getKey())
-            ->update(['gateway_reference' => $data['reference']]);
+        CoreAdmins::send(new ManualTransferSubmitted([
+            'seller_name' => $request->user()->name,
+            'seller_email' => $request->user()->email,
+            'plan_name' => $plan->name,
+            'reference' => $data['reference'],
+        ]));
 
         return redirect()
             ->route('billing.index')
-            ->with('status', 'Thanks. We will confirm your transfer within one working day.');
+            ->with('status', 'Thanks. We will confirm your transfer within one working day; your plan activates once it lands.');
     }
 
     /**
@@ -202,6 +220,47 @@ class BillingController extends Controller
                 'subscription' => 'We could not reach the payment provider. Please try again in a moment.',
             ]);
         }
+    }
+
+    /**
+     * A gateway plan the seller is about to be charged must agree with what we
+     * quote, or their card is billed an amount they never saw. Returns the
+     * mismatch to report, or null when they agree (or cannot be checked).
+     */
+    private function planGatewayMismatch(Plan $plan, PaymentGatewayInterface $gateway): ?array
+    {
+        if (! filled($plan->gateway_plan_code)) {
+            return null;
+        }
+
+        try {
+            $remote = $gateway->fetchPlan($plan->gateway_plan_code);
+        } catch (Throwable $exception) {
+            // The gateway is unreachable; refusing to sell at all over a
+            // transient failure punishes every seller. Log and let it through —
+            // the confirm step still re-verifies the actual charge.
+            report($exception);
+
+            return null;
+        }
+
+        $remoteAmount = $remote['amount_kobo'] ?? null;
+        $remoteInterval = $remote['interval'] ?? null;
+
+        if ($remoteAmount !== null && (int) $remoteAmount !== (int) $plan->price_kobo) {
+            return ['plan_name' => $plan->name, 'local_kobo' => (int) $plan->price_kobo, 'gateway_kobo' => (int) $remoteAmount, 'gateway_plan_code' => $plan->gateway_plan_code];
+        }
+
+        if ($remoteInterval !== null && $remoteInterval !== $plan->interval) {
+            return ['plan_name' => $plan->name, 'local_kobo' => (int) $plan->price_kobo, 'gateway_kobo' => (int) ($remoteAmount ?? 0), 'gateway_plan_code' => $plan->gateway_plan_code];
+        }
+
+        return null;
+    }
+
+    private function gateways(): PaymentGatewayInterface
+    {
+        return app(PaymentGatewayInterface::class);
     }
 
     private function historyFor(Subscription $subscription)

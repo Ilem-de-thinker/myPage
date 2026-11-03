@@ -31,8 +31,8 @@ use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\BlockRenderer;
 use App\Domains\Seller\Models\StorePage;
 use App\Domains\Seller\Support\StorePolicies;
+use App\Shared\Support\ContactMatcher;
 use App\Shared\Support\Money;
-use App\Shared\Support\PhoneNumber;
 use App\Shared\Support\StoreUrl;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -54,6 +54,7 @@ class StorefrontController extends Controller
         $page->load(['reviews' => fn ($query) => $query
             ->published()
             ->with('reviewable')
+            ->orderByDesc('is_featured')
             ->latest('published_at')
             ->limit(20)]);
 
@@ -118,6 +119,7 @@ class StorefrontController extends Controller
         $page->load(['reviews' => fn ($query) => $query
             ->published()
             ->with('reviewable')
+            ->orderByDesc('is_featured')
             ->latest('published_at')
             ->limit(20)]);
 
@@ -188,6 +190,7 @@ class StorefrontController extends Controller
         $product->load(['reviews' => fn ($query) => $query
             ->published()
             ->with('reviewable')
+            ->orderByDesc('is_featured')
             ->latest('published_at')
             ->limit(20)]);
 
@@ -310,6 +313,7 @@ class StorefrontController extends Controller
         $service->load(['reviews' => fn ($query) => $query
             ->published()
             ->with('reviewable')
+            ->orderByDesc('is_featured')
             ->latest('published_at')
             ->limit(20)]);
 
@@ -678,13 +682,7 @@ class StorefrontController extends Controller
      */
     private function contactMatches(Order|Booking $record, string $contact): bool
     {
-        if (Str::lower(trim($record->customer_email ?? '')) === Str::lower($contact)) {
-            return true;
-        }
-
-        $given = PhoneNumber::normalize($contact);
-
-        return $given !== null && $given === PhoneNumber::normalize($record->customer_phone);
+        return ContactMatcher::matches($record, $contact);
     }
 
     private function findBooking(StorePage $page, Request $request): ?Booking

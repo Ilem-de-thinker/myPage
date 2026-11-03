@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -60,14 +61,19 @@ class ServiceController extends Controller
     public function store(Request $request, SubscriptionEntitlements $entitlements): RedirectResponse
     {
         $page = $this->page($request);
-        $entitlements->assertCanCreateListing($page);
 
-        $service = $page->services()->create([
-            ...$this->validated($request, $page),
-            'seller_id' => $page->seller_id,
-            'position' => $page->services()->count(),
-            'image_path' => $this->storeImage($request, $page),
-        ]);
+        // Check and insert in one transaction; the entitlement lock must still
+        // be held while the service row is written.
+        $service = DB::transaction(function () use ($request, $page, $entitlements) {
+            $entitlements->assertCanCreateListing($page);
+
+            return $page->services()->create([
+                ...$this->validated($request, $page),
+                'seller_id' => $page->seller_id,
+                'position' => $page->services()->count(),
+                'image_path' => $this->storeImage($request, $page),
+            ]);
+        });
 
         $this->syncStaff($service, $request);
 

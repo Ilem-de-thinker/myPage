@@ -120,12 +120,16 @@ function fakePaystack(array $options = []): void
                 'data' => array_filter([
                     'status' => $options['status'],
                     'amount' => $amount,
+                    'currency' => $options['currency'] ?? 'NGN',
                     'paid_at' => now()->toIso8601String(),
                 ], fn ($value) => $value !== null),
             ]);
         },
         'api.paystack.co/transfer/transferrecipient' => Http::response([
             'data' => ['recipient_code' => 'RCP_test'],
+        ]),
+        'api.paystack.co/plan/*' => Http::response([
+            'data' => ['name' => 'Growth', 'interval' => 'monthly'],
         ]),
         // A failing lookup is how the bank endpoint behaves when credentials are
         // wrong or the gateway is down. Both are third-party faults a seller

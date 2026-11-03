@@ -106,6 +106,78 @@ final class AiUsageReservations
     }
 
     /**
+     * Reserve a credit for a provider call that happens inside the request.
+     *
+     * The queued path reserves before dispatch, but synchronous merchants skip
+     * the queue entirely. Without this row two parallel clicks can both pass
+     * the remaining-credit check, so the same lock-and-count rule applies here.
+     * Returns null when the caller has no store page (platform-owned work).
+     */
+    public function reserveSync(StorePage $page, string $task): ?AiUsageLedger
+    {
+        return DB::transaction(function () use ($page, $task): AiUsageLedger {
+            Seller::query()->whereKey($page->seller_id)->lockForUpdate()->first();
+
+            $estimate = $this->credits->estimate($page, 1, $task);
+
+            abort_if(
+                $estimate['allowed'] < 1,
+                429,
+                'This store has reached its monthly Mercho limit for '.AiSettings::taskLabel($task).'.',
+            );
+
+            return AiUsageLedger::create([
+                'seller_id' => $page->seller_id,
+                'store_page_id' => $page->id,
+                'operation_id' => null,
+                'task' => $task,
+                'status' => 'pending',
+                'provider' => 'pending',
+                'model' => 'pending',
+                'tokens_in' => 0,
+                'tokens_out' => 0,
+                'estimated_cost' => 0,
+                'reserved_at' => now(),
+            ]);
+        });
+    }
+
+    /**
+     * Settle a synchronous reservation once the provider answered.
+     */
+    public function settleSync(
+        AiUsageLedger $ledger,
+        string $provider,
+        string $model,
+        int $tokensIn,
+        int $tokensOut,
+        float $estimatedCost = 0,
+    ): void {
+        AiUsageLedger::query()
+            ->whereKey($ledger->getKey())
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'used',
+                'provider' => $provider,
+                'model' => $model,
+                'tokens_in' => $tokensIn,
+                'tokens_out' => $tokensOut,
+                'estimated_cost' => $estimatedCost,
+            ]);
+    }
+
+    /**
+     * Drop a synchronous reservation that never completed.
+     */
+    public function releaseSync(AiUsageLedger $ledger): void
+    {
+        AiUsageLedger::query()
+            ->whereKey($ledger->getKey())
+            ->where('status', 'pending')
+            ->delete();
+    }
+
+    /**
      * Turn the pending row into usage. If a cleanup already released it, create
      * a fresh used row so a successful provider call is never lost from billing.
      */
@@ -119,6 +191,17 @@ final class AiUsageReservations
         int $tokensOut,
         float $estimatedCost = 0,
     ): void {
+        // A worker already talking to the provider cannot be interrupted when
+        // the merchant cancels. Cancelled work is not billed; the platform
+        // absorbs the in-flight provider cost instead of double-charging.
+        $operation = AiOperation::query()->find($operationId);
+
+        if ($operation !== null && $operation->status === 'cancelled') {
+            $this->release($operationId);
+
+            return;
+        }
+
         $ledger = AiUsageLedger::query()->where('operation_id', $operationId)->first();
 
         if ($ledger !== null) {

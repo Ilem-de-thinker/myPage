@@ -50,7 +50,7 @@ class ChatController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
         $thread = ChatThread::query()->where('store_page_id', $page->id)->with('messages')->findOrFail($thread);
-        $result = $ai->run('order_chat_assist', ['thread_subject' => $thread->subject, 'customer_name' => $thread->guest_name, 'messages' => $thread->messages->map(fn ($message): array => ['sender' => $message->sender_type, 'body' => $message->body])->all(), 'instruction' => 'Return a concise conversation summary. Do not suggest actions or invent facts.'], $page);
+        $result = $ai->run('order_chat_assist', ['thread_subject' => $thread->subject, 'customer_name' => $thread->guest_name, 'messages' => $thread->messages->slice(-20)->values()->map(fn ($message): array => ['sender' => $message->sender_type, 'body' => $message->body])->all(), 'instruction' => 'Return a concise conversation summary. Do not suggest actions or invent facts.'], $page);
         $summary = is_array($result) ? (string) ($result['summary'] ?? '') : $result;
         $thread->forceFill(['ai_summary' => $summary, 'ai_summary_updated_at' => now()])->save();
 
@@ -86,7 +86,7 @@ class ChatController extends Controller
         $result = $ai->run('order_chat_assist', [
             'thread_subject' => $thread->subject,
             'customer_name' => $thread->guest_name,
-            'messages' => $thread->messages->map(fn ($message): array => ['sender' => $message->sender_type, 'body' => $message->body])->all(),
+            'messages' => $thread->messages->slice(-20)->values()->map(fn ($message): array => ['sender' => $message->sender_type, 'body' => $message->body])->all(),
             'instruction' => 'Suggest a reply only. Never promise refunds, payment outcomes, delivery dates, or policy exceptions.',
         ], $page);
 

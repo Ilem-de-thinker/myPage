@@ -35,33 +35,150 @@ class PrismAiManager implements AiManager
 
     public function run(string $task, array $input, ?StorePage $page = null): string|array
     {
+        return $this->execute($task, $input, $page, false);
+    }
+
+    public function runPlatform(string $task, array $input, StorePage $page): string|array
+    {
+        return $this->execute($task, $input, $page, true);
+    }
+
+    private function execute(string $task, array $input, ?StorePage $page, bool $platformFunded): string|array
+    {
         $this->settings->apply();
         abort_unless($this->settings->enabled(), 503, 'Mercho is disabled for this environment.');
         $definition = config("ai.tasks.{$task}");
         abort_unless(is_array($definition), 422, "Unknown Mercho task [{$task}].");
         $this->credits->assertAvailable($page, $task);
 
+        $operationId = isset($input['_operation_id']) ? (int) $input['_operation_id'] : null;
+        unset($input['_operation_id']);
+
         $attempts = array_merge([['provider' => $definition['provider'], 'model' => $definition['model']]], $definition['fallback'] ?? []);
         $last = null;
 
-        foreach ($attempts as $attempt) {
-            $started = microtime(true);
-            try {
-                $result = $this->request($task, $definition, $attempt, $input, $page);
-                $this->record($page, $task, $attempt, $definition, 'succeeded', $result, $started);
+        // Queued work reserved before it was dispatched. Synchronous work has to
+        // reserve here, otherwise parallel requests can all pass the same
+        // remaining-credit check and run over the merchant's allowance.
+        // Buyer-facing tasks are funded by the platform, so they never touch it.
+        $reservation = ! $platformFunded && $operationId === null && $page !== null
+            ? app(AiUsageReservations::class)->reserveSync($page, $task)
+            : null;
 
-                return $result;
-            } catch (Throwable $exception) {
-                if ($exception instanceof ValidationException) {
-                    throw $exception;
+        $settled = false;
+
+        try {
+            foreach ($attempts as $attempt) {
+                $started = microtime(true);
+                try {
+                    $result = $this->request($task, $definition, $attempt, $input, $page);
+                    $this->record($page, $task, $attempt, $definition, 'succeeded', $result, $started, null, $operationId, $reservation, $platformFunded);
+                    $settled = true;
+
+                    return $result;
+                } catch (Throwable $exception) {
+                    if ($exception instanceof ValidationException) {
+                        throw $exception;
+                    }
+
+                    $last = $exception;
+                    $this->record($page, $task, $attempt, $definition, 'failed', null, $started, $exception->getMessage(), $operationId);
                 }
+            }
 
-                $last = $exception;
-                $this->record($page, $task, $attempt, $definition, 'failed', null, $started, $exception->getMessage());
+            throw $last ?? new \RuntimeException("Mercho task [{$task}] failed.");
+        } finally {
+            if (! $settled && $reservation !== null) {
+                app(AiUsageReservations::class)->releaseSync($reservation);
             }
         }
+    }
 
-        throw $last ?? new \RuntimeException("Mercho task [{$task}] failed.");
+    /**
+     * Media paths must point inside the page's own AI staging directory.
+     * Merchant input flows straight into this array, and the public disk is
+     * not a sandbox: anything the tenant uploaded today is readable by path.
+     * A prefix check with segment normalisation is what keeps a queued
+     * operation from exfiltrating another store's staging area — or the app
+     * root — through a crafted "relative" path.
+     */
+    private function safeStagingPath(string $mediaPath, StorePage $page): string
+    {
+        $normalized = ltrim(str_replace('\\', '/', $mediaPath), '/');
+
+        $segments = explode('/', $normalized);
+
+        if ($normalized === '' || in_array('..', $segments, true) || in_array('.', $segments, true)) {
+            throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+        }
+
+        if (! str_starts_with($normalized, "ai/{$page->id}/")) {
+            throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Re-encode an image for the provider: max 1600px on the long edge, webp
+     * at ~80%. This is the single biggest lever on both token cost and
+     * latency for photo tasks, so every image goes through it.
+     *
+     * Returns a disk-relative temp path in the local (private) disk, or null
+     * when GD is unavailable and the caller should fall back to the original.
+     */
+    private function downscaleForProvider(string $absolutePath): ?string
+    {
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagewebp')) {
+            return null;
+        }
+
+        $bytes = @file_get_contents($absolutePath);
+
+        if ($bytes === false) {
+            throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+        }
+
+        $source = @imagecreatefromstring($bytes);
+
+        if ($source === false) {
+            throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $maxEdge = 1600;
+        $scale = min(1.0, $maxEdge / max($width, $height));
+        $targetWidth = max(1, (int) floor($width * $scale));
+        $targetHeight = max(1, (int) floor($height * $scale));
+
+        $canvas = $scale < 1.0 ? imagescale($source, $targetWidth, $targetHeight) : $source;
+
+        if ($scale >= 1.0) {
+            $canvas = $source;
+        } elseif ($canvas === false) {
+            $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+            imagecopyresampled($canvas, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
+            imagedestroy($source);
+        }
+
+        $relative = 'ai-provider-tmp/'.bin2hex(random_bytes(16)).'.webp';
+        $absolute = Storage::disk('local')->path($relative);
+        $directory = dirname($absolute);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+
+        if (! imagewebp($canvas, $absolute, 80)) {
+            imagedestroy($canvas);
+
+            throw new \RuntimeException('An uploaded image could not be processed. Please upload it again.');
+        }
+
+        imagedestroy($canvas);
+
+        return $relative;
     }
 
     private function request(string $task, array $definition, array $attempt, array $input, ?StorePage $page): string|array
@@ -73,24 +190,37 @@ class PrismAiManager implements AiManager
             : Prism::text();
 
         $media = [];
+        $providerTempFiles = [];
         $mediaRelativePaths = array_values(array_filter((array) ($input['media_relative_paths'] ?? []), 'is_string'));
 
-        if ($mediaRelativePaths !== []) {
-            foreach ($mediaRelativePaths as $mediaPath) {
-                if (! Storage::disk('public')->exists($mediaPath)) {
-                    throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
-                }
+        try {
+            if ($mediaRelativePaths !== []) {
+                throw_unless($page, new \RuntimeException('Images can only be used for a store page task.'));
 
-                $media[] = Image::fromStoragePath($mediaPath, 'public');
-            }
-        } else {
-            // Older queued operations may still carry absolute local paths.
-            $mediaPaths = $input['media_paths'] ?? (isset($input['media_path']) ? [$input['media_path']] : []);
-            foreach ($mediaPaths as $mediaPath) {
-                if (filled($mediaPath) && File::exists($mediaPath)) {
-                    $media[] = Image::fromLocalPath($mediaPath);
+                foreach ($mediaRelativePaths as $mediaPath) {
+                    $mediaPath = $this->safeStagingPath($mediaPath, $page);
+
+                    if (! Storage::disk('local')->exists($mediaPath)) {
+                        throw new \RuntimeException('An uploaded image could not be read. Please upload it again.');
+                    }
+
+                    $absolute = Storage::disk('local')->path($mediaPath);
+                    $resized = $this->downscaleForProvider($absolute);
+
+                    if ($resized !== null) {
+                        $providerTempFiles[] = $resized;
+                        $absolute = Storage::disk('local')->path($resized);
+                    }
+
+                    $media[] = Image::fromLocalPath($absolute);
                 }
             }
+        } catch (Throwable $exception) {
+            foreach ($providerTempFiles as $tempFile) {
+                Storage::disk('local')->delete($tempFile);
+            }
+
+            throw $exception;
         }
 
         $builder = $builder
@@ -122,7 +252,13 @@ class PrismAiManager implements AiManager
             }
         }
 
-        $response = $definition['structured'] ? $builder->asStructured() : $builder->asText();
+        try {
+            $response = $definition['structured'] ? $builder->asStructured() : $builder->asText();
+        } finally {
+            foreach ($providerTempFiles as $tempFile) {
+                Storage::disk('local')->delete($tempFile);
+            }
+        }
 
         if ($response->finishReason !== FinishReason::Stop) {
             throw new \RuntimeException("Mercho task stopped with {$response->finishReason->value}.");
@@ -565,7 +701,7 @@ class PrismAiManager implements AiManager
         ];
     }
 
-    private function record(?StorePage $page, string $task, array $attempt, array $definition, string $status, string|array|null $result, float $started, ?string $error = null): void
+    private function record(?StorePage $page, string $task, array $attempt, array $definition, string $status, string|array|null $result, float $started, ?string $error = null, ?int $operationId = null, ?AiUsageLedger $reservation = null, bool $platformFunded = false): void
     {
         $tokensIn = $status === 'succeeded' ? $this->lastUsage['in'] : 0;
         $tokensOut = $status === 'succeeded' ? $this->lastUsage['out'] : 0;
@@ -573,8 +709,14 @@ class PrismAiManager implements AiManager
         if ($status === 'failed') {
             Log::warning('AI task failed', ['task' => $task, 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'seller_id' => $page?->seller_id, 'error' => $error]);
         }
-        if ($status === 'succeeded' && $page?->seller_id) {
-            AiUsageLedger::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'task' => $task, 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'estimated_cost' => 0]);
+        if ($status === 'succeeded' && $page?->seller_id && ! $platformFunded) {
+            if ($operationId !== null) {
+                app(AiUsageReservations::class)->markUsed($operationId, $page, $task, $attempt['provider'], $attempt['model'], $tokensIn, $tokensOut);
+            } elseif ($reservation !== null) {
+                app(AiUsageReservations::class)->settleSync($reservation, $attempt['provider'], $attempt['model'], $tokensIn, $tokensOut);
+            } else {
+                AiUsageLedger::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'task' => $task, 'status' => 'used', 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'estimated_cost' => 0]);
+            }
         }
     }
 }

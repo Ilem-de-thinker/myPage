@@ -35,10 +35,10 @@ it('serves the published database copy and its version instead of the fallback',
         ->get(route('legal.policy', 'terms'))
         ->assertOk()
         ->assertSee('The platform provides software only.')
-        ->assertSee('2 November 2026');
+        ->assertSee(today()->translatedFormat('j F Y'));
 });
 
-it('shows the lawyer-review banner for a draft policy', function () {
+it('never shows a draft policy to the public but lets an admin preview it', function () {
     legalPolicy([
         'slug' => 'kyc-verification',
         'title' => 'KYC and Verification Policy',
@@ -47,6 +47,10 @@ it('shows the lawyer-review banner for a draft policy', function () {
     ]);
 
     actingAs(Seller::factory()->create())
+        ->get(route('legal.policy', 'kyc-verification'))
+        ->assertNotFound();
+
+    actingAs(Seller::factory()->coreAdmin()->create())
         ->get(route('legal.policy', 'kyc-verification'))
         ->assertOk()
         ->assertSee('working draft prepared for review');
@@ -140,4 +144,70 @@ it('404s an unknown store policy', function () {
     [, $page] = sellerWithPage(['status' => 'published']);
 
     actingAs($page->seller)->get(storeUrl($page->slug, '/policies/warranty'))->assertNotFound();
+});
+
+it('walls onboarding and support behind the consent screen', function () {
+    legalPolicy();
+    legalPolicy([
+        'slug' => 'privacy',
+        'title' => 'Privacy Policy',
+        'summary' => 'Current privacy terms.',
+        'version' => '2026-11-01',
+    ]);
+
+    [$seller] = sellerWithPage();
+    $seller->forceFill([
+        'terms_version' => '2025-01-01',
+        'privacy_version' => '2025-01-01',
+    ])->save();
+
+    actingAs($seller)->get(route('onboarding.show', 'business'))->assertRedirect(route('legal.consent'));
+    actingAs($seller)->get(route('support.index'))->assertRedirect(route('legal.consent'));
+    actingAs($seller)->post(route('support.store'), ['subject' => 'Help', 'message' => 'Hello'])->assertRedirect(route('legal.consent'));
+});
+
+it('rejects a policy version that is not a calendar date', function () {
+    $admin = Seller::factory()->coreAdmin()->create();
+    $policy = legalPolicy();
+
+    actingAs($admin)->post(route('admin.policies.update', $policy), [
+        'title' => 'Terms of Service',
+        'summary' => 'Updated terms.',
+        'version' => 'v2',
+        'sections' => json_encode([['heading' => 'Platform role', 'body' => 'The platform provides software only.']]),
+        'published' => '1',
+        'is_draft' => '0',
+    ])->assertSessionHasErrors('version');
+});
+
+it('rejects a published policy version that moves backwards', function () {
+    $admin = Seller::factory()->coreAdmin()->create();
+    $policy = legalPolicy(['version' => '2026-11-01']);
+
+    actingAs($admin)->post(route('admin.policies.update', $policy), [
+        'title' => 'Terms of Service',
+        'summary' => 'Updated terms.',
+        'version' => '2025-01-01',
+        'sections' => json_encode([['heading' => 'Platform role', 'body' => 'The platform provides software only.']]),
+        'published' => '1',
+        'is_draft' => '0',
+    ])->assertSessionHasErrors('version');
+
+    expect($policy->fresh()->version)->toBe('2026-11-01');
+});
+
+it('lets an admin keep a newer version unpublished as a draft', function () {
+    $admin = Seller::factory()->coreAdmin()->create();
+    $policy = legalPolicy(['version' => '2026-11-01']);
+
+    actingAs($admin)->post(route('admin.policies.update', $policy), [
+        'title' => 'Terms of Service',
+        'summary' => 'Draft terms.',
+        'version' => '2026-12-15',
+        'sections' => json_encode([['heading' => 'Platform role', 'body' => 'The platform provides software only.']]),
+        'published' => '1',
+        'is_draft' => '1',
+    ])->assertRedirect(route('admin.policies.edit', $policy));
+
+    expect($policy->fresh()->is_draft)->toBeTrue();
 });

@@ -34,7 +34,7 @@ function googleUser(string $id, string $email, ?string $name = 'Ada Textiles'): 
 /** Make the callback resolve to this Google user instead of calling Google. */
 function googleSays(string $id, string $email, ?string $name = 'Ada Textiles'): void
 {
-    Socialite::shouldReceive('driver->stateless->user')->andReturn(googleUser($id, $email, $name));
+    Socialite::shouldReceive('driver->user')->andReturn(googleUser($id, $email, $name));
 }
 
 function enableGoogle(): void
@@ -174,4 +174,18 @@ it('does not let a signed-in seller walk the callback again', function () {
     $this->actingAs($seller)
         ->get(route('auth.google.callback'))
         ->assertRedirect();
+});
+
+it('shows the Google button on login and register when keys are configured', function () {
+    enableGoogle();
+
+    get(route('login'))->assertOk()->assertSee('Continue with Google');
+    get(route('register'))->assertOk()->assertSee('Continue with Google');
+});
+
+it('hides the Google button on login and register when keys are missing', function () {
+    config()->set('services.google.client_id', null);
+
+    get(route('login'))->assertOk()->assertDontSee('Continue with Google');
+    get(route('register'))->assertOk()->assertDontSee('Continue with Google');
 });

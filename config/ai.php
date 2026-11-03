@@ -35,6 +35,23 @@ return [
         'trial' => ['monthly_credits' => (int) env('AI_TRIAL_MONTHLY_CREDITS', 50), 'max_images_per_request' => 4],
         'paid' => ['monthly_credits' => (int) env('AI_PAID_MONTHLY_CREDITS', 500), 'max_images_per_request' => 8],
     ],
+
+    /*
+        Buyer-facing assistant calls are platform-funded: shoppers trigger them,
+        so they must not spend the merchant's Mercho credits. Each store still
+        gets a finite daily budget that grows with its plan, otherwise the
+        storefront would be an open tap on the provider account.
+    */
+    'buyer_assistant' => [
+        'enabled' => (bool) env('AI_BUYER_ASSISTANT_ENABLED', true),
+        'daily_caps' => [
+            'trial' => (int) env('AI_BUYER_ASSISTANT_TRIAL_DAILY', 40),
+            'starter' => (int) env('AI_BUYER_ASSISTANT_STARTER_DAILY', 80),
+            'growth' => (int) env('AI_BUYER_ASSISTANT_GROWTH_DAILY', 200),
+            'pro' => (int) env('AI_BUYER_ASSISTANT_PRO_DAILY', 400),
+        ],
+        'fallback_daily_cap' => (int) env('AI_BUYER_ASSISTANT_DAILY', 40),
+    ],
     'tasks' => [
         'site_builder' => ['provider' => env('AI_SITE_BUILDER_PROVIDER', 'groq'), 'model' => env('AI_SITE_BUILDER_MODEL', 'openai/gpt-oss-120b'), 'temperature' => 0.2, 'max_tokens' => 3000, 'timeout' => 60, 'structured' => true, 'structured_mode' => env('AI_SITE_BUILDER_STRUCTURED_MODE', 'auto'), 'provider_options' => ['schema' => ['strict' => true]], 'prompt_version' => 'v1', 'fallback' => [['provider' => 'groq', 'model' => 'openai/gpt-oss-20b']]],
         'theme_and_color_preset' => ['provider' => env('AI_THEME_PROVIDER', 'groq'), 'model' => env('AI_THEME_MODEL', 'openai/gpt-oss-120b'), 'temperature' => 0.2, 'max_tokens' => 700, 'timeout' => 30, 'structured' => true, 'prompt_version' => 'v1', 'fallback' => [['provider' => 'groq', 'model' => 'openai/gpt-oss-20b']]],

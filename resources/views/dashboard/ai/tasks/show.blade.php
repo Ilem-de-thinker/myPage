@@ -84,7 +84,7 @@
                         <p class="font-semibold">{{ $draft->payload['name'] ?? 'Draft' }}</p>
                         <p class="line-clamp-3 text-sm text-ink-2">{{ $draft->payload['description'] ?? '' }}</p>
                         @if (! empty($draft->payload['_media_relative_paths']))
-                            <img src="{{ \Illuminate\Support\Facades\Storage::url($draft->payload['_media_relative_paths'][0]) }}" alt="" class="h-32 w-full rounded-lg object-cover">
+                            <img src="{{ route('dashboard.ai.media', ['path' => $draft->payload['_media_relative_paths'][0]]) }}" alt="" class="h-32 w-full rounded-lg object-cover">
                         @endif
                         <a href="{{ route('dashboard.ai.drafts') }}" class="inline-block text-xs font-bold text-brand">Edit and publish draft</a>
                     @elseif ($op->status === 'succeeded' && in_array($task->type, ['descriptions', 'service_descriptions'], true))

@@ -101,7 +101,7 @@ class CategoryController extends Controller
 
         abort_unless($category->store_page_id === $page->id, 404);
 
-        $data = $this->validated($request, $page);
+        $data = $this->validated($request, $page, $category);
 
         $category->update([
             'name' => $data['name'],
@@ -307,14 +307,16 @@ class CategoryController extends Controller
     /**
      * @return array{name: string}
      */
-    private function validated(Request $request, StorePage $page): array
+    private function validated(Request $request, StorePage $page, ?Category $category = null): array
     {
         return $request->validate([
             'name' => [
                 'required',
                 'string',
                 'max:120',
-                Rule::unique('categories', 'name')->where('store_page_id', $page->id),
+                Rule::unique('categories', 'name')
+                    ->where('store_page_id', $page->id)
+                    ->ignore($category?->id),
             ],
         ]);
     }

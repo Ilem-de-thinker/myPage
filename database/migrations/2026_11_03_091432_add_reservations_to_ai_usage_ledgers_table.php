@@ -27,6 +27,7 @@ return new class extends Migration
         Schema::table('ai_usage_ledgers', function (Blueprint $table) {
             $table->dropUnique(['operation_id']);
             $table->dropForeign(['operation_id']);
+            $table->dropIndex(['status']);
             $table->dropIndex(['seller_id', 'status', 'created_at']);
             $table->dropColumn(['status', 'operation_id', 'reserved_at']);
         });

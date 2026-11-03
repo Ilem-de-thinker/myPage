@@ -27,7 +27,7 @@ class ConfirmTransaction
 
         $verification = $this->gateways->forTransaction($existing)->verify($reference);
 
-        if ($verification['status'] !== 'success' || $verification['amount_kobo'] !== $existing->amount_kobo) {
+        if ($verification['status'] !== 'success' || $verification['amount_kobo'] !== $existing->amount_kobo || ($verification['currency'] ?? null) !== 'NGN') {
             $existing->update([
                 'status' => TransactionStatus::Failed,
                 'gateway_payload' => $verification['raw'],

@@ -19,27 +19,37 @@ class RegisterSeller
      */
     public function handle(array $data): Seller
     {
-        return DB::transaction(function () use ($data) {
-            $seller = Seller::create([
+        $seller = DB::transaction(function () use ($data) {
+            // Account state is not mass-assignable, so the fields this action
+            // owns are written with forceFill after the fillable core.
+            $seller = new Seller([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => PhoneNumber::normalize($data['phone']),
                 'password' => $data['password'],
-                'status' => 'active',
-                'terms_accepted_at' => now(),
-                'terms_version' => Policy::currentVersion('terms') ?? config('legal.terms_version'),
-                'privacy_accepted_at' => now(),
-                'privacy_version' => Policy::currentVersion('privacy') ?? config('legal.privacy_version'),
             ]);
+
+            $seller->forceFill([
+                'status' => 'active',
+                'password_set_at' => now(),
+                'terms_accepted_at' => now(),
+                'terms_version' => Policy::version('terms'),
+                'privacy_accepted_at' => now(),
+                'privacy_version' => Policy::version('privacy'),
+            ])->save();
 
             $this->startTrial($seller);
 
             event(new SellerRegistered($seller));
 
-            $seller->sendEmailVerificationNotification();
-
             return $seller;
         });
+
+        // Send after the commit: a mailer failure must not roll back the
+        // account, and the OTP is only useful once the seller exists.
+        $seller->sendEmailVerificationNotification();
+
+        return $seller;
     }
 
     /**

@@ -104,7 +104,7 @@
                                 @csrf
                                 <button class="min-h-10 rounded-lg border px-4 text-xs font-semibold
                                     {{ $review->is_featured ? 'border-brand bg-brand-wash text-brand-text' : 'border-rule text-ink-2 hover:bg-surface' }}">
-                                    {{ $review->is_featured ? 'Pinned' : 'Pin to top' }}
+                                    {{ $review->is_featured ? 'Featured' : 'Feature' }}
                                 </button>
                             </form>
                         @endif

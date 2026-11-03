@@ -32,7 +32,9 @@ class ModerateReview
 
     public function reject(Review $review): Review
     {
-        $review->update(['status' => ReviewStatus::Rejected]);
+        // Declining also clears any pin: a featured review that is no longer
+        // published cannot stay at the top of a list it is not part of.
+        $review->update(['status' => ReviewStatus::Rejected, 'is_featured' => false]);
 
         $review->reviewable?->recalculateRating();
 

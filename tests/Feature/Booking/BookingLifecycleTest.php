@@ -5,6 +5,7 @@ use App\Domains\Booking\Enums\BookingStatus;
 use App\Domains\Booking\Jobs\SendBookingReminders;
 use App\Domains\Booking\Models\Booking;
 use App\Domains\Booking\Models\Service;
+use App\Domains\Booking\Models\StaffMember;
 use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Booking\Notifications\BookingReminder;
 use App\Domains\Seller\Models\Seller;
@@ -280,4 +281,40 @@ it('writes a reminder the buyer can act on', function () {
 
     // And a wa.me link the seller can forward by hand.
     expect($reminder->whatsappLink())->toStartWith('https://wa.me/2348031234567?text=');
+});
+
+it('rejects an illegal status move with a validation error, not a 500', function () {
+    [$seller, $booking] = tomorrowBooking(['status' => BookingStatus::Completed->value]);
+
+    actingAs($seller)
+        ->post(route('bookings.status', $booking), ['status' => BookingStatus::Confirmed->value])
+        ->assertSessionHasErrors('status');
+});
+
+it('rejects cancelling from a terminal state with a validation error, not a 500', function () {
+    [$seller, $booking] = tomorrowBooking(['status' => BookingStatus::Completed->value]);
+
+    actingAs($seller)
+        ->post(route('bookings.cancel', $booking), ['note' => 'done'])
+        ->assertSessionHasErrors('status');
+});
+
+it('keeps the chosen staff member when the seller moves a booking from the dashboard', function () {
+    [$seller, $booking, $service] = tomorrowBooking(['staff_member_id' => null]);
+
+    $chosen = StaffMember::factory()->create([
+        'seller_id' => $seller->id,
+        'store_page_id' => $booking->store_page_id,
+        'name' => 'Chosen One',
+    ]);
+
+    $slot = Carbon::now('Africa/Lagos')->addDay()->setTime(11, 0);
+
+    actingAs($seller)
+        ->post(route('bookings.reschedule.store', $booking), [
+            'starts_at' => $slot->toIso8601String(),
+            'staff' => $chosen->id,
+        ]);
+
+    expect($booking->fresh()->staff_member_id)->toBe($chosen->id);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Payments\Http\Controllers;
 
+use App\Domains\Booking\Models\Booking;
 use App\Domains\Orders\Actions\CreateOrderFromCheckout;
 use App\Domains\Orders\Actions\RecordAbandonedCart;
 use App\Domains\Orders\Enums\OrderSource;
@@ -11,6 +12,7 @@ use App\Domains\Payments\Actions\ConfirmTransaction;
 use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Payments\Exceptions\GatewayNotConfigured;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\StoreUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Throwable;
@@ -88,6 +90,16 @@ class CheckoutController
     public function callback(Request $request, string $reference, ConfirmTransaction $confirmTransaction)
     {
         $transaction = $confirmTransaction->handle($reference);
+
+        if ($transaction?->payable instanceof Booking) {
+            $booking = $transaction->payable;
+
+            return redirect(StoreUrl::path('storefront.booking-confirmation', [
+                'slug' => app(StorePage::class)->slug,
+                'booking' => $booking->reference,
+                'contact' => $booking->customer_email ?: $booking->customer_phone,
+            ]))->with('status', 'Payment received. Thank you!');
+        }
 
         $order = $transaction?->payable instanceof Order
             ? $transaction->payable

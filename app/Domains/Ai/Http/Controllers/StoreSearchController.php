@@ -4,6 +4,7 @@ namespace App\Domains\Ai\Http\Controllers;
 
 use App\Domains\Ai\Contracts\AiManager;
 use App\Domains\Ai\Services\AiSettings;
+use App\Domains\Ai\Services\BuyerAiBudget;
 use App\Domains\Booking\Models\Service;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Seller\Models\StorePage;
@@ -29,11 +30,16 @@ use Throwable;
 */
 final class StoreSearchController extends Controller
 {
-    public function __construct(private readonly AiSettings $settings) {}
+    public function __construct(
+        private readonly AiSettings $settings,
+        private readonly BuyerAiBudget $budget,
+    ) {}
 
     public function __invoke(Request $request, StorePage $page, AiManager $ai, SearchQueryParser $parser): JsonResponse
     {
         abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is not enabled for this store.');
+
+        $this->budget->assertAvailable($page);
 
         $data = $request->validate(['message' => ['required', 'string', 'max:400']]);
         $message = trim($data['message']);
@@ -48,7 +54,7 @@ final class StoreSearchController extends Controller
             $mode = 'ai';
         } else {
             try {
-                $result = $ai->run('marketplace_intent', ['message' => $message, 'store' => $page->name], $page);
+                $result = $ai->runPlatform('marketplace_intent', ['message' => $message, 'store' => $page->name], $page);
                 if (is_array($result)) {
                     $intent = $result;
                     $mode = 'ai';

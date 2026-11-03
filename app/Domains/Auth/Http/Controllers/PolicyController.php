@@ -12,22 +12,35 @@ use Illuminate\View\View;
 
 class PolicyController extends Controller
 {
-    public function show(string $policy): View
+    public function show(Request $request, string $policy): View
     {
         $record = Policy::current($policy);
         $defaults = LegalPolicies::all();
+        $fallback = $defaults[$policy] ?? null;
 
-        abort_unless($record !== null || isset($defaults[$policy]), 404);
+        // The shipped copy is a fallback for a deploy that has not seeded yet,
+        // never a way to publish a document that is still marked a draft.
+        if ($fallback !== null && (bool) ($fallback['is_draft'] ?? false)) {
+            $fallback = null;
+        }
 
-        $data = $record?->toPolicyArray() ?? $defaults[$policy];
+        // Admins need to read the lawyer-review draft on the same page a buyer
+        // would see it. Everyone else only ever gets the published copy.
+        if ($record === null && ($request->user()?->isAdmin() ?? false)) {
+            $record = Policy::query()->where('slug', $policy)->latest('id')->first();
+        }
+
+        abort_unless($record !== null || $fallback !== null, 404);
+
+        $data = $record?->toPolicyArray() ?? $fallback;
         $data['is_draft'] = (bool) ($data['is_draft'] ?? false);
 
         return view('themes.shared.pages.policy', [
             'policy' => $data,
             'slug' => $policy,
             'effectiveAt' => $record?->effective_at,
-            'termsVersion' => Policy::currentVersion('terms') ?? config('legal.terms_version'),
-            'privacyVersion' => Policy::currentVersion('privacy') ?? config('legal.privacy_version'),
+            'termsVersion' => Policy::version('terms'),
+            'privacyVersion' => Policy::version('privacy'),
         ]);
     }
 

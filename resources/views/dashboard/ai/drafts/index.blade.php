@@ -76,7 +76,7 @@
                         </div>
 
                         @if (! empty($media))
-                            <img src="{{ \Illuminate\Support\Facades\Storage::url($media[0]) }}" alt="" class="h-40 w-full rounded-xl object-cover">
+                            <img src="{{ route('dashboard.ai.media', ['path' => $media[0]]) }}" alt="" class="h-40 w-full rounded-xl object-cover">
                         @endif
 
                         @if ($isListing)

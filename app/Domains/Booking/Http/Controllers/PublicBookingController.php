@@ -13,6 +13,7 @@ use App\Domains\Payments\Actions\InitializePayment;
 use App\Domains\Payments\Exceptions\GatewayNotConfigured;
 use App\Domains\Seller\Enums\Theme;
 use App\Domains\Seller\Models\StorePage;
+use App\Shared\Support\ContactMatcher;
 use App\Shared\Support\StoreUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,14 +40,18 @@ class PublicBookingController
 
         $data = $request->validate([
             'service' => ['required', 'integer'],
-            'date' => ['required', 'string', 'max:10'],
+            'date' => ['required', 'date_format:Y-m-d'],
             'staff' => ['nullable', 'integer'],
         ]);
 
         $service = $this->service($page, $data['service']);
         $staff = $this->staff($page, $data['staff'] ?? null);
 
-        $date = Carbon::parse($data['date'], $availability->timezoneFor($service))->startOfDay();
+        try {
+            $date = Carbon::parse($data['date'], $availability->timezoneFor($service))->startOfDay();
+        } catch (Throwable $exception) {
+            throw ValidationException::withMessages(['date' => 'That date is not valid.']);
+        }
 
         $slots = $availability
             ->slotsFor($service, $date, $staff, (int) config('mypage.booking_slot_step_minutes', 30))
@@ -75,7 +80,7 @@ class PublicBookingController
         $data = $request->validate([
             'service' => ['required', 'integer'],
             'staff' => ['nullable', 'integer'],
-            'starts_at' => ['required', 'string'],
+            'starts_at' => ['required', 'date', 'max:40'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['nullable', 'email', 'max:190'],
             'phone' => ['required', 'string', 'max:32'],
@@ -86,7 +91,12 @@ class PublicBookingController
         $staff = $this->staff($page, $data['staff'] ?? null);
 
         $timezone = app(AvailabilityService::class)->timezoneFor($service);
-        $startsAt = Carbon::parse($data['starts_at'], $timezone);
+
+        try {
+            $startsAt = Carbon::parse($data['starts_at'], $timezone);
+        } catch (Throwable $exception) {
+            throw ValidationException::withMessages(['starts_at' => 'That start time is not valid.']);
+        }
 
         try {
             $booking = $createBooking->handle($service, $startsAt, $staff, [
@@ -103,6 +113,7 @@ class PublicBookingController
             return redirect(StoreUrl::path('storefront.booking-confirmation', [
                 'slug' => $page->slug,
                 'booking' => $booking->reference,
+                'contact' => $data['email'] ?? $data['phone'],
             ]))
                 ->with('status', 'Booked. We have your slot.');
         }
@@ -141,13 +152,14 @@ class PublicBookingController
     public function requestWhatsApp(
         Request $request,
         RequestBookingByWhatsApp $requestBooking,
+        AvailabilityService $availability,
     ): JsonResponse {
         $page = $this->page($request);
 
         $data = $request->validate([
             'service' => ['required', 'integer'],
             'staff' => ['nullable', 'integer'],
-            'starts_at' => ['required', 'string'],
+            'starts_at' => ['required', 'date', 'max:40'],
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:32'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -156,9 +168,15 @@ class PublicBookingController
         $service = $this->service($page, $data['service']);
         $staff = $this->staff($page, $data['staff'] ?? null);
 
+        try {
+            $startsAt = Carbon::parse($data['starts_at'], $availability->timezoneFor($service));
+        } catch (Throwable $exception) {
+            throw ValidationException::withMessages(['starts_at' => 'That start time is not valid.']);
+        }
+
         $result = $requestBooking->handle(
             $service,
-            Carbon::parse($data['starts_at']),
+            $startsAt,
             $staff,
             $data,
         );
@@ -172,12 +190,11 @@ class PublicBookingController
     /**
      * The receipt, straight after paying.
      *
-     * Only ever reached with a reference this platform just issued, so a match
-     * is the whole of the authorisation. Arriving here without one — or with a
-     * reference for a booking on another studio — is not a missing page, it is
-     * somebody who wants to look a booking up. Sending them to the lookup is the
-     * honest answer; a 404 on a URL that is printed in the footer would tell
-     * them the studio has no bookings at all.
+     * Reached with a reference and the contact the booking was made with — a
+     * reference alone is a string anybody can be handed, so possession of it is
+     * not proof of purchase. Arriving without a match sends the visitor to the
+     * lookup page rather than revealing anything. The alternative door is the
+     * signed /b/{reference} link issued at booking time.
      */
     public function confirmation(Request $request): View|RedirectResponse
     {
@@ -190,7 +207,12 @@ class PublicBookingController
             ->where('reference', $reference)
             ->first();
 
-        if ($booking === null) {
+        $contact = (string) $request->query('contact', '');
+
+        if ($booking === null || ! ContactMatcher::matches($booking, $contact)) {
+            // Same answer as the lookup page: no booking, no details. A booking
+            // reference alone is a string anybody can be handed, so the receipt
+            // asks for the same contact the booking was made with.
             return redirect(StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]));
         }
 

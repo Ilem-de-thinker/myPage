@@ -17,13 +17,14 @@ class AiImageService
     /**
      * Store an uploaded image in the merchant's AI staging area.
      *
-     * Staging files stay on the public disk so web and queue workers read the
-     * same copy. They are copied again when a draft is applied, which keeps the
-     * draft preview intact after image processing moves the product file.
+     * Staging files live on the private ('local') disk until the product or
+     * service goes live: unpublished photos must not be reachable by URL.
+     * When a draft is applied the files are copied into the public disk and
+     * the permanent directory; only those copies are public.
      */
     public function stage(UploadedFile $file, StorePage $page, string $folder = 'staging'): string
     {
-        $path = $file->store("ai/{$page->getKey()}/{$folder}", 'public');
+        $path = $file->store("ai/{$page->getKey()}/{$folder}", 'local');
 
         if (! is_string($path)) {
             throw new RuntimeException('The uploaded image could not be stored. Please try again.');
@@ -34,7 +35,7 @@ class AiImageService
 
     public function exists(string $relativePath): bool
     {
-        return $relativePath !== '' && Storage::disk('public')->exists($relativePath);
+        return $relativePath !== '' && Storage::disk('local')->exists($relativePath);
     }
 
     /**
@@ -71,7 +72,7 @@ class AiImageService
 
         foreach ((array) ($draft->payload['_media_relative_paths'] ?? []) as $path) {
             if (is_string($path) && str_starts_with($path, $prefix)) {
-                Storage::disk('public')->delete($path);
+                Storage::disk('local')->delete($path);
             }
         }
     }
@@ -83,14 +84,14 @@ class AiImageService
     {
         foreach (array_unique($relativePaths) as $path) {
             if (is_string($path) && $path !== '') {
-                Storage::disk('public')->delete($path);
+                Storage::disk('local')->delete($path);
             }
         }
     }
 
     private function copyToDirectory(string $relativePath, string $directory): ?string
     {
-        if (! $this->exists($relativePath)) {
+        if (! Storage::disk('local')->exists($relativePath)) {
             return null;
         }
 
@@ -98,7 +99,9 @@ class AiImageService
         $base = Str::slug(pathinfo($relativePath, PATHINFO_FILENAME)) ?: 'image';
         $target = trim($directory, '/').'/'.$base.'-'.Str::lower(Str::random(8)).'.'.$extension;
 
-        if (! Storage::disk('public')->copy($relativePath, $target)) {
+        // Private staging → public catalogue: the permanent copy lands in the
+        // public disk; the staging original stays private until deleted.
+        if (! Storage::disk('public')->put($target, Storage::disk('local')->get($relativePath))) {
             return null;
         }
 

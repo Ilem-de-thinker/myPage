@@ -2,9 +2,11 @@
 
 use App\Domains\Admin\Jobs\ExpireKycVerifications;
 use App\Domains\Admin\Jobs\PurgeExpiredKycDocuments;
+use App\Domains\Ai\Jobs\ReleaseStaleAiReservations;
 use App\Domains\Billing\Jobs\ExpireSubscriptions;
 use App\Domains\Booking\Jobs\ExpirePendingBookings;
 use App\Domains\Booking\Jobs\SendBookingReminders;
+use App\Domains\Catalog\Jobs\PurgeDeletedProducts;
 use App\Domains\Orders\Actions\CloseStaleAbandonedCarts;
 use App\Domains\Orders\Jobs\RemindAbandonedCarts;
 use App\Domains\Payments\Jobs\SweepUnprocessedWebhooks;
@@ -39,7 +41,15 @@ Schedule::job(new ExpireKycVerifications)->dailyAt('03:15');
 // A webhook is acknowledged before its queue job runs. Retry stored rows that
 // remain unprocessed, including seller order events and platform subscriptions.
 Schedule::job(new SweepUnprocessedWebhooks)->dailyAt('02:00');
+
+// A reservation counts against a merchant's allowance while work is queued.
+// Sweep rows whose worker died so their allowance is not held forever.
+Schedule::job(new ReleaseStaleAiReservations)->everyTenMinutes();
 Schedule::command('directory:sync-featured')->dailyAt('02:30');
+
+// Deleted products are recoverable for 30 days; after that the row and its
+// images are removed for good.
+Schedule::job(new PurgeDeletedProducts)->dailyAt('03:30');
 
 // A buyer's silence must not hold a seller's money forever.
 

@@ -149,3 +149,14 @@ it('blocks suspended sellers from dashboard routes', function () {
 
     actingAs($seller)->get('/dashboard')->assertSessionHasErrors('email');
 });
+
+it('treats a repeated review submission as already done instead of creating a second page', function () {
+    [$seller, $page] = sellerWithPage();
+
+    actingAs($seller)
+        ->withSession(['onboarding' => ['name' => 'Another shop', 'slug' => 'another-shop', 'theme' => 'store']])
+        ->post('/onboarding/review')
+        ->assertRedirect(route('dashboard'));
+
+    expect($seller->storePages()->count())->toBe(1);
+});

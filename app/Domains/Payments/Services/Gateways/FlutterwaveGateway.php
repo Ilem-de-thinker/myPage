@@ -24,11 +24,22 @@ class FlutterwaveGateway implements PaymentGatewayInterface
 {
     public function __construct(private readonly GatewayCredentials $credentials) {}
 
+    /**
+     * Exact decimal → integer kobo: no float rounding drift on odd amounts.
+     */
+    private static function koboFromAmount(mixed $amount): int
+    {
+        $formatted = number_format((float) $amount, 2, '.', '');
+        [$whole, $fraction] = explode('.', $formatted);
+
+        return ((int) $whole) * 100 + (int) ($fraction === '' ? '00' : $fraction);
+    }
+
     public function initialize(string $reference, int $amountKobo, string $email, string $callbackUrl, array $meta = [], array $options = []): array
     {
         $data = $this->http()->post('/payments', [
             'tx_ref' => $reference,
-            'amount' => $amountKobo / 100,
+            'amount' => number_format($amountKobo / 100, 2, '.', ''),
             'currency' => 'NGN',
             'redirect_url' => $callbackUrl,
             'customer' => ['email' => $email],
@@ -41,11 +52,12 @@ class FlutterwaveGateway implements PaymentGatewayInterface
 
     public function verify(string $reference): array
     {
-        $data = $this->http()->get("/transactions/{$reference}/verify")->throw()->json('data');
+        $data = $this->http()->get('/transactions/'.rawurlencode($reference).'/verify')->throw()->json('data');
 
         return [
             'status' => ($data['status'] ?? '') === 'successful' ? 'success' : ($data['status'] ?? 'failed'),
-            'amount_kobo' => (int) round(((float) ($data['amount'] ?? 0)) * 100),
+            'amount_kobo' => self::koboFromAmount($data['amount'] ?? 0),
+            'currency' => $data['currency'] ?? null,
             'paid_at' => $data['created_at'] ?? null,
             'raw' => $data,
         ];
@@ -56,7 +68,7 @@ class FlutterwaveGateway implements PaymentGatewayInterface
         $data = $this->http()->post('/refunds', [
             'idempotency_key' => $reference,
             'tx_ref' => $reference,
-            ...($amountKobo !== null ? ['amount' => $amountKobo / 100] : []),
+            ...($amountKobo !== null ? ['amount' => number_format($amountKobo / 100, 2, '.', '')] : []),
         ])->throw()->json('data');
 
         return [
@@ -70,7 +82,7 @@ class FlutterwaveGateway implements PaymentGatewayInterface
     {
         $data = $this->http()->post('/transfers', [
             'transfer_code' => $reference,
-            'amount' => $amountKobo / 100,
+            'amount' => number_format($amountKobo / 100, 2, '.', ''),
             'currency' => 'NGN',
             'destination' => $recipientCode,
         ])->throw()->json('data');
@@ -109,13 +121,13 @@ class FlutterwaveGateway implements PaymentGatewayInterface
     }
 
     /**
-     * Flutterwave signs with its own secret rather than the API secret.
+     * Flutterwave does not sign the body. The `verif-hash` header is the static
+     * secret the account holder sets in the dashboard, sent verbatim — so this
+     * returns that secret and the caller compares it with hash_equals.
      */
     public function sign(string $payload): string
     {
-        $hash = hash_hmac('sha256', $payload, (string) ($this->credentials->webhookSecret ?? $this->credentials->secretKey));
-
-        return is_string($hash) ? $hash : '';
+        return (string) ($this->credentials->webhookSecret ?? $this->credentials->secretKey);
     }
 
     /**

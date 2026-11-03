@@ -3,6 +3,7 @@
 use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Billing\Models\Plan;
 use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\PlanGatewayMismatch;
 use App\Domains\Billing\Notifications\SubscriptionCardExpiring;
 use App\Domains\Payments\Services\Gateways\FlutterwaveGateway;
 use App\Domains\Payments\Services\Gateways\PaystackGateway;
@@ -96,7 +97,7 @@ it('turns a plan checkout into a subscription signup', function () {
 
     // The plan travels with the charge, which is what makes the gateway keep
     // billing the card instead of stopping after this one period.
-    Http::assertSent(fn ($request) => $request->data()['plan'] === 'PLN_growth999');
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'transaction/initialize') && ($request->data()['plan'] ?? null) === 'PLN_growth999');
 });
 
 it('sends no plan when the plan has none registered on the gateway', function () {
@@ -321,4 +322,25 @@ it('notifies the seller in-app and by email when the card is expiring', function
     ], 4243)->assertOk();
 
     Notification::assertSentToTimes($seller, SubscriptionCardExpiring::class, 1);
+});
+
+it('refuses checkout when the gateway plan charges a different amount than we quote', function () {
+    $this->plan->update(['gateway_plan_code' => 'PLN_growth999']);
+
+    $admin = Seller::factory()->admin()->create(['email_verified_at' => now()]);
+
+    Http::fake([
+        'api.paystack.co/plan/PLN_growth999' => Http::response(['data' => ['name' => 'Growth', 'amount' => 100, 'interval' => 'monthly']]),
+    ]);
+
+    Notification::fake();
+
+    [$seller] = sellerWithPage();
+
+    actingAs($seller)->post(route('billing.subscribe'), ['plan' => 'growth'])
+        ->assertSessionHasErrors('plan');
+
+    expect(Subscription::where('seller_id', $seller->id)->exists())->toBeFalse();
+
+    Notification::assertSentTo($admin, PlanGatewayMismatch::class);
 });

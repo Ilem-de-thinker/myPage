@@ -3,6 +3,7 @@
 use App\Domains\Admin\Http\Controllers\AdminAnalyticsController;
 use App\Domains\Admin\Http\Controllers\AdminController;
 use App\Domains\Admin\Http\Controllers\AdminDashboardController;
+use App\Domains\Admin\Http\Controllers\AdminDataRequestController;
 use App\Domains\Admin\Http\Controllers\AdminTeamController;
 use App\Domains\Admin\Http\Controllers\PlatformSettingsController;
 use App\Domains\Admin\Http\Controllers\PolicyAdminController;
@@ -31,6 +32,9 @@ Route::name('admin.')->group(function () {
     Route::get('support', [SupportController::class, 'index'])->name('support');
     Route::get('support/{supportRequest}', [SupportController::class, 'show'])->name('support.show');
     Route::post('support/{supportRequest}', [SupportController::class, 'update'])->name('support.update');
+    Route::get('data-requests', [AdminDataRequestController::class, 'index'])->name('data-requests');
+    Route::post('data-requests/{dataRequest}', [AdminDataRequestController::class, 'update'])->name('data-requests.update');
+    Route::post('data-requests/{dataRequest}/purge', [AdminDataRequestController::class, 'purge'])->name('data-requests.purge');
     Route::get('audit', [AdminController::class, 'auditLog'])->name('audit');
 
     /*
@@ -67,6 +71,9 @@ Route::name('admin.')->group(function () {
         | should be changed by a deploy.
         */
         Route::get('plans', [AdminController::class, 'plans'])->name('plans');
+        Route::get('manual-subscriptions', [AdminController::class, 'manualSubscriptions'])->name('manual-subscriptions');
+        Route::post('manual-subscriptions/{subscription}/approve', [AdminController::class, 'approveManualSubscription'])->name('manual-subscriptions.approve');
+        Route::post('manual-subscriptions/{subscription}/decline', [AdminController::class, 'declineManualSubscription'])->name('manual-subscriptions.decline');
         Route::post('plans/{plan}/connect', [AdminController::class, 'createGatewayPlan'])->name('plans.connect');
         Route::post('plans/{plan}/price', [AdminController::class, 'updatePlanPrice'])->name('plans.price');
         Route::post('plans/{plan}/limits', [AdminController::class, 'updatePlanLimits'])->name('plans.limits');

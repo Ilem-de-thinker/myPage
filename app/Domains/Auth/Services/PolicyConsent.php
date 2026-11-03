@@ -19,8 +19,8 @@ class PolicyConsent
     {
         $pending = [];
 
-        $terms = Policy::currentVersion('terms');
-        $privacy = Policy::currentVersion('privacy');
+        $terms = Policy::version('terms');
+        $privacy = Policy::version('privacy');
 
         if ($terms !== null && $seller->terms_version !== null && $seller->terms_version !== $terms) {
             $pending['terms'] = $terms;

@@ -14,7 +14,7 @@
             bring you back to the screen you were on.
         </p>
 
-        <a href="{{ route('auth.google') }}"
+        <a href="{{ route('auth.google.confirm') }}"
            class="mt-6 w-full py-3.5 px-4 bg-brand hover:bg-brand-hover text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
             Continue with Google
         </a>

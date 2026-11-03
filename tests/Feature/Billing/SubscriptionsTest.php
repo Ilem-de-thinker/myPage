@@ -58,7 +58,10 @@ it('renews a subscription and rolls the period forward', function () {
     [$seller] = sellerWithPage();
     $manager = app(SubscriptionManager::class);
 
-    $subscription = $manager->start($seller, $this->plan, 'manual');
+    $pending = $manager->start($seller, $this->plan, 'manual');
+    expect($pending->status)->toBe(SubscriptionStatus::Pending);
+
+    $subscription = $manager->renew($pending);
     expect($subscription->status)->toBe(SubscriptionStatus::Active);
 
     $oldEnd = $subscription->current_period_ends_at;
@@ -77,7 +80,7 @@ it('keeps a cancelled seller selling until the period they paid for ends', funct
 
     // A paid plan, not a trial: a trial is not a period they have paid for.
     $plan = Plan::factory()->withoutTrial()->create();
-    $subscription = $manager->start($seller, $plan, 'manual');
+    $subscription = $manager->renew($manager->start($seller, $plan, 'manual'));
 
     $cancelled = $manager->cancel($subscription);
 
@@ -254,7 +257,9 @@ it('records a manual transfer and keeps the reference for approval', function ()
     $subscription = Subscription::where('seller_id', $seller->id)->sole();
 
     expect($subscription->payment_method)->toBe('manual')
-        ->and($subscription->gateway_reference)->toBe('TRF/99281');
+        ->and($subscription->gateway_reference)->toBe('TRF/99281')
+        ->and($subscription->status)->toBe(SubscriptionStatus::Pending)
+        ->and($subscription->canWrite())->toBeFalse();
 });
 
 it('never shows one seller another seller\'s subscription', function () {

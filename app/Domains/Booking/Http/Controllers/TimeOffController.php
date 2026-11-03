@@ -42,19 +42,23 @@ class TimeOffController extends Controller
         $page = $this->page($request);
 
         $data = $request->validate([
-            'starts_on' => ['required', 'string', 'max:10'],
-            'ends_on' => ['required', 'string', 'max:10'],
+            'starts_on' => ['required', 'date_format:Y-m-d'],
+            'ends_on' => ['required', 'date_format:Y-m-d'],
             'all_day' => ['nullable', 'boolean'],
-            'start_time' => ['nullable', 'string', 'max:5'],
-            'end_time' => ['nullable', 'string', 'max:5'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
             'staff_member_id' => ['nullable', 'integer'],
             'reason' => ['nullable', 'string', 'max:200'],
         ]);
 
         $timezone = $this->timezone($page);
 
-        $startsOn = Carbon::parse($data['starts_on'], $timezone)->startOfDay();
-        $endsOn = Carbon::parse($data['ends_on'], $timezone);
+        try {
+            $startsOn = Carbon::parse($data['starts_on'], $timezone)->startOfDay();
+            $endsOn = Carbon::parse($data['ends_on'], $timezone);
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages(['starts_on' => 'Those dates are not valid.']);
+        }
 
         if ($endsOn->lt($startsOn)) {
             throw ValidationException::withMessages([
@@ -66,10 +70,14 @@ class TimeOffController extends Controller
 
         // A part-day block still runs to the end of the last day unless a closing
         // time is given, otherwise a morning-off closure would swallow the evening.
-        $startsAt = $allDay ? $startsOn : $startsOn->copy()->setTimeFromTimeString(($data['start_time'] ?? null) ?: '00:00');
-        $endsAt = $allDay
-            ? $endsOn->copy()->endOfDay()
-            : $endsOn->copy()->setTimeFromTimeString(($data['end_time'] ?? null) ?: '23:59');
+        try {
+            $startsAt = $allDay ? $startsOn : $startsOn->copy()->setTimeFromTimeString(($data['start_time'] ?? null) ?: '00:00');
+            $endsAt = $allDay
+                ? $endsOn->copy()->endOfDay()
+                : $endsOn->copy()->setTimeFromTimeString(($data['end_time'] ?? null) ?: '23:59');
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages(['end_time' => 'Those times are not valid.']);
+        }
 
         if ($endsAt->lte($startsAt)) {
             throw ValidationException::withMessages([

@@ -10,8 +10,12 @@ use App\Domains\Admin\Models\BadgeApplication;
 use App\Domains\Admin\Models\BadgeStatus;
 use App\Domains\Admin\Models\StoreReport;
 use App\Domains\Admin\Models\StoreReportStatus;
+use App\Domains\Billing\Actions\SubscriptionManager;
+use App\Domains\Billing\Enums\SubscriptionStatus;
 use App\Domains\Billing\Models\FeatureFlag;
 use App\Domains\Billing\Models\Plan;
+use App\Domains\Billing\Models\Subscription;
+use App\Domains\Billing\Notifications\ManualTransferDecided;
 use App\Domains\Billing\Services\Feature;
 use App\Domains\Directory\Services\DirectoryPlacement;
 use App\Domains\Payments\Enums\TransactionStatus;
@@ -54,6 +58,84 @@ class AdminController extends Controller
                 ->pluck('total', 'status'),
             'activeStatus' => $status,
         ]);
+    }
+
+    /**
+     * Manual bank transfers awaiting an admin's eyes. The seller claimed a
+     * transfer; nobody has seen the money yet.
+     */
+    public function manualSubscriptions(): View
+    {
+        $subscriptions = Subscription::query()
+            ->where('payment_method', 'manual')
+            ->where('status', SubscriptionStatus::Pending->value)
+            ->with(['seller', 'plan'])
+            ->latest()
+            ->paginate(20);
+
+        return view('admin.manual-subscriptions', ['subscriptions' => $subscriptions]);
+    }
+
+    public function approveManualSubscription(
+        Request $request,
+        Subscription $subscription,
+        SubscriptionManager $subscriptions,
+        RecordAdminAction $audit,
+    ): RedirectResponse {
+        abort_unless(
+            $subscription->payment_method === 'manual' && $subscription->status === SubscriptionStatus::Pending,
+            422,
+        );
+
+        $audit->handle(
+            $request->user(),
+            'subscription.manual.approved',
+            $subscription,
+            'Claimed reference: '.($subscription->gateway_reference ?? 'none'),
+        );
+
+        $subscriptions->renew($subscription);
+
+        if ($subscription->seller) {
+            $subscription->seller->notify(new ManualTransferDecided([
+                'plan_name' => $subscription->plan?->name ?? 'your plan',
+                'approved' => true,
+                'reference' => (string) ($subscription->gateway_reference ?? ''),
+            ]));
+        }
+
+        return back()->with('status', 'Manual transfer approved. The plan is live.');
+    }
+
+    public function declineManualSubscription(
+        Request $request,
+        Subscription $subscription,
+        SubscriptionManager $subscriptions,
+        RecordAdminAction $audit,
+    ): RedirectResponse {
+        abort_unless(
+            $subscription->payment_method === 'manual' && $subscription->status === SubscriptionStatus::Pending,
+            422,
+        );
+
+        $audit->handle(
+            $request->user(),
+            'subscription.manual.declined',
+            $subscription,
+            'Claimed reference: '.($subscription->gateway_reference ?? 'none'),
+        );
+
+        $subscriptions->cancel($subscription);
+
+        if ($subscription->seller) {
+            $subscription->seller->notify(new ManualTransferDecided([
+                'plan_name' => $subscription->plan?->name ?? 'your plan',
+                'approved' => false,
+                'reference' => (string) ($subscription->gateway_reference ?? ''),
+            ]));
+        }
+
+        return back()->with('status', 'Manual transfer declined.');
     }
 
     public function decideBadge(

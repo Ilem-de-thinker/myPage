@@ -28,7 +28,8 @@ function subscribeAiPlan(Seller $seller, string $slug, string $method = 'manual'
 {
     $plan = Plan::query()->where('slug', $slug)->sole();
 
-    app(SubscriptionManager::class)->start($seller, $plan, $method);
+    $manager = app(SubscriptionManager::class);
+    $manager->renew($manager->start($seller, $plan, $method));
 }
 
 /**

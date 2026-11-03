@@ -18,11 +18,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** @use HasFactory<ProductFactory> */
 class Product extends Model
 {
-    use BelongsToSeller, HasFactory, HasRating, HasSalePrice;
+    use BelongsToSeller, HasFactory, HasRating, HasSalePrice, SoftDeletes;
 
     protected static function booted(): void
     {

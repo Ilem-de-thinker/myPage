@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AiController extends Controller
 {
@@ -33,8 +34,9 @@ class AiController extends Controller
         $this->limits->assertCanQueue($page);
         $data = $request->validate([
             'feature' => ['required', 'string'],
-            'input' => ['required', 'array'],
+            'input' => ['required', 'array', 'max:30'],
         ]);
+        abort_if(strlen((string) json_encode($data['input'])) > 65536, 422, 'That input is too large.');
         $definition = AiFeatureRegistry::get($data['feature']);
         AiFeatureRegistry::authorize($page, $data['feature']);
         abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
@@ -79,6 +81,9 @@ class AiController extends Controller
         abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
         abort_unless(function_exists('imagecreatefromjpeg'), 503, 'Logo color extraction is unavailable.');
         $data = $request->validate(['logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
+        [$sourceWidth, $sourceHeight] = @getimagesize($data['logo']->getRealPath()) ?: [0, 0];
+        abort_if($sourceWidth * $sourceHeight === 0 || $sourceWidth > 4096 || $sourceHeight > 4096, 422, 'That logo is too large to process. Please use one under 4096 pixels.');
+
         $image = match ($data['logo']->getMimeType()) {
             'image/png' => imagecreatefrompng($data['logo']->getRealPath()),
             'image/webp' => imagecreatefromwebp($data['logo']->getRealPath()),
@@ -200,7 +205,12 @@ class AiController extends Controller
         ]);
 
         $operations = [];
+        $reservationFailed = false;
 
+        // A concurrent request can consume the remaining credits between the
+        // estimate above and this loop. The reservation is the authoritative
+        // gate, so a batch that loses the race keeps what it could reserve
+        // instead of erroring with work already queued.
         foreach (array_slice($data['items'], 0, $allowed) as $index => $item) {
             $operation = AiOperation::create([
                 'seller_id' => $request->user()->id,
@@ -210,19 +220,29 @@ class AiController extends Controller
                 'status' => 'queued',
                 'input' => ['feature' => $data['feature'], 'batch_index' => $index, ...$item],
             ]);
-            app(AiUsageReservations::class)->reserveAndDispatch($operation);
+
+            try {
+                app(AiUsageReservations::class)->reserveAndDispatch($operation);
+            } catch (Throwable $exception) {
+                $reservationFailed = true;
+                break;
+            }
+
             $operations[] = ['id' => $operation->id, 'status' => $operation->status, 'index' => $index];
         }
 
-        $aiTask->update(['status' => 'processing', 'started_at' => now()]);
+        $reserved = count($operations);
+        $aiTask->update(['status' => $reserved > 0 ? 'processing' : 'failed', 'total' => $reserved, 'started_at' => $reserved > 0 ? now() : null]);
+
+        $limitReached = $allowed < count($data['items']) || $reservationFailed;
 
         return response()->json([
             'operations' => $operations,
             'task_id' => $aiTask->id,
             'estimate' => $estimate,
-            'limit_reached' => $allowed < count($data['items']),
-            'upgrade_required' => $allowed < count($data['items']),
-            'active_limit_reached' => $allowed < $estimate['allowed'],
+            'limit_reached' => $limitReached,
+            'upgrade_required' => $limitReached,
+            'active_limit_reached' => $limitReached,
         ], 202);
     }
 
@@ -232,7 +252,8 @@ class AiController extends Controller
         $this->limits->throttle($page);
         $this->limits->assertCanQueue($page);
         abort_unless((bool) $this->settings->enabled() && (bool) ($page->settings['ai_enabled'] ?? true), 503, 'Mercho is disabled for this store.');
-        $data = $request->validate(['task' => ['required', 'string', 'in:listing_copy,service_listing,copy_rewrite'], 'feature' => ['required', 'string'], 'input' => ['required', 'array']]);
+        $data = $request->validate(['task' => ['required', 'string', 'in:listing_copy,service_listing,copy_rewrite'], 'feature' => ['required', 'string'], 'input' => ['required', 'array', 'max:30']]);
+        abort_if(strlen((string) json_encode($data['input'])) > 65536, 422, 'That input is too large.');
         $definition = AiFeatureRegistry::get($data['feature']);
         abort_unless($definition['task'] === $data['task'], 422, 'This Mercho task does not belong to this page.');
         AiFeatureRegistry::authorize($page, $data['feature']);
@@ -255,8 +276,9 @@ class AiController extends Controller
         $data = $request->validate([
             'task' => ['required', 'string', 'in:site_builder,listing_from_photo,insights_digest'],
             'feature' => ['required', 'string'],
-            'input' => ['required', 'array'],
+            'input' => ['required', 'array', 'max:30'],
         ]);
+        abort_if(strlen((string) json_encode($data['input'])) > 65536, 422, 'That input is too large.');
         $features = [
             'site_builder' => 'store-creation',
             'listing_from_photo' => 'products',
@@ -280,7 +302,7 @@ class AiController extends Controller
             'feature' => ['required', 'in:products,services'],
             'hint' => ['nullable', 'string', 'max:500'],
             'group' => ['sometimes', 'boolean'],
-            'groups' => ['nullable', 'string'],
+            'groups' => ['nullable', 'string', 'max:2000'],
             'photos' => ['required', 'array', 'min:1', 'max:'.$imageLimit],
             'photos.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ], [
@@ -303,8 +325,17 @@ class AiController extends Controller
         $operations = [];
 
         $storedRelative = [];
-        foreach ($photos as $photo) {
-            $storedRelative[] = $images->stage($photo, $page);
+        try {
+            foreach ($photos as $photo) {
+                $storedRelative[] = $images->stage($photo, $page);
+            }
+        } catch (Throwable $exception) {
+            // Staged files must not be orphaned when one upload fails mid-loop.
+            if ($storedRelative !== []) {
+                $images->deleteMany($storedRelative);
+            }
+
+            throw $exception;
         }
         $relativeGroups = $groups !== null
             ? collect(array_slice($groups, 0, $allowed))->map(fn (array $group): array => collect($group)->map(fn (int $index): string => $storedRelative[$index - 1])->all())->all()
@@ -319,8 +350,12 @@ class AiController extends Controller
         ]);
 
         $usedRelative = [];
+        $reservationFailed = false;
+
+        // A concurrent request can consume the remaining credits between the
+        // estimate above and this loop, so the reservation decides. Groups
+        // that lose the race get their staged files cleaned up below.
         foreach ($relativeGroups as $index => $relativeGroup) {
-            $usedRelative = [...$usedRelative, ...$relativeGroup];
             $operation = AiOperation::create([
                 'seller_id' => $request->user()->id,
                 'store_page_id' => $page->id,
@@ -329,19 +364,30 @@ class AiController extends Controller
                 'input' => ['feature' => $data['feature'], 'hint' => $data['hint'] ?? null, 'batch_index' => $index, 'media_relative_paths' => $relativeGroup],
                 'ai_task_id' => $aiTask->id,
             ]);
-            app(AiUsageReservations::class)->reserveAndDispatch($operation);
+
+            try {
+                app(AiUsageReservations::class)->reserveAndDispatch($operation);
+            } catch (Throwable $exception) {
+                $reservationFailed = true;
+                break;
+            }
+
+            $usedRelative = [...$usedRelative, ...$relativeGroup];
             $operations[] = ['id' => $operation->id, 'status' => $operation->status, 'index' => $index];
         }
         $images->deleteMany(array_values(array_diff($storedRelative, array_unique($usedRelative))));
 
-        $aiTask->update(['status' => 'processing', 'started_at' => now()]);
+        $reserved = count($operations);
+        $aiTask->update(['status' => $reserved > 0 ? 'processing' : 'failed', 'total' => $reserved, 'started_at' => $reserved > 0 ? now() : null]);
+
+        $limitReached = $allowed < $requested || $reservationFailed;
 
         return response()->json([
             'operations' => $operations,
             'estimate' => $estimate,
             'task_id' => $aiTask->id,
-            'limit_reached' => $allowed < $requested,
-            'upgrade_required' => $allowed < $requested,
+            'limit_reached' => $limitReached,
+            'upgrade_required' => $limitReached,
         ], 202);
     }
 

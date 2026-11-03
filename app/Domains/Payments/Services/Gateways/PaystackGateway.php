@@ -48,11 +48,11 @@ class PaystackGateway implements PaymentGatewayInterface
 
     public function fetchPlan(string $planCode): array
     {
-        $data = $this->http()->get("/plan/{$planCode}")->throw()->json('data');
+        $data = $this->http()->get('/plan/'.rawurlencode($planCode))->throw()->json('data');
 
         return [
             'name' => (string) $data['name'],
-            'amount_kobo' => (int) $data['amount'],
+            'amount_kobo' => isset($data['amount']) ? (int) $data['amount'] : null,
             'interval' => (string) $data['interval'],
             'raw' => $data,
         ];
@@ -60,7 +60,7 @@ class PaystackGateway implements PaymentGatewayInterface
 
     public function updatePlan(string $planCode, string $name, string $interval, int $amountKobo, bool $updateExistingSubscriptions = false): array
     {
-        $response = $this->http()->put("/plan/{$planCode}", [
+        $response = $this->http()->put('/plan/'.rawurlencode($planCode), [
             'name' => $name,
             'interval' => $this->gatewayInterval($interval),
             'amount' => $amountKobo,
@@ -98,7 +98,7 @@ class PaystackGateway implements PaymentGatewayInterface
 
     public function fetchSubscription(string $subscriptionCode): array
     {
-        $data = $this->http()->get("/subscription/{$subscriptionCode}")
+        $data = $this->http()->get('/subscription/'.rawurlencode($subscriptionCode))
             ->throw()
             ->json('data');
 
@@ -107,14 +107,14 @@ class PaystackGateway implements PaymentGatewayInterface
 
     public function disableSubscription(string $subscriptionCode): array
     {
-        $response = $this->http()->get("/subscription/{$subscriptionCode}/disable")->throw();
+        $response = $this->http()->get('/subscription/'.rawurlencode($subscriptionCode).'/disable')->throw();
 
         return ['success' => (bool) $response->json('status'), 'raw' => (array) $response->json('data')];
     }
 
     public function enableSubscription(string $subscriptionCode): array
     {
-        $response = $this->http()->get("/subscription/{$subscriptionCode}/enable")->throw();
+        $response = $this->http()->get('/subscription/'.rawurlencode($subscriptionCode).'/enable')->throw();
 
         return ['success' => (bool) $response->json('status'), 'raw' => (array) $response->json('data')];
     }
@@ -175,11 +175,12 @@ class PaystackGateway implements PaymentGatewayInterface
 
     public function verify(string $reference): array
     {
-        $data = $this->http()->get("/transaction/verify/{$reference}")->throw()->json('data');
+        $data = $this->http()->get('/transaction/verify/'.rawurlencode($reference))->throw()->json('data');
 
         return [
-            'status' => $data['status'],
-            'amount_kobo' => (int) $data['amount'],
+            'status' => (string) ($data['status'] ?? ''),
+            'amount_kobo' => isset($data['amount']) ? (int) $data['amount'] : null,
+            'currency' => $data['currency'] ?? null,
             'paid_at' => $data['paid_at'] ?? null,
             'raw' => $data,
         ];

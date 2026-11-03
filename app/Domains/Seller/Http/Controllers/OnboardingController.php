@@ -84,6 +84,17 @@ class OnboardingController extends Controller
             case 'review':
                 abort_if(empty($data['name']) || empty($data['slug']) || empty($data['theme']), 422, 'Complete the previous steps first.');
 
+                // A double-click must not try to create a second page. The
+                // unique slug would reject it, but as a 500 after the first
+                // page is already live; answer idempotently instead.
+                $existing = $request->user()->storePages()->first();
+
+                if ($existing !== null) {
+                    $request->session()->forget('onboarding');
+
+                    return redirect()->route('dashboard')->with('status', "Your page {$existing->name} is already set up.");
+                }
+
                 if (! empty($data['ai_result'])) {
                     $keep = $request->input('starter_keep', array_keys($data['ai_result']['listings'] ?? []));
                     $data['ai_result']['listings'] = collect($data['ai_result']['listings'] ?? [])->only($keep)->values()->all();

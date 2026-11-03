@@ -14,11 +14,13 @@ use App\Domains\Catalog\Exceptions\OutOfStock;
 use App\Domains\Catalog\Jobs\ProcessProductImage;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Seller\Models\StorePage;
 use App\Shared\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +28,9 @@ use Illuminate\View\View;
 
 class ProductController extends Controller
 {
+    /** A product gallery longer than this is not a catalogue, it is a dump. */
+    private const MAX_IMAGES = 8;
+
     public function index(Request $request): View
     {
         $page = $request->user()->storePages()->with('blocks')->firstOrFail();
@@ -55,19 +60,27 @@ class ProductController extends Controller
     {
         $page = $request->user()->storePages()->firstOrFail();
         abort_unless(in_array($page->businessType(), ['store', 'both'], true), 404);
-        $entitlements->assertCanCreateListing($page);
-        $data = $this->validated($request);
-        $priceKobo = Money::toKobo($data['price']);
-        unset($data['price']);
-        $data['sku'] = filled($data['sku'] ?? null) ? $data['sku'] : 'SKU-'.strtoupper(Str::random(8));
-        $data['stock_qty'] = $data['stock_qty'] ?? 0;
 
-        $product = Product::create($data + [
-            'seller_id' => $request->user()->id,
-            'store_page_id' => $page->id,
-            'slug' => Str::slug($data['name']).'-'.Str::lower(Str::random(4)),
-            'price_kobo' => $priceKobo,
-        ]);
+        // The entitlement check and the insert share one transaction so the
+        // subscription lock is still held while the new row lands. The limit is
+        // checked before validation so an over-limit seller sees the upgrade
+        // message, not a field error.
+        $product = DB::transaction(function () use ($entitlements, $page, $request): Product {
+            $entitlements->assertCanCreateListing($page);
+
+            $data = $this->validated($request, $page);
+            $priceKobo = Money::toKobo($data['price']);
+            unset($data['price']);
+            $data['sku'] = filled($data['sku'] ?? null) ? $data['sku'] : 'SKU-'.strtoupper(Str::random(8));
+            $data['stock_qty'] = $data['stock_qty'] ?? 0;
+
+            return Product::create($data + [
+                'seller_id' => $request->user()->id,
+                'store_page_id' => $page->id,
+                'slug' => Str::slug($data['name']).'-'.Str::lower(Str::random(4)),
+                'price_kobo' => $priceKobo,
+            ]);
+        });
 
         if ($request->hasFile('images')) {
             foreach (array_values($request->file('images')) as $i => $file) {
@@ -100,7 +113,7 @@ class ProductController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         abort_unless($product->store_page_id === $page->id, 403);
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, $page);
         $priceKobo = Money::toKobo($data['price']);
         unset($data['price']);
         $data['sku'] = filled($data['sku'] ?? null) ? $data['sku'] : (filled($product->sku) ? $product->sku : 'SKU-'.strtoupper(Str::random(8)));
@@ -115,8 +128,17 @@ class ProductController extends Controller
         }
 
         if ($request->hasFile('images')) {
+            $incoming = count($request->file('images'));
+            $existing = $product->images()->count();
+
+            if ($existing + $incoming > self::MAX_IMAGES) {
+                throw ValidationException::withMessages([
+                    'images' => 'A product can have up to '.self::MAX_IMAGES.' photos. Remove one before adding more.',
+                ]);
+            }
+
             foreach (array_values($request->file('images')) as $i => $file) {
-                $image = $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $product->images()->count() + $i]);
+                $image = $product->images()->create(['path' => $file->store("products/{$product->id}", 'public'), 'position' => $existing + $i]);
                 ProcessProductImage::dispatch($image->getKey());
             }
         }
@@ -150,9 +172,12 @@ class ProductController extends Controller
         $page = $request->user()->storePages()->firstOrFail();
         $ids = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer']])['ids'];
 
-        Product::where('store_page_id', $page->id)->whereIn('id', $ids)->delete();
+        $doomed = Product::where('store_page_id', $page->id)->whereIn('id', $ids)->pluck('id');
+        // Soft delete on purpose: the row and its images stay recoverable for
+        // 30 days, then the purge job removes both for good.
+        Product::where('store_page_id', $page->id)->whereIn('id', $doomed)->delete();
 
-        return redirect()->route('products.index')->with('status', count($ids).' product(s) deleted.');
+        return redirect()->route('products.index')->with('status', $doomed->count().' product(s) deleted. You can restore them for 30 days.');
     }
 
     public function destroy(Request $request, Product $product): RedirectResponse
@@ -162,7 +187,7 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return redirect()->route('products.index')->with('status', 'Product deleted.');
+        return redirect()->route('products.index')->with('status', 'Product deleted. You can restore it for 30 days.');
     }
 
     public function generateDescriptions(Request $request): RedirectResponse
@@ -293,14 +318,14 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('status', 'Descriptions restored.');
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, StorePage $page): array
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:160'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('store_page_id', $page->id)],
             'description' => ['nullable', 'string', 'max:5000'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'compare_at' => ['nullable', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0', 'max:100000000'],
+            'compare_at' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
             'sale_starts_at' => ['nullable', 'date'],
             'sale_ends_at' => ['nullable', 'date'],
             'sku' => ['nullable', 'string', 'max:64'],
@@ -310,6 +335,7 @@ class ProductController extends Controller
             'is_featured' => ['sometimes', 'boolean'],
             'delivery_mode' => ['nullable', Rule::enum(DeliveryMode::class)],
             'delivery_fee' => ['nullable', 'numeric', 'min:0', 'max:100000000'],
+            'images' => ['nullable', 'array', 'max:'.self::MAX_IMAGES],
             'images.*' => ['nullable', 'image', 'max:4096'],
         ]);
 

@@ -200,3 +200,15 @@ it('opens the create form', function () {
         ->assertOk()
         ->assertSee('Add category');
 });
+
+it('updates a category keeping its name without a validation error', function () {
+    [$seller, $page] = sellerWithPage();
+
+    $category = $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Fabrics']);
+
+    actingAs($seller)->put(route('categories.update', $category), ['name' => 'Fabrics'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('categories.index'));
+
+    expect($category->fresh()->slug)->toBe($category->slug);
+});

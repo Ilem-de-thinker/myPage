@@ -434,3 +434,82 @@ it('pins a review without un-publishing it', function () {
     expect($review->is_featured)->toBeTrue()
         ->and($review->status)->toBe(ReviewStatus::Approved);
 });
+
+it('lists product reviews in the moderation inbox', function () {
+    [$seller, $page, $product] = reviewedProduct();
+
+    $review = new Review([
+        'seller_id' => $seller->id,
+        'store_page_id' => $page->id,
+        'author_name' => 'Chidi Okeke',
+        'rating' => 5,
+        'body' => 'Lovely fabric, fast delivery.',
+    ]);
+    $review->reviewable()->associate($product);
+    $review->save();
+
+    actingAs($seller)->get(route('reviews.index'))
+        ->assertOk()
+        ->assertSee('Lovely fabric, fast delivery.')
+        ->assertSee('Chidi Okeke');
+});
+
+it('counts product reviews in the inbox tab counts', function () {
+    [$seller, $page, $product] = reviewedProduct();
+
+    $review = new Review([
+        'seller_id' => $seller->id,
+        'store_page_id' => $page->id,
+        'author_name' => 'Chidi Okeke',
+        'rating' => 4,
+        'body' => 'Solid quality for the price.',
+    ]);
+    $review->reviewable()->associate($product);
+    $review->save();
+
+    actingAs($seller)->get(route('reviews.index'))
+        ->assertOk()
+        ->assertSee('On')
+        ->assertSee('Ankara Print');
+});
+
+it('refuses to feature a review that was not approved', function () {
+    [$seller, $page, $product] = reviewedProduct();
+
+    $review = Review::factory()->create([
+        'seller_id' => $page->seller_id,
+        'store_page_id' => $page->id,
+        'reviewable_type' => $product->getMorphClass(),
+        'reviewable_id' => $product->id,
+        'author_name' => 'Chidi',
+        'rating' => 5,
+        'body' => 'Still waiting.',
+        'status' => ReviewStatus::Pending,
+    ]);
+
+    actingAs($seller)->post("/reviews/{$review->id}/feature")->assertStatus(422);
+
+    expect($review->fresh()->is_featured)->toBeFalse();
+});
+
+it('un-features a review when the seller rejects it', function () {
+    [$seller, $page, $product] = reviewedProduct();
+
+    $review = Review::factory()->create([
+        'seller_id' => $page->seller_id,
+        'store_page_id' => $page->id,
+        'reviewable_type' => $product->getMorphClass(),
+        'reviewable_id' => $product->id,
+        'author_name' => 'Chidi',
+        'rating' => 5,
+        'body' => 'Was featured.',
+        'status' => ReviewStatus::Approved,
+        'published_at' => now(),
+        'is_featured' => true,
+    ]);
+
+    actingAs($seller)->post("/reviews/{$review->id}/reject");
+
+    expect($review->fresh()->status)->toBe(ReviewStatus::Rejected)
+        ->and($review->fresh()->is_featured)->toBeFalse();
+});

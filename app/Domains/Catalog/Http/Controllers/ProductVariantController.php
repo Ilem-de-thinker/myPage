@@ -37,10 +37,11 @@ class ProductVariantController extends Controller
     public function store(Request $request, Product $product): RedirectResponse
     {
         $this->authorizeProduct($request, $product);
-        $data = $this->validated($request);
+        $data = $this->validated($request, $product);
         $variant = $product->variants()->create($data + [
+            'store_page_id' => $product->store_page_id,
             'price_kobo' => filled($data['price'] ?? null) ? Money::toKobo($data['price']) : null,
-            'sku' => filled($data['sku'] ?? null) ? $data['sku'] : ProductVariant::generateSku(),
+            'sku' => filled($data['sku'] ?? null) ? $data['sku'] : ProductVariant::generateSku($product->store_page_id),
         ]);
         $this->storeImage($request, $variant);
 
@@ -63,7 +64,7 @@ class ProductVariantController extends Controller
     {
         $product = $this->authorizeVariant($request, $variant->fresh());
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, $product);
         $data['price_kobo'] = filled($data['price'] ?? null) ? Money::toKobo($data['price']) : null;
 
         $variant->update($data);
@@ -90,7 +91,7 @@ class ProductVariantController extends Controller
         return back()->with('status', 'Variant deleted.');
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, Product $product): array
     {
         $variant = $request->route('variant');
 
@@ -102,8 +103,8 @@ class ProductVariantController extends Controller
                 'nullable',
                 'string',
                 'max:64',
-                function (string $attribute, mixed $value, Closure $fail) use ($variant) {
-                    if (filled($value) && ProductVariant::isSkuTaken($value, $variant?->id)) {
+                function (string $attribute, mixed $value, Closure $fail) use ($variant, $product) {
+                    if (filled($value) && ProductVariant::isSkuTaken($value, $product->store_page_id, $variant?->id)) {
                         $fail('That SKU is already used by another variant.');
                     }
                 },
@@ -130,7 +131,7 @@ class ProductVariantController extends Controller
         }
 
         $variant->update([
-            'image_path' => $request->file('image')->store("variants/\{$variant->product_id}", 'public'),
+            'image_path' => $request->file('image')->store("variants/{$variant->product_id}", 'public'),
         ]);
     }
 

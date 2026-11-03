@@ -1,7 +1,11 @@
 <?php
 
+use App\Domains\Catalog\Jobs\PurgeDeletedProducts;
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Catalog\Models\ProductImage;
 use App\Domains\Seller\Models\StorePage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
 
@@ -172,4 +176,94 @@ it('auto-generates a sku when blank', function () {
     // A blank sku must still store a generated value.
     $product = Product::firstWhere('name', 'Auto Sku Item');
     expect($product->sku)->toStartWith('SKU-');
+});
+
+it('rejects a category that belongs to another store', function () {
+    [$seller, $page] = sellerWithPage();
+
+    [$otherSeller, $otherPage] = sellerWithPage();
+
+    $foreign = $otherPage->categories()->create(['seller_id' => $otherSeller->id, 'name' => 'Foreign Fabrics']);
+
+    actingAs($seller)->post(route('products.store'), [
+        'name' => 'Ankara Print',
+        'price' => '15000',
+        'status' => 'active',
+        'category_id' => $foreign->id,
+    ])->assertSessionHasErrors('category_id');
+});
+
+it('keeps image files while a deleted product is recoverable', function () {
+    [$seller, $page] = sellerWithPage();
+
+    Storage::fake('public');
+
+    $product = Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $seller->id,
+        'name' => 'File Bound Product',
+    ]);
+
+    $path = "products/{$product->id}/a.webp";
+    Storage::disk('public')->put($path, 'img');
+    $product->images()->create(['path' => $path, 'position' => 0]);
+
+    actingAs($seller)->delete(route('products.destroy', $product))->assertRedirect(route('products.index'));
+
+    // Soft delete: hidden from the catalogue, but the row and its files stay
+    // so a mistaken delete is reversible for 30 days.
+    Storage::disk('public')->assertExists($path);
+    expect(Product::find($product->id))->toBeNull()
+        ->and(Product::onlyTrashed()->find($product->id))->not->toBeNull()
+        ->and(ProductImage::where('product_id', $product->id)->count())->toBe(1);
+});
+
+it('purges a deleted product and its files after the recovery window', function () {
+    [$seller, $page] = sellerWithPage();
+
+    Storage::fake('public');
+
+    $product = Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $seller->id,
+    ]);
+
+    $path = "products/{$product->id}/old.webp";
+    Storage::disk('public')->put($path, 'img');
+    $product->images()->create(['path' => $path, 'position' => 0]);
+    $product->delete();
+
+    // Still inside the window: the purge must leave it alone.
+    (new PurgeDeletedProducts)->handle();
+    expect(Product::onlyTrashed()->find($product->id))->not->toBeNull();
+
+    Product::onlyTrashed()->whereKey($product->id)->update(['deleted_at' => now()->subDays(31)]);
+    (new PurgeDeletedProducts)->handle();
+
+    expect(Product::onlyTrashed()->find($product->id))->toBeNull()
+        ->and(ProductImage::where('product_id', $product->id)->count())->toBe(0);
+    Storage::disk('public')->assertMissing($path);
+});
+
+it('caps how many photos a product may have', function () {
+    [$seller, $page] = sellerWithPage();
+
+    Storage::fake('public');
+
+    $product = Product::factory()->create([
+        'store_page_id' => $page->id,
+        'seller_id' => $seller->id,
+    ]);
+
+    foreach (range(0, 7) as $position) {
+        $product->images()->create(['path' => "products/{$product->id}/{$position}.webp", 'position' => $position]);
+    }
+
+    actingAs($seller)->post(route('products.update', $product), [
+        '_method' => 'PUT',
+        'name' => $product->name,
+        'price' => 1000,
+        'status' => 'draft',
+        'images' => [UploadedFile::fake()->image('extra.jpg')],
+    ])->assertSessionHasErrors('images');
 });

@@ -52,9 +52,31 @@ class SyncGatewaySubscription
                 ->attachGatewaySubscription($subscription, $this->subscriptionAttributes($data)),
             GatewayWebhookEvent::SUBSCRIPTION_NOT_RENEW, GatewayWebhookEvent::SUBSCRIPTION_DISABLE => $this->subscriptions->applyGatewayStatus($subscription, $this->statusFor($event, $data)),
             GatewayWebhookEvent::INVOICE_PAYMENT_FAILED => $this->subscriptions->markPastDue($subscription),
+            GatewayWebhookEvent::INVOICE_UPDATE => ($data['paid'] ?? false) ? $this->subscriptions->renew($subscription, null, $this->invoiceKey($data)) : null,
             GatewayWebhookEvent::SUBSCRIPTION_EXPIRING_CARDS => $this->notifyExpiringCard($subscription, $data),
             default => null,
         };
+    }
+
+    /**
+     * Stable identity for an invoice so one payment never renews twice, even
+     * if both the invoice arm and the charge.success arm fire for it. Uses
+     * the transaction reference when the invoice carries one, so both arms
+     * agree on the key; falls back to the invoice id otherwise.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function invoiceKey(array $data): ?string
+    {
+        $reference = $data['reference'] ?? $data['transaction']['reference'] ?? null;
+
+        if (is_string($reference) && $reference !== '') {
+            return $reference;
+        }
+
+        $fallback = $data['invoice_code'] ?? $data['id'] ?? null;
+
+        return $fallback !== null ? 'invoice.'.(string) $fallback : null;
     }
 
     /**

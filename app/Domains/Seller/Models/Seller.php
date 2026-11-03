@@ -18,6 +18,12 @@ class Seller extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
+    /**
+     * Only fields a seller may set about themselves through mass assignment.
+     * Account state — status, admin role, the email-verified stamp, the OTP
+     * hash, policy acceptances and the Google link — is written with forceFill
+     * by the code that owns that decision, never by request input.
+     */
     protected $fillable = [
         'name',
         'legal_name',
@@ -26,17 +32,6 @@ class Seller extends Authenticatable implements MustVerifyEmail
         'email',
         'phone',
         'password',
-        'status',
-        'is_admin',
-        'admin_role',
-        'last_login_at',
-        'email_otp_hash',
-        'email_otp_expires_at',
-        'google_id',
-        'terms_accepted_at',
-        'terms_version',
-        'privacy_accepted_at',
-        'privacy_version',
     ];
 
     protected $hidden = [
@@ -54,6 +49,7 @@ class Seller extends Authenticatable implements MustVerifyEmail
             'last_login_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'privacy_accepted_at' => 'datetime',
             'kyc_verified_at' => 'datetime',

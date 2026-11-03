@@ -4,6 +4,7 @@ use App\Domains\Ai\Http\Controllers\AiController;
 use App\Domains\Ai\Http\Controllers\AiDraftController;
 use App\Domains\Ai\Http\Controllers\AiTaskController;
 use App\Domains\Analytics\Http\Controllers\AnalyticsController;
+use App\Domains\Auth\Http\Controllers\AccountSecurityController;
 use App\Domains\Auth\Http\Controllers\DataSubjectRequestController;
 use App\Domains\Auth\Http\Controllers\EmailVerificationController;
 use App\Domains\Auth\Http\Controllers\GoogleAuthController;
@@ -165,22 +166,28 @@ Route::middleware('guest')->group(function () {
         arrives in.
     */
     Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
-    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
     Route::get('/forgot-password', [PasswordResetController::class, 'showRequestForm'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:6,1');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update')->middleware('throttle:6,1');
 });
+
+/*
+     Google sign-in callback. Deliberately not in the guest group: an
+     authenticated seller passing through Google to confirm a money-routing
+     action lands here too, and the controller distinguishes the two.
+*/
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 Route::middleware(['auth', 'seller.active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
-    Route::get('/support', [SupportController::class, 'index'])->name('support.index');
-    Route::get('/support/{supportRequest}', [SupportController::class, 'show'])->name('support.show');
-    Route::post('/support', [SupportController::class, 'store'])->name('support.store')->middleware('throttle:5,1');
+    Route::get('/support', [SupportController::class, 'index'])->name('support.index')->middleware('policies.current');
+    Route::get('/support/{supportRequest}', [SupportController::class, 'show'])->name('support.show')->middleware('policies.current');
+    Route::post('/support', [SupportController::class, 'store'])->name('support.store')->middleware(['policies.current', 'throttle:5,1']);
     Route::post('/support/{supportRequest}/reply', [SupportController::class, 'reply'])
         ->name('support.reply')
-        ->middleware('throttle:10,1');
+        ->middleware(['policies.current', 'throttle:10,1']);
 
     /*
         Confirming a password before a money-routing change.
@@ -190,6 +197,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         seller may need to confirm on the way to a screen that is itself gated;
         a redirect loop is worse than the extra route.
     */
+    Route::get('/auth/google/confirm', [GoogleAuthController::class, 'confirmRedirect'])->name('auth.google.confirm');
     Route::get('/confirm-password', [PasswordConfirmationController::class, 'show'])->name('password.confirm');
     Route::post('/confirm-password', [PasswordConfirmationController::class, 'store'])->middleware('throttle:6,1');
 
@@ -200,7 +208,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     // Re-acceptance when a published policy version changes. Kept outside the
     // dashboard group so the middleware cannot redirect this screen to itself.
     Route::get('/legal/consent', [PolicyController::class, 'consent'])->name('legal.consent');
-    Route::post('/legal/consent', [PolicyController::class, 'accept'])->name('legal.consent.accept');
+    Route::post('/legal/consent', [PolicyController::class, 'accept'])->name('legal.consent.accept')->middleware('throttle:6,1');
 
     // Email verification protects the dashboard. Business verification is a
     // buyer-facing trust signal and is deliberately not a dashboard gate.
@@ -236,11 +244,12 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::post('ai/drafts/{draft}/regenerate', [AiDraftController::class, 'regenerate'])->name('dashboard.ai.drafts.regenerate');
         Route::post('ai/drafts/{draft}/undo', [AiDraftController::class, 'undo'])->name('dashboard.ai.drafts.undo');
         Route::post('ai/drafts/confirm-selected', [AiDraftController::class, 'confirmSelected'])->name('dashboard.ai.drafts.confirm-selected');
+        Route::get('ai/media', [AiDraftController::class, 'media'])->name('dashboard.ai.media');
         Route::get('ai/tasks', [AiTaskController::class, 'history'])->name('dashboard.ai.tasks.index');
         Route::get('ai/tasks/active', [AiTaskController::class, 'active'])->name('dashboard.ai.tasks.active');
         Route::get('ai/tasks/{task}', [AiTaskController::class, 'show'])->name('dashboard.ai.tasks.show');
-        Route::post('ai/tasks/{task}/cancel', [AiTaskController::class, 'cancel'])->name('dashboard.ai.tasks.cancel');
-        Route::post('ai/tasks/{task}/retry-failed', [AiTaskController::class, 'retryFailed'])->name('dashboard.ai.tasks.retry-failed');
+        Route::post('ai/tasks/{task}/cancel', [AiTaskController::class, 'cancel'])->middleware('throttle:10,1')->name('dashboard.ai.tasks.cancel');
+        Route::post('ai/tasks/{task}/retry-failed', [AiTaskController::class, 'retryFailed'])->middleware('throttle:10,1')->name('dashboard.ai.tasks.retry-failed');
         Route::get('ai/tasks/{task}/status', [AiTaskController::class, 'status'])->name('dashboard.ai.tasks.status');
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('dashboard.analytics.index');
         Route::post('analytics/digest', [AnalyticsController::class, 'digest'])->middleware('throttle:5,1')->name('dashboard.analytics.digest');
@@ -300,6 +309,8 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::put('staff/{staffMember}', [StaffMemberController::class, 'update'])->name('staff.update');
         Route::delete('staff/{staffMember}', [StaffMemberController::class, 'destroy'])->name('staff.destroy');
         Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
+        Route::get('account/password', [AccountSecurityController::class, 'show'])->name('account.password');
+        Route::post('account/password', [AccountSecurityController::class, 'update'])->middleware('throttle:6,1')->name('account.password.update');
 
         /*
             The seller's own gateway keys. Writes sit behind password.confirm:
@@ -348,7 +359,7 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
         Route::post('products/undo-descriptions/{task}', [ProductController::class, 'undoDescriptions'])->name('products.undo-descriptions');
         Route::post('products/import', [ProductImportController::class, 'store'])->name('products.import');
         Route::patch('products/{product}/stock', [ProductController::class, 'adjustStock'])->name('products.stock');
-        Route::resource('products.variants', ProductVariantController::class)->shallow();
+        Route::resource('products.variants', ProductVariantController::class)->shallow()->except(['show']);
         Route::resource('products', ProductController::class)->except(['show']);
         Route::post('categories/bulk-destroy', [CategoryController::class, 'bulkDestroy'])->name('categories.bulk-destroy');
         Route::post('categories/generate-ai', [CategoryController::class, 'generateWithAi'])->name('categories.generate-ai');
@@ -367,10 +378,10 @@ Route::middleware(['auth', 'seller.active'])->group(function () {
     // The wizard needs a confirmed email but no badge: a seller who cannot get
     // past this has no page to verify, and business.verified would make the
     // platform impossible to sign up for.
-    Route::prefix('onboarding')->name('onboarding.')->middleware('verified')->group(function () {
+    Route::prefix('onboarding')->name('onboarding.')->middleware(['verified', 'policies.current'])->group(function () {
         Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
         Route::get('/{step}', [OnboardingController::class, 'show'])->name('show')->whereIn('step', ['business', 'theme', 'brand', 'review']);
         Route::post('/{step}', [OnboardingController::class, 'store'])->name('store')->whereIn('step', ['business', 'theme', 'brand', 'review']);
-        Route::post('/ai', [OnboardingController::class, 'aiCreate'])->name('ai');
+        Route::post('/ai', [OnboardingController::class, 'aiCreate'])->middleware('throttle:5,1')->name('ai');
     });
 });

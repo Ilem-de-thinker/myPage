@@ -86,7 +86,7 @@ it('keeps only the fields a block declares', function () {
         ->toBe(['headline' => 'Real headline']);
 });
 
-it('strips scripts out of rich text', function () {
+it('removes script tags and their contents from rich text', function () {
     [$seller, $page] = settingsPage();
 
     actingAs($seller)->post('/storefront/home', [
@@ -96,7 +96,7 @@ it('strips scripts out of rich text', function () {
     ]);
 
     expect($page->blocks()->where('key', 'about')->firstOrFail()->content['body'])
-        ->toBe('<p>Since 2020</p>alert(1)');
+        ->toBe('<p>Since 2020</p>');
 });
 
 it('keeps reviews as a list of quote and author', function () {

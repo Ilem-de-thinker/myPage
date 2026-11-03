@@ -27,10 +27,18 @@ class Policy extends Model
         ];
     }
 
+    /**
+     * The copy a visitor is allowed to see.
+     *
+     * A draft is a lawyer-review document, not a published one: it stays out of
+     * the public site even when an admin has already given it a publish date.
+     * Only a non-draft row whose effective date has arrived is current.
+     */
     public static function current(string $slug): ?self
     {
         return self::query()
             ->where('slug', $slug)
+            ->where('is_draft', false)
             ->whereNotNull('published_at')
             ->where(fn ($query) => $query
                 ->whereNull('effective_at')
@@ -43,6 +51,20 @@ class Policy extends Model
     public static function currentVersion(string $slug): ?string
     {
         return self::current($slug)?->version;
+    }
+
+    /**
+     * The single version string the whole app records consent against.
+     *
+     * Registration, the consent screen and the pending check must agree; when
+     * they read different sources a seller can accept one version and still be
+     * told they accepted another. The published row wins, then the shipped
+     * config value.
+     */
+    public static function version(string $slug): string
+    {
+        return self::currentVersion($slug)
+            ?? (string) config("legal.{$slug}_version", '2026-10-23');
     }
 
     /**

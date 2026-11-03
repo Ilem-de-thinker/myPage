@@ -93,7 +93,8 @@ class SubscriptionManager
      * A trial starts immediately and grants access. A paid plan bought through
      * the gateway only grants access once its payment is confirmed: starting
      * checkout records the intent without changing what the seller can do. A
-     * manual transfer is money already sent, so it starts paying immediately.
+     * manual transfer starts as Pending too — the claim is unverified until an
+     * admin approves it, and renew() is what grants the period.
      */
     public function start(
         Seller $seller,
@@ -125,7 +126,8 @@ class SubscriptionManager
             $status = match (true) {
                 $onTrial => SubscriptionStatus::Trialing,
                 $keepExisting => $existing->status,
-                $paymentMethod === 'gateway' => SubscriptionStatus::Pending,
+                // A claimed transfer grants nothing until an admin approves it.
+                $paymentMethod === 'gateway' || $paymentMethod === 'manual' => SubscriptionStatus::Pending,
                 default => SubscriptionStatus::Active,
             };
 
@@ -162,25 +164,41 @@ class SubscriptionManager
 
     /**
      * Roll the current period forward after a confirmed payment.
+     *
+     * Idempotent when an $idempotencyKey (the gateway reference, or the
+     * invoice id) is given: the same payment seen twice rolls forward once.
+     * The read-check-write runs under a row lock, so the browser callback and
+     * the webhook racing each other cannot both extend the period.
      */
-    public function renew(Subscription $subscription, ?Carbon $now = null): Subscription
+    public function renew(Subscription $subscription, ?Carbon $now = null, ?string $idempotencyKey = null): Subscription
     {
         $now ??= now();
 
-        $periodStart = $subscription->current_period_ends_at?->isPast() === false
-            ? $subscription->current_period_ends_at
-            : $now;
+        return DB::transaction(function () use ($subscription, $now, $idempotencyKey) {
+            $locked = Subscription::whereKey($subscription->getKey())->lockForUpdate()->firstOrFail();
 
-        $subscription->update([
-            'status' => SubscriptionStatus::Active,
-            'trial_ends_at' => null,
-            'current_period_starts_at' => $periodStart,
-            'current_period_ends_at' => $this->periodEnd($periodStart, $subscription->plan?->interval ?? 'monthly'),
-            'grace_ends_at' => null,
-            'grace_override_until' => null,
-        ]);
+            if ($idempotencyKey !== null && ($locked->meta['last_renewal_reference'] ?? null) === $idempotencyKey) {
+                return $locked;
+            }
 
-        return $subscription;
+            $periodStart = $locked->current_period_ends_at?->isPast() === false
+                ? $locked->current_period_ends_at
+                : $now;
+
+            $locked->update([
+                'status' => SubscriptionStatus::Active,
+                'trial_ends_at' => null,
+                'current_period_starts_at' => $periodStart,
+                'current_period_ends_at' => $this->periodEnd($periodStart, $locked->plan?->interval ?? 'monthly'),
+                'grace_ends_at' => null,
+                'grace_override_until' => null,
+                'meta' => $idempotencyKey !== null
+                    ? array_merge($locked->meta ?? [], ['last_renewal_reference' => $idempotencyKey])
+                    : $locked->meta,
+            ]);
+
+            return $locked;
+        });
     }
 
     /**

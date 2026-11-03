@@ -88,5 +88,10 @@
 - [x] Add the usage meter component, billing placement, and launcher integration.
 - [x] Add admin plan AI limit editing.
 - [x] Write and run phase 1 tests.
-- [ ] Implement phase 2 reservations and their tests.
-- [ ] Run Pint and the affected test suite.
+- [x] Implement phase 2 reservations and their tests.
+  - `ai_usage_ledgers` gained `status` (`pending`/`used`), `operation_id` (unique, nullable FK), and `reserved_at`.
+  - `AiUsageReservations` reserves atomically (transaction + seller row lock), converts to `used` on provider success, deletes pending rows on failure/cancellation, and sweeps stale rows.
+  - Controllers reserve at queue time via `reserveAndDispatch`; batch/photo-listing keep what was reserved when credits run out mid-queue.
+  - `ReleaseStaleAiReservations` job scheduled every ten minutes.
+  - Tests: tests/Feature/AiUsageReservationsTest.php (9 tests).
+- [x] Run Pint and the affected test suite (AiUsageReservationsTest 9/9, Ai suite 71/71, AiPlanLimitsTest 14/14, TrialPlanTest 9/9).

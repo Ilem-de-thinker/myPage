@@ -17,6 +17,7 @@ use function Pest\Laravel\actingAs;
 
 it('stores uploaded listing photos and records their relative paths on the operation', function () {
     [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    Storage::fake('local');
     Storage::fake('public');
     Queue::fake();
 
@@ -36,7 +37,7 @@ it('stores uploaded listing photos and records their relative paths on the opera
     expect($paths)->toHaveCount(2);
 
     foreach ($paths as $path) {
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertExists($path);
     }
 
     expect(AiTask::query()->first()->total)->toBe(2);
@@ -44,8 +45,8 @@ it('stores uploaded listing photos and records their relative paths on the opera
 
 it('carries uploaded photo paths into the generated draft', function () {
     [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
-    Storage::fake('public');
-    Storage::disk('public')->put('ai/listing-inputs/product.jpg', 'image-bytes');
+    Storage::fake('local');
+    Storage::disk('local')->put("ai/{$page->id}/staging/product.jpg", 'image-bytes');
 
     $operation = AiOperation::create([
         'seller_id' => $seller->id,
@@ -54,7 +55,7 @@ it('carries uploaded photo paths into the generated draft', function () {
         'status' => 'queued',
         'input' => [
             'feature' => 'products',
-            'media_relative_paths' => ['ai/listing-inputs/product.jpg'],
+            'media_relative_paths' => ["ai/{$page->id}/staging/product.jpg"],
         ],
     ]);
 
@@ -69,17 +70,18 @@ it('carries uploaded photo paths into the generated draft', function () {
 
     $draft = AiDraft::query()->firstOrFail();
 
-    expect($draft->payload['_media_relative_paths'])->toBe(['ai/listing-inputs/product.jpg'])
+    expect($draft->payload['_media_relative_paths'])->toBe(["ai/{$page->id}/staging/product.jpg"])
         ->and($draft->payload['_feature'])->toBe('products')
         ->and($operation->fresh()->status)->toBe('succeeded');
 });
 
 it('attaches draft photos to an approved product and keeps the files', function () {
     [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    Storage::fake('local');
     Storage::fake('public');
     Queue::fake();
-    Storage::disk('public')->put('ai/listing-inputs/first.jpg', 'first');
-    Storage::disk('public')->put('ai/listing-inputs/second.jpg', 'second');
+    Storage::disk('local')->put("ai/{$page->id}/staging/first.jpg", 'first');
+    Storage::disk('local')->put("ai/{$page->id}/staging/second.jpg", 'second');
 
     $draft = AiDraft::create([
         'seller_id' => $seller->id,
@@ -93,9 +95,9 @@ it('attaches draft photos to an approved product and keeps the files', function 
             'description' => 'Handmade bag',
             'price_hint' => '15000',
             '_media_relative_paths' => [
-                'ai/listing-inputs/first.jpg',
-                'ai/listing-inputs/second.jpg',
-                'ai/listing-inputs/missing.jpg',
+                "ai/{$page->id}/staging/first.jpg",
+                "ai/{$page->id}/staging/second.jpg",
+                "ai/{$page->id}/staging/missing.jpg",
             ],
         ],
     ]);
@@ -113,17 +115,18 @@ it('attaches draft photos to an approved product and keeps the files', function 
         ->and($images->pluck('position')->all())->toBe([0, 1]);
 
     Queue::assertPushed(ProcessProductImage::class, 2);
-    // Staging is kept so the draft preview still has a file after the product
-    // copy is converted to WebP by ProcessProductImage.
-    Storage::disk('public')->assertExists('ai/listing-inputs/first.jpg');
-    Storage::disk('public')->assertExists('ai/listing-inputs/second.jpg');
-    Storage::disk('public')->assertMissing('ai/listing-inputs/missing.jpg');
+    // Staging is kept private so the draft preview still has a file after the
+    // product copy is converted to WebP by ProcessProductImage.
+    Storage::disk('local')->assertExists("ai/{$page->id}/staging/first.jpg");
+    Storage::disk('local')->assertExists("ai/{$page->id}/staging/second.jpg");
+    Storage::disk('local')->assertMissing("ai/{$page->id}/staging/missing.jpg");
 });
 
 it('uses the first draft photo as an approved service image', function () {
     [$seller, $page] = sellerWithPage(['theme' => Theme::Service]);
     Storage::fake('public');
-    Storage::disk('public')->put('ai/listing-inputs/service.jpg', 'service');
+    Storage::fake('local');
+    Storage::disk('local')->put("ai/{$page->id}/staging/service.jpg", 'service');
 
     $draft = AiDraft::create([
         'seller_id' => $seller->id,
@@ -136,7 +139,7 @@ it('uses the first draft photo as an approved service image', function () {
             'name' => 'Braiding session',
             'description' => 'A full braiding appointment',
             'price_hint' => '25000',
-            '_media_relative_paths' => ['ai/listing-inputs/service.jpg'],
+            '_media_relative_paths' => ["ai/{$page->id}/staging/service.jpg"],
         ],
     ]);
 
@@ -146,5 +149,5 @@ it('uses the first draft photo as an approved service image', function () {
 
     expect($service->image_path)->toStartWith("booking/{$page->id}/services/service-")
         ->and($service->is_active)->toBeFalse();
-    Storage::disk('public')->assertExists('ai/listing-inputs/service.jpg');
+    Storage::disk('local')->assertExists("ai/{$page->id}/staging/service.jpg");
 });

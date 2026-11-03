@@ -24,7 +24,7 @@ class PasswordConfirmationController extends Controller
         $usesGoogle = $request->user()->usesGoogle();
 
         if ($usesGoogle) {
-            // Read by GoogleAuthController after a successful sign-in. Short
+            // Read by GoogleAuthController after a successful re-auth. Short
             // lived on purpose: it is a flag for this detour, not a permission.
             $request->session()->put('auth.confirm_intent', true);
         }
@@ -41,7 +41,7 @@ class PasswordConfirmationController extends Controller
         if ($seller->usesGoogle()) {
             $request->session()->put('auth.confirm_intent', true);
 
-            return redirect()->route('auth.google');
+            return redirect()->route('auth.google.confirm');
         }
 
         $request->validate([

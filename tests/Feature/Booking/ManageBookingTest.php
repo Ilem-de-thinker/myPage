@@ -113,8 +113,22 @@ it('still shows the receipt for a reference this studio issued', function () {
     Booking::factory()->create([
         'store_page_id' => $page->id,
         'reference' => 'BK-8941',
+        'customer_email' => 'buyer@example.com',
     ]);
 
-    get(storeUrl($page->slug, '/book/confirmation?booking=BK-8941'))
+    get(storeUrl($page->slug, '/book/confirmation?booking=BK-8941&contact=buyer@example.com'))
         ->assertOk();
+});
+
+it('refuses the receipt on the reference alone', function () {
+    [$seller, $page] = bookableServicePage();
+
+    Booking::factory()->create([
+        'store_page_id' => $page->id,
+        'reference' => 'BK-4242',
+        'customer_email' => 'buyer@example.com',
+    ]);
+
+    get(storeUrl($page->slug, '/book/confirmation?booking=BK-4242'))
+        ->assertRedirect(StoreUrl::path('storefront.manage-booking', ['slug' => $page->slug]));
 });

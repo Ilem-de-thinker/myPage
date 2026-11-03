@@ -2,6 +2,7 @@
 
 namespace App\Domains\Auth\Http\Controllers;
 
+use App\Domains\Admin\Models\Policy;
 use App\Domains\Seller\Models\Seller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,13 +34,32 @@ class GoogleAuthController
     /**
      * Send the seller to Google.
      *
-     * `stateless()` is deliberate and is the difference between this being safe
-     * and not: it drops the OAuth state token, which is the one thing that proves
-     * the callback belongs to a redirect *this* application started. Without it
-     * an attacker can complete an OAuth flow with their own Google account and
-     * post the callback at a victim, who is silently signed in as the attacker.
+     * The OAuth `state` token is kept (Socialite's default, session-backed
+     * flow) and is the one thing that proves the callback belongs to a
+     * redirect *this* application started. Without it an attacker can complete
+     * an OAuth flow with their own Google account and post the callback at a
+     * victim, who is silently signed in as the attacker.
      */
     public function redirect(): RedirectResponse
+    {
+        return $this->redirectToProvider();
+    }
+
+    /**
+     * Re-authenticate an already signed-in Google-only seller before a
+     * money-routing change. Sits behind auth middleware; the session flag
+     * tells the callback to confirm the identity rather than sign in anew.
+     */
+    public function confirmRedirect(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->usesGoogle(), 403);
+
+        $request->session()->put('auth.confirm_intent', true);
+
+        return $this->redirectToProvider();
+    }
+
+    private function redirectToProvider(): RedirectResponse
     {
         abort_if(
             blank(config('services.google.client_id')),
@@ -48,15 +68,45 @@ class GoogleAuthController
         );
 
         return Socialite::driver('google')
-            ->stateless()
             ->scopes(['openid', 'profile', 'email'])
             ->redirect();
     }
 
-    public function callback(Request $request): RedirectResponse
+    /**
+     * Confirm a signed-in seller against Google for a money-routing change.
+     * The Google identity must match the one linked to this account — a
+     * different Google account, however freshly authenticated, is refused.
+     */
+    private function confirmIdentity(Request $request): RedirectResponse
     {
         try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
+            $googleUser = Socialite::driver('google')->user();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return $this->failed('Google sign-in did not complete. Please try again.');
+        }
+
+        $user = $request->user();
+
+        if ($user->google_id === null || $googleUser->getId() !== $user->google_id) {
+            return $this->failed('That is not the Google account linked to this shop.');
+        }
+
+        $request->session()->forget('auth.confirm_intent');
+        $request->session()->put('auth.password_confirmed_at', time());
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    public function callback(Request $request): RedirectResponse
+    {
+        if ($request->user() !== null && $request->session()->get('auth.confirm_intent')) {
+            return $this->confirmIdentity($request);
+        }
+
+        try {
+            $googleUser = Socialite::driver('google')->user();
         } catch (InvalidStateException) {
             return $this->failed('Google sign-in expired. Please try again.');
         } catch (\Throwable $exception) {
@@ -142,16 +192,28 @@ class GoogleAuthController
                 column without becoming a second way in.
             */
             'password' => Str::password(40),
-
-            'status' => 'active',
         ]);
 
         $seller->forceFill([
+            'status' => 'active',
+
+            /*
+                Deliberately left null: the password above is a placeholder
+                nobody knows. password_set_at is what tells the account screen
+                "you may choose a password without confirming the old one".
+            */
+            'password_set_at' => null,
             'google_id' => $googleId,
 
             // Google has already verified this address, so the local OTP is
             // asking the same question twice.
             'email_verified_at' => now(),
+            // Google signup is an equally binding acceptance of the current
+            // policy versions; record it the same way the form does.
+            'terms_accepted_at' => now(),
+            'terms_version' => Policy::version('terms'),
+            'privacy_accepted_at' => now(),
+            'privacy_version' => Policy::version('privacy'),
         ])->save();
 
         return $this->signedIn($seller);
@@ -165,17 +227,9 @@ class GoogleAuthController
             return $this->failed('That account is not active. Get in touch and we will sort it out.');
         }
 
-        Auth::login($seller, remember: true);
+        session()->regenerate();
 
-        /*
-            A Google-only seller confirming a password-gated action. The flag is
-            set by PasswordConfirmationController::show() and is only readable
-            after Google has just vouched for this identity, so it cannot be used
-            to skip a confirmation that was never asked for.
-        */
-        if (session()->pull('auth.confirm_intent')) {
-            session()->put('auth.password_confirmed_at', time());
-        }
+        Auth::login($seller, remember: true);
 
         $seller->forceFill(['last_login_at' => now()])->save();
 

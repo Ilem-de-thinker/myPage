@@ -47,13 +47,13 @@ it('offers Google as the confirmation for a Google-only seller', function () {
     expect(session('auth.confirm_intent'))->toBeTrue();
 });
 
-it('records the confirmation when the Google detour comes back', function () {
+it('records the confirmation when the authenticated Google re-auth comes back', function () {
     config()->set('services.google.client_id', 'test-client-id');
     config()->set('services.google.client_secret', 'test-client-secret');
 
     $seller = Seller::factory()->create(['google_id' => 'google-sub-confirm']);
 
-    Socialite::shouldReceive('driver->stateless->user')->andReturn(
+    Socialite::shouldReceive('driver->user')->andReturn(
         (new SocialiteUser)->setRaw([])->map([
             'sub' => 'google-sub-confirm',
             'id' => 'google-sub-confirm',
@@ -63,7 +63,8 @@ it('records the confirmation when the Google detour comes back', function () {
         ]),
     );
 
-    $this->withSession(['auth.confirm_intent' => true])
+    $this->actingAs($seller)
+        ->withSession(['auth.confirm_intent' => true])
         ->get(route('auth.google.callback'))
         ->assertRedirect(route('dashboard'));
 
@@ -71,4 +72,28 @@ it('records the confirmation when the Google detour comes back', function () {
 
     expect(session('auth.password_confirmed_at'))->not->toBeNull()
         ->and(session('auth.confirm_intent'))->toBeNull();
+});
+
+it('refuses the confirmation when a different Google account comes back', function () {
+    config()->set('services.google.client_id', 'test-client-id');
+    config()->set('services.google.client_secret', 'test-client-secret');
+
+    $seller = Seller::factory()->create(['google_id' => 'google-sub-confirm']);
+
+    Socialite::shouldReceive('driver->user')->andReturn(
+        (new SocialiteUser)->setRaw([])->map([
+            'sub' => 'someone-elses-sub',
+            'id' => 'someone-elses-sub',
+            'email' => 'intruder@example.com',
+            'name' => 'Intruder',
+        ]),
+    );
+
+    $this->actingAs($seller)
+        ->withSession(['auth.confirm_intent' => true])
+        ->get(route('auth.google.callback'))
+        ->assertRedirect(route('login'));
+
+    expect(session('auth.password_confirmed_at'))->toBeNull()
+        ->and(session('auth.confirm_intent'))->not->toBeNull();
 });
