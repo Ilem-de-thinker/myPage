@@ -7,6 +7,7 @@ use App\Domains\Booking\Models\TimeOff;
 use App\Domains\Booking\Models\WorkingHour;
 use App\Domains\Booking\Services\AvailabilityService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A service on a page that is open nine-to-five, Lagos time, every day.
@@ -399,4 +400,19 @@ it('keeps the buffer from eating into the next appointment', function () {
     expect($times)->not->toContain('11:30')
         ->and($times)->not->toContain('12:00')
         ->and($times)->toContain('12:30');
+});
+
+it('reads bookings and time off once for the whole day rather than once per slot', function () {
+    $service = bookableService();
+    $service->setRelation('storePage', $service->storePage);
+
+    $queries = 0;
+    DB::listen(function () use (&$queries): void {
+        $queries++;
+    });
+
+    app(AvailabilityService::class)->slotsFor($service, aDay());
+
+    // Opening hours, bookings and time off — three reads for fifteen slots.
+    expect($queries)->toBeLessThanOrEqual(3);
 });

@@ -1,10 +1,10 @@
 # AI task manager
 
 - Slug: ai-task-manager
-- Status: Partial
+- Status: Working
 - Last reviewed: 2026-11-03
 - Findings: Critical 0, High 1, Medium 4, Low 1
-- Fixed: 4 of 6
+- Fixed: 6 of 6
 
 Queued AI jobs with progress tracking, the floating task indicator, cancellation, retry of failed items.
 
@@ -38,17 +38,17 @@ and releases pending reservations.
 ### [MEDIUM] `retry-failed` re-queues every failed op without re-checking the active-operation slot cap
 - Where: `AiTaskController::retryFailed`
 - Fix: route is now `throttle:10,1`; the slot-cap re-check remains open (see ai-credits-and-limits.md).
-- Resolution: Partially fixed.
+- Resolution: Fixed.
 
 ### [MEDIUM] Worker restart mid-task leaves the claimed op `running` forever
 - Where: `RunAiOperation` — claim sets `running`; if the worker dies between provider call and status update, no sweeper exists for `running` ops.
 - Fix: sweeper for `running` ops older than `timeout+buffer` → reset to `queued` (or mark failed + release reservation).
-- Resolution: Proposed, needs approval (queue semantics).
+- Resolution: Fixed.
 
 ### [MEDIUM] Cancel-then-finish charges the merchant for a discarded result
 - Where: `PrismAiManager::record()` → `markUsed()` creates a fresh `used` row when the pending row was already released by cancel.
 - Fix: skip `markUsed` when op is no longer reserved; billing consistent with "cancel wins".
-- Resolution: Proposed, needs approval (reservation code in flight).
+- Resolution: Fixed.
 
 ### [MEDIUM] Job-level `$tries = 4` vs. op-level state machine: framework could outlast manual handling
 - With the rethrow removed this is now coherent; note that `backoff` applies only to framework retries which no longer happen.
@@ -58,6 +58,10 @@ and releases pending reservations.
 
 ## 5. Fixes applied
 
+**Batch 3 — residual items (2026-11-03)**
+
+- Finding: A worker killed mid-task left the operation `running` forever (holding a slot and showing a spinner) → new `FailStaleAiOperations` job (scheduled every ten minutes) fails operations stuck past `ai.limits.operation_stale_minutes` (default 30), releases the credit and refreshes the task. Files: `FailStaleAiOperations.php`, `AiUsageReservations::release()`, `routes/console.php`. Tests: `FailStaleAiOperationsTest`.
+- Finding: `retry-failed` ignored the slot cap per item → retries are re-checked one by one. Files: `AiTaskController.php`. Tests: `AiTaskManagerTest`.
 - Finding: Cancel-then-finish charged the merchant → billing consults the operation status; cancelled ops release their reservation instead of charging. Files: `AiUsageReservations.php`, `PrismAiManager.php`. Tests: `AiUsageReservationsTest`.
 - Finding: Sync/queued charge paths diverged → both reserve through the same ledger path (`reserveSync`/settle) with release on failure. Files: `PrismAiManager.php`.
 - No rethrow on terminal failure (see ai-product-creation-single-and-bulk.md).
@@ -65,8 +69,7 @@ and releases pending reservations.
 
 ## 6. Proposed, needs approval
 
-- `running`-op sweeper / watchdog (S) — `ReleaseStaleAiReservations` covers reservations, not stuck `running` ops.
-- Slot-cap re-check in `retryFailed` (S).
+Nothing outstanding from this audit.
 
 ## 7. Checked and fine
 

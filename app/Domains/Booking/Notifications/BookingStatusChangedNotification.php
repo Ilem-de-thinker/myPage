@@ -34,7 +34,7 @@ class BookingStatusChangedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $booking = $this->booking;
-        $when = $booking->starts_at->timezone($booking->storePage?->timezone ?? config('mypage.timezone'))
+        $when = $booking->starts_at->timezone($booking->storePage?->settings['timezone'] ?? config('mypage.timezone') ?? config('app.timezone'))
             ->format('D j M Y, g:i a');
 
         return (new TransactionalMailMessage)

@@ -72,6 +72,29 @@ it('requeues failed items and resumes a cancelled task', function () {
     Queue::assertPushed(RunAiOperation::class, 2);
 });
 
+it('retries only as many failed items as the active-slot cap allows', function () {
+    Queue::fake();
+    config()->set('ai.limits.max_active_operations', 2);
+
+    [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
+    $task = aiTaskFor($seller->id, $page->id, ['status' => 'processing', 'failed' => 2]);
+
+    // One slot is already taken, so only one of the two retries may queue.
+    aiOperationFor($task, 'running');
+    $first = aiOperationFor($task, 'failed');
+    $second = aiOperationFor($task, 'failed');
+
+    actingAs($seller)->postJson(route('dashboard.ai.tasks.retry-failed', $task))
+        ->assertOk()
+        ->assertJsonPath('retried', 1)
+        ->assertJsonPath('limit_reached', true);
+
+    expect($first->fresh()->status)->toBe('queued')
+        ->and($second->fresh()->status)->toBe('failed');
+
+    Queue::assertPushed(RunAiOperation::class, 1);
+});
+
 it('explains when there are no failed items to retry', function () {
     [$seller, $page] = sellerWithPage(['theme' => Theme::Store]);
     $task = aiTaskFor($seller->id, $page->id);

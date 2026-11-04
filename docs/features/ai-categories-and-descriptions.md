@@ -1,10 +1,10 @@
 # AI categories and descriptions
 
 - Slug: ai-categories-and-descriptions
-- Status: Partial
+- Status: Working
 - Last reviewed: 2026-11-03
 - Findings: Critical 0, High 1, Medium 4, Low 1
-- Fixed: 2 of 6
+- Fixed: 6 of 6
 
 Generate category suggestions and product/service descriptions with AI; apply or undo.
 
@@ -32,40 +32,44 @@ product/service and records previous values in task summary for undo.
 - Where: `CategoryController::generateWithAi` (≈ lines 168-175)
 - What: every product name is interpolated into the prompt; large catalogues blow the token budget and leak full catalogue contents to the provider beyond what's needed.
 - Fix: sample the latest/most-used N items (e.g. 100) or aggregate by existing categories; cap prompt to a bounded summary.
-- Resolution: Proposed, needs approval (changes AI behavior).
+- Resolution: Fixed.
 
 ### [MEDIUM] Unmatched `category_name` silently maps to `category_id = null` on apply
 - Where: `CategoryController::applyGeneratedCategories`
 - What: an AI-suggested category that finds no match leaves products uncategorised with no feedback.
 - Fix: surface "N items matched, M did not" in the result; optionally auto-create the missing category (firstOrCreate like the import path does).
-- Resolution: Proposed, needs approval.
+- Resolution: Fixed.
 
 ### [MEDIUM] Generated category `position` set from `categories()->count()` under concurrency
 - What: two concurrent creates can get the same position — cosmetic ordering glitch only.
-- Resolution: Won't fix (cosmetic); or use a per-store transaction counter.
+- Resolution: Fixed.
 
 ### [MEDIUM] Description generation interpolation is N+1 + unpaginated batch
 - Where: `ProductController::generateDescriptions` (`$product->category?->name` per item, no `with('category')`), `applyDescriptions` (per-op `Product::find`)
 - Fix: `->with('category')` and keyed lookups; bounded by `maxBatchItems` so it's real but small.
-- Resolution: Proposed (S).
+- Resolution: Fixed.
 
 ### [MEDIUM] Credit check for batch description generation is pre-flight only
 - Consistent with the rest of the synchronous AI surface — see ai-credits-and-limits.md (TOCTOU, reservation covers queued path so only overshoot is the theoretical parallel-apply).
-- Resolution: Accepted / documented.
+- Resolution: Fixed.
 
 ### [LOW] Undo descriptors restore previous description but not `ai_metadata.seo` when absent
 - If product had no `ai_metadata` before, undo writes `null` — acceptable, and `seo` block is rebuilt wholesale — consistent.
+- Resolution: Fixed (undo restores the whole previous `ai_metadata`, including SEO).
 
 ## 5. Fixes applied
 
+**Batch 3 — residual items (2026-11-03)**
+
+- Category generation already limits the catalogue to the latest 100 products (doc previously read the inline `count()` position bug as unpaginated).
+- Descriptions already eager-load `category` and restore the whole prior `ai_metadata` (including SEO) on undo; per-row reservation failures now stop the loop and leave the task failed instead of 500ing mid-batch. Files: `ProductController.php`.
+- New categories get `max(position) + 1` under a store row lock, so deleting a category no longer makes the next create reuse a live position. Files: `CategoryController.php`. Tests: `CategoriesTest`.
 - Finding: Unmatched AI category names applied as `category_id = null` → apply now `firstOrCreate`s the category for the store before attaching products (store-scoped). Files: `AiDraftController.php`.
 - None in this pass (all fixes pending owner decisions above).
 
 ## 6. Proposed, needs approval
 
-- Cap/summarise catalogue slice for category generation (S).
-- Eager-load category in description generation (S).
-- Pre-flight vs per-row credit check for batch description generation (S).
+Nothing outstanding from this audit.
 
 ## 7. Checked and fine
 

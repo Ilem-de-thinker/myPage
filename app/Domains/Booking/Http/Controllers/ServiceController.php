@@ -314,7 +314,7 @@ class ServiceController extends Controller
         $depositType = DepositType::from($data['deposit_type']);
         $depositValue = $depositType === DepositType::Percent
             ? min(100, (int) ($data['deposit_value'] ?? 0))
-            : (int) (($data['deposit_value'] ?? 0) * 100);
+            : Money::toKobo($data['deposit_value'] ?? 0);
 
         $compareAtKobo = filled($data['compare_at'] ?? null)
             ? Money::toKobo($data['compare_at'])

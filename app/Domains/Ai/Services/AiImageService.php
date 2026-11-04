@@ -78,6 +78,37 @@ class AiImageService
     }
 
     /**
+     * Delete staging originals no draft has claimed for a while.
+     *
+     * Apply and delete clean their own files, but a merchant who abandons a
+     * draft leaves its originals on the private disk forever. The TTL is
+     * deliberately generous (a week by default) so a slow merchant does not
+     * lose the images behind a draft they still intend to use.
+     */
+    public function purgeOrphanedStaging(?int $hours = null): int
+    {
+        $hours = max(1, $hours ?? (int) config('ai.limits.staging_ttl_hours', 168));
+        $cutoff = now()->subHours($hours)->getTimestamp();
+        $disk = Storage::disk('local');
+        $deleted = 0;
+
+        foreach ($disk->allFiles('ai') as $path) {
+            if (! str_contains($path, '/staging/')) {
+                continue;
+            }
+
+            if ($disk->lastModified($path) > $cutoff) {
+                continue;
+            }
+
+            $disk->delete($path);
+            $deleted++;
+        }
+
+        return $deleted;
+    }
+
+    /**
      * @param  list<string>  $relativePaths
      */
     public function deleteMany(array $relativePaths): void

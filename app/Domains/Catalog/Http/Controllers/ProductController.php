@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class ProductController extends Controller
 {
@@ -220,10 +221,12 @@ class ProductController extends Controller
         $allowed = min($estimate['allowed'], $slots, $limits->maxBatchItems());
         $ids = array_slice($ids, 0, $allowed);
 
-        $products = Product::where('store_page_id', $page->id)->whereIn('id', $ids)->orderBy('id')->get();
+        $products = Product::where('store_page_id', $page->id)->whereIn('id', $ids)->with('category')->orderBy('id')->get();
         abort_if($products->isEmpty(), 422, 'Select at least one product from this store.');
 
         $task = AiTask::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'type' => 'descriptions', 'status' => 'queued', 'total' => $products->count()]);
+
+        $queued = 0;
 
         foreach ($products as $product) {
             $operation = AiOperation::create([
@@ -240,9 +243,25 @@ class ProductController extends Controller
                     'product_id' => $product->id,
                 ],
             ]);
-            app(AiUsageReservations::class)->reserveAndDispatch($operation);
+
+            try {
+                app(AiUsageReservations::class)->reserveAndDispatch($operation);
+            } catch (Throwable) {
+                // The reservation is authoritative and may fail when a
+                // concurrent batch took the last slot or credit. Keep the
+                // operations already queued; the reservation helper has
+                // already failed this one.
+                break;
+            }
+
+            $queued++;
         }
-        $task->update(['status' => 'processing', 'started_at' => now()]);
+
+        $task->update([
+            'status' => $queued > 0 ? 'processing' : 'failed',
+            'total' => $queued,
+            'started_at' => $queued > 0 ? now() : null,
+        ]);
 
         return redirect()->route('dashboard.ai.tasks.show', $task)->with('status', 'Generating descriptions in the background.');
     }

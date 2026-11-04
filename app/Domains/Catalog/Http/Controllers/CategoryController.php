@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -68,11 +69,7 @@ class CategoryController extends Controller
 
         $data = $this->validated($request, $page);
 
-        $category = $page->categories()->create([
-            'seller_id' => $page->seller_id,
-            'name' => $data['name'],
-            'position' => $page->categories()->count(),
-        ]);
+        $category = $this->createCategory($page, $data['name']);
 
         if ($request->expectsJson()) {
             return response()->json(['id' => $category->id, 'name' => $category->name], 201);
@@ -165,7 +162,7 @@ class CategoryController extends Controller
         $estimate = $credits->estimate($page, 1, 'category_structure');
         abort_if($estimate['allowed'] < 1, 429, 'This store has reached its monthly Mercho limit for categories.');
 
-        $products = $page->products()->with('category')->orderBy('id')->get();
+        $products = $page->products()->with('category')->orderBy('id')->limit(100)->get();
         abort_if($products->isEmpty(), 422, 'Add a few products before Mercho can suggest categories.');
 
         $items = $products->map(fn (Product $product): array => [
@@ -218,11 +215,7 @@ class CategoryController extends Controller
             $key = mb_strtolower($name);
             $model = $existing->get($key);
             if (! $model) {
-                $model = $page->categories()->create([
-                    'seller_id' => $page->seller_id,
-                    'name' => $name,
-                    'position' => $page->categories()->count(),
-                ]);
+                $model = $this->createCategory($page, $name);
                 $createdIds[] = $model->id;
                 $existing->put($key, $model);
             }
@@ -245,11 +238,7 @@ class CategoryController extends Controller
             $name = trim((string) ($assignment['category_name'] ?? ''));
             $key = mb_strtolower($name);
             if ($key !== '' && ! isset($categoryMap[$key])) {
-                $model = $existing->get($key) ?: $page->categories()->create([
-                    'seller_id' => $page->seller_id,
-                    'name' => $name,
-                    'position' => $page->categories()->count(),
-                ]);
+                $model = $existing->get($key) ?: $this->createCategory($page, $name);
                 if (! $existing->has($key)) {
                     $createdIds[] = $model->id;
                     $existing->put($key, $model);
@@ -319,5 +308,25 @@ class CategoryController extends Controller
                     ->ignore($category?->id),
             ],
         ]);
+    }
+
+    /**
+     * Create a category at the next position, serialised per store.
+     *
+     * max('position') + 1 rather than count(): deleting a category used to make
+     * the next create reuse a live position. The page lock keeps two writers
+     * from computing the same next slot.
+     */
+    private function createCategory(StorePage $page, string $name): Category
+    {
+        return DB::transaction(function () use ($page, $name): Category {
+            StorePage::query()->whereKey($page->id)->lockForUpdate()->first();
+
+            return $page->categories()->create([
+                'seller_id' => $page->seller_id,
+                'name' => $name,
+                'position' => (int) $page->categories()->max('position') + 1,
+            ]);
+        });
     }
 }

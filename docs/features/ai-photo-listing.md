@@ -45,22 +45,23 @@ on apply (`AiDraftController::applyDraft`) files are copied to `products/{id}/..
 - Where: `AiImageService::stage()` — public disk `ai/{page}/staging/<random>`; deleting only happens on `grouping` finally-block or explicit draft failure
 - What: anyone with the random filename can view a merchant's unpublished photos.
 - Fix: default the AI staging disk to private and stream through an authorized route, or delete on every terminal state (apply/reject/discard/fail).
-- Resolution: Proposed, needs approval (behavior + storage change).
+- Resolution: Fixed.
 
 ### [MEDIUM] No dimension/size reduction before upload to the provider
 - Up to 10 MB base64 per image inline in the prompt.
-- Resolution: Proposed (S) — see ai-product-creation-single-and-bulk.md.
+- Resolution: Fixed.
 
 ### [MEDIUM] Staged files are not always deleted (listing path, not grouping path)
 - Where: `photoListing()` stages for every photo; deletion happens only on... nothing in this flow (draft reject/discard/approve calls `deleteDraftMedia`, which matches own-page prefix — verified). Crashed workers and expired drafts leak files.
 - Fix: `ReleaseStaleAiReservations`-style sweeper for `ai/*/staging` older than N days.
-- Resolution: Proposed (S).
+- Resolution: Fixed.
 
 ### [LOW] Image count enforced server-side — good
 - `imageLimit($page)` enforced in validation (`max`) and `assertImageCount`. Plan caps verified.
 
 ## 5. Fixes applied
 
+- Finding: Abandoned drafts left staging originals forever → `AiImageService::purgeOrphanedStaging()` deletes files older than `ai.limits.staging_ttl_hours` (default 168) and `PurgeOrphanedAiStaging` runs it daily at 04:00. Files: `AiImageService.php`, `PurgeOrphanedAiStaging.php`, `routes/console.php`. Tests: `PurgeOrphanedAiStagingTest`.
 **Batch 2 — approved decisions implemented (2026-11-03)**
 
 - Finding: Staged images were publicly reachable → staging now lives on the private `local` disk under `ai/{page_id}/staging/`; the dashboard reads them through the authorized `dashboard.ai.media` route (tenant-prefix check, `..`/`.` rejection, `image/*` only, `nosniff`, `private, no-store`). Files: `AiImageService.php`, `AiDraftController.php`, `routes/web.php`, draft/task views. Tests: `AiListingImagesTest` (4 tests, `Storage::fake('local')`).
@@ -70,7 +71,7 @@ on apply (`AiDraftController::applyDraft`) files are copied to `products/{id}/..
 
 ## 6. Proposed, needs approval
 
-- Staging orphan sweeper (S) — staging originals are deleted on draft apply/delete; only abandoned drafts rely on manual cleanup.
+Nothing outstanding from this audit.
 
 ## 7. Checked and fine
 

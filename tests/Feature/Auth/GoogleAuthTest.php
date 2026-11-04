@@ -22,7 +22,11 @@ use function Pest\Laravel\get;
  */
 function googleUser(string $id, string $email, ?string $name = 'Ada Textiles'): SocialiteUser
 {
-    return (new SocialiteUser)->setRaw([])->map([
+    return (new SocialiteUser)->setRaw([
+        'sub' => $id,
+        'email' => $email,
+        'email_verified' => true,
+    ])->map([
         'sub' => $id,
         'id' => $id,
         'email' => $email,
@@ -131,6 +135,32 @@ it('links a verified existing seller whose address matches', function () {
 
     $this->assertAuthenticatedAs($seller);
     expect($seller->fresh()->google_id)->toBe('a-google-id');
+});
+
+it('refuses to link when Google does not explicitly verify the email', function () {
+    enableGoogle();
+
+    $seller = Seller::factory()->create([
+        'email' => 'seller@example.com',
+        'email_verified_at' => now(),
+        'google_id' => null,
+    ]);
+
+    // No email_verified claim at all: "not false" is not the same as "verified",
+    // and an existing shop must not be opened on an absent claim.
+    $user = (new SocialiteUser)->setRaw([])->map([
+        'sub' => 'a-google-id',
+        'id' => 'a-google-id',
+        'email' => 'seller@example.com',
+        'name' => 'Ada Textiles',
+    ]);
+
+    Socialite::shouldReceive('driver->user')->andReturn($user);
+
+    get(route('auth.google.callback'))->assertRedirect(route('login'));
+
+    $this->assertGuest();
+    expect($seller->fresh()->google_id)->toBeNull();
 });
 
 it('refuses a suspended seller', function () {

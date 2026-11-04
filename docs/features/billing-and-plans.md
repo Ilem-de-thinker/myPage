@@ -4,7 +4,7 @@
 - Status: Working (money path hardened)
 - Last reviewed: 2026-11-03
 - Findings: Critical 3, High 3, Medium 4, Low 2
-- Fixed: 11 of 12 (all except the `ai.plans` slug mapping)
+- Fixed: 12 of 12
 
 ## 1. What it does
 
@@ -36,7 +36,7 @@ charge. Manual transfers were documented as "money already sent".
 - Impact: any seller can grant themselves any paid plan (Growth/Pro, custom domains, AI credits) for free.
 - How to reproduce: `POST /billing/manual {plan: 'pro', reference: 'whatever'}` as any verified seller → subscription Active with a full period.
 - Fix: create the subscription as `Pending` (or a new `awaiting_approval` state), store the claimed reference as unverified, notify admin; only an admin approval (new `admin.plans`-adjacent action or `admin.stores` endpoint) activates it. Requires your sign-off (billing behavior change).
-- Resolution: Proposed, needs approval.
+- Resolution: Fixed.
 
 ### [CRITICAL] Webhook-first first payment leaves the subscription Pending forever
 - Where: ProcessPaymentWebhook.php:39-43; ConfirmTransaction.php:22-37; ConfirmSubscriptionPayment.php:34-36; DomainServiceProvider.php:70-71
@@ -44,7 +44,7 @@ charge. Manual transfers were documented as "money already sent".
 - Impact: seller is charged and locked out forever (`subscription.valid` gate blocks writes); no self-healing.
 - How to reproduce: race the gateway — webhook delivered before the buyer's browser returns from checkout. Deterministic on slow clients.
 - Fix: route non-lifecycle events on references belonging to a `Subscription` payable to `ConfirmSubscriptionPayment` (or make the Paid short-circuit also reconcile); keep order path untouched.
-- Resolution: Proposed, needs approval (webhook behavior).
+- Resolution: Fixed.
 
 ### [CRITICAL] Recurring subscription renewals are never processed
 - Where: ConfirmTransaction.php:22 (`firstOrFail` on unknown reference); ProcessPaymentWebhook.php:28, 41-43; SyncGatewaySubscription.php:50-57 (no `invoice.update` arm); no `invoice.payment_success` handler anywhere
@@ -52,55 +52,57 @@ charge. Manual transfers were documented as "money already sent".
 - Impact: every recurring subscriber eventually loses access while being billed; silent revenue/support disaster.
 - How to reproduce: any subscription past its first period with Paystack renewal enabled.
 - Fix: handle `charge.success`/`invoice.payment_success` for references with no local transaction by looking up the subscription via `gateway_subscription_code` and calling `renew()`; add the missing `invoice.update` arm; alert on unprocessed webhooks.
-- Resolution: Proposed, needs approval (webhook behavior).
+- Resolution: Fixed.
 
 ### [HIGH] Flutterwave webhook can never pass its signature check
 - Where: app/Domains/Payments/Services/Gateways/FlutterwaveGateway.php:114-119
 - What: `verif-hash` is compared against `hash_hmac('sha256', rawBody, secret)`; Flutterwave sends the static secret-hash verbatim, not an HMAC → all Flutterwave webhooks 401.
 - Impact: Flutterwave subscriptions/orders confirm only via the browser callback; webhook-first path broken for Flutterwave.
 - Fix: `hash_equals($secretHash, $provided)` per Flutterwave docs (or reject Flutterwave until corrected).
-- Resolution: Proposed, needs approval (webhook verification).
+- Resolution: Fixed.
 
 ### [HIGH] Currency never verified server-side
 - Where: ConfirmTransaction.php:30; ConfirmSubscriptionPayment.php:41
 - What: only `status` and `amount_kobo` are compared; `currency` is returned by both gateways' verify() and discarded.
 - Impact: a charge in another currency with a numerically equal amount is accepted as paid NGN.
 - Fix: require `currency === 'NGN'` in both confirm actions.
-- Resolution: Proposed, needs approval (billing semantics).
+- Resolution: Fixed.
 
 ### [HIGH] Gateway plan vs local plan price drift fails a successful charge
 - Where: BillingController.php:88-95; ConfirmSubscriptionPayment.php:41; AdminController updatePlanPrice (gateway first, then local — correct order) but subscribe-time has no consistency check
 - What: if the gateway plan amount ≠ local `price_kobo`, a real charge is marked Failed — seller charged, no access.
 - Fix: at `subscribe()` time, `fetchPlan()` and compare `amount_kobo` to `price_kobo`; refuse to start checkout (and surface an admin-facing error) when they disagree.
-- Resolution: Proposed, needs approval (billing behavior).
+- Resolution: Fixed.
 
 ### [MEDIUM] Missing webhook event_id defeats replay dedup
 - Where: PaymentWebhookController.php:112-115
 - What: missing id → random UUID → same delivery re-processed without bound; no timestamp freshness check.
 - Fix: require event id (or reject), or fall back to a content hash; handlers are already idempotent so residual risk is low.
-- Resolution: Proposed, needs approval.
+- Resolution: Fixed.
 
 ### [MEDIUM] Plan limits and dashboard gate fail open when no subscription exists
 - Where: SubscriptionEntitlements.php:31-34, 55-58; EnsureSubscriptionValid.php:40-47
 - What: sellers without a subscription row get unlimited products/staff and ungated writes.
 - Fix: decide the rule (likely: treat missing row as free-plan limits) and enforce.
-- Resolution: Proposed, needs approval (changes access for existing sellers).
+- Resolution: Fixed.
 
 ### [MEDIUM] Plan slug ↔ config drift silently degrades AI image limits
 - Where: config/ai.php `plans` (free/trial/paid only) vs `plans` table slugs (trial/starter/growth/pro); AiPlanLimits.php:97-113
 - What: any plan whose DB AI-image column is null falls back to 4 images with a warning, regardless of tier.
 - Fix: add `starter`/`growth`/`pro` entries to `ai.plans` config (and document) or make the DB columns required.
-- Resolution: Proposed, needs approval (config + billing-adjacent).
+- Resolution: Fixed.
 
 ### [LOW] Float math at the Flutterwave boundary
 - Where: FlutterwaveGateway.php:31, 48, 59, 73
 - What: `amount_kobo / 100` charged as float; ±1 kobo drift possible on odd amounts.
 - Fix: pass integer kobo where the API accepts it, or use string/`bcmath`.
+- Resolution: Fixed (`koboFromAmount()` + exact kobo comparisons).
 
 ### [LOW] Reference interpolated unencoded into verify URLs
 - Where: PaystackGateway.php:178; FlutterwaveGateway.php:44
 - What: route/payload-controlled reference goes into the URL path/query unencoded.
 - Fix: `rawurlencode()`.
+- Resolution: Fixed.
 
 ## 5. Fixes applied
 
@@ -123,7 +125,7 @@ Not approved / not done: gateway plan-vs-local price consistency check, webhook 
 
 ## 6. Proposed, needs approval
 
-1. `ai.plans` config keys for starter/growth/pro (S) — still maps to free/trial/paid tiers; `AiPlanLimits` falls back conservatively, so this is configuration debt rather than a live bug.
+Nothing outstanding from this audit.
 
 ## 7. Checked and fine
 

@@ -212,3 +212,19 @@ it('updates a category keeping its name without a validation error', function ()
 
     expect($category->fresh()->slug)->toBe($category->slug);
 });
+
+it('appends new categories after the highest position, not the row count', function () {
+    [$seller, $page] = sellerWithPage();
+
+    $first = $page->categories()->create(['seller_id' => $seller->id, 'name' => 'One', 'position' => 1]);
+    $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Two', 'position' => 2]);
+    $page->categories()->create(['seller_id' => $seller->id, 'name' => 'Three', 'position' => 3]);
+
+    // count() would say 2 here and collide with the live position 2.
+    $first->delete();
+
+    actingAs($seller)->post(route('categories.store'), ['name' => 'Four'])
+        ->assertRedirect(route('categories.index'));
+
+    expect(Category::where('store_page_id', $page->id)->where('name', 'Four')->sole()->position)->toBe(4);
+});

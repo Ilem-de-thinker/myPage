@@ -39,9 +39,18 @@ class AvailabilityService
         $weekday = $day->dayOfWeekIso;
 
         $notBefore = now()->addMinutes($this->minNoticeMinutes($service));
+        $hours = $this->hoursFor($service, $weekday, $staff);
 
-        return $this->hoursFor($service, $weekday, $staff)
-            ->flatMap(function (WorkingHour $hour) use ($day, $service, $staff, $stepMinutes, $notBefore, $timezone) {
+        // One read each for bookings and time off, not one per candidate slot.
+        // The window is padded by a week because a long booking or holiday can
+        // begin outside the asked-for day and still cover part of it.
+        $windowStart = $day->copy()->setTimezone('UTC')->subWeek();
+        $windowEnd = $day->copy()->setTimezone('UTC')->addWeek();
+        $bookings = $this->bookingsBetween($service, $staff, $windowStart, $windowEnd);
+        $timeOff = $this->timeOffBetween($service, $staff, $windowStart, $windowEnd);
+
+        return $hours
+            ->flatMap(function (WorkingHour $hour) use ($day, $service, $stepMinutes, $notBefore, $bookings, $timeOff) {
                 $slots = collect();
 
                 $open = $day->copy()->setTimeFromTimeString($hour->start_time);
@@ -55,7 +64,7 @@ class AvailabilityService
                 $stride = $service->duration_min + $service->buffer_min;
 
                 while ($open->copy()->addMinutes($stride)->lte($close)) {
-                    if ($this->isBookable($service, $staff, $open, $notBefore, $timezone)) {
+                    if ($this->isBookable($service, $open, $notBefore, $bookings, $timeOff)) {
                         $slots->push($open->copy());
                     }
 
@@ -121,10 +130,10 @@ class AvailabilityService
 
     private function isBookable(
         Service $service,
-        ?StaffMember $staff,
         Carbon $start,
         Carbon $notBefore,
-        string $timezone,
+        Collection $bookings,
+        Collection $timeOff,
     ): bool {
         // Slots are offered in the store's zone but stored and compared in UTC.
         $startUtc = $start->copy()->setTimezone('UTC');
@@ -139,33 +148,47 @@ class AvailabilityService
             return false;
         }
 
-        if ($this->hasBooking($service, $staff, $blockedFrom, $blockedTo)) {
+        // Half open: a booking ending exactly when this one starts is fine.
+        $clashesWithBooking = $bookings->contains(
+            fn (Booking $booking): bool => $booking->starts_at->lt($blockedTo)
+                && $booking->ends_at->gt($blockedFrom)
+        );
+
+        if ($clashesWithBooking) {
             return false;
         }
 
-        return ! $this->hasTimeOff($service, $staff, $startUtc, $endsUtc);
+        return ! $timeOff->contains(
+            fn (TimeOff $off): bool => $off->starts_at->lt($endsUtc)
+                && $off->ends_at->gt($startUtc)
+        );
     }
 
-    private function hasBooking(Service $service, ?StaffMember $staff, Carbon $from, Carbon $to): bool
+    /**
+     * @return Collection<int, Booking>
+     */
+    private function bookingsBetween(Service $service, ?StaffMember $staff, Carbon $from, Carbon $to): Collection
     {
         return Booking::withoutGlobalScopes()
             ->forPage($service->store_page_id)
             ->scopedTo($staff)
             ->occupyingSlot()
-            // Half open: a booking ending exactly when this one starts is fine.
             ->where('starts_at', '<', $to)
             ->where('ends_at', '>', $from)
-            ->exists();
+            ->get(['starts_at', 'ends_at']);
     }
 
-    private function hasTimeOff(Service $service, ?StaffMember $staff, Carbon $from, Carbon $to): bool
+    /**
+     * @return Collection<int, TimeOff>
+     */
+    private function timeOffBetween(Service $service, ?StaffMember $staff, Carbon $from, Carbon $to): Collection
     {
         return TimeOff::withoutGlobalScopes()
             ->where('store_page_id', $service->store_page_id)
             ->scopedTo($staff)
             ->where('starts_at', '<', $to)
             ->where('ends_at', '>', $from)
-            ->exists();
+            ->get(['starts_at', 'ends_at']);
     }
 
     public function timezoneFor(Service $service): string

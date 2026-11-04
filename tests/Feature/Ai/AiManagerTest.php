@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Ai\Contracts\AiManager;
+use App\Domains\Ai\Models\AiRun;
 use App\Domains\Ai\Models\AiUsageLedger;
 use Illuminate\Validation\ValidationException;
 use Prism\Prism\Enums\FinishReason;
@@ -52,6 +53,10 @@ it('rejects invalid structured output after its correction attempt', function ()
 
     expect(fn () => app(AiManager::class)->run('theme_and_color_preset', ['description' => 'A shop.']))
         ->toThrow(ValidationException::class);
+
+    // The structured-output failure now leaves an audit row instead of
+    // vanishing from the run history entirely.
+    expect(AiRun::query()->where('task', 'theme_and_color_preset')->where('status', 'failed')->count())->toBe(1);
 });
 
 it('enforces the configured monthly credit limit', function () {
@@ -102,4 +107,36 @@ it('rejects a non-object structured result instead of returning it', function ()
 
     expect(fn () => app(AiManager::class)->run('listing_copy', ['text' => 'Ankara tote bag']))
         ->toThrow(ValidationException::class);
+});
+
+it('records page-less calls as platform spend', function () {
+    Prism::fake([StructuredResponseFake::make()->withStructured(validThemePreset())->withUsage(new Usage(10, 5))]);
+
+    app(AiManager::class)->run('theme_and_color_preset', ['description' => 'A shop before it exists.']);
+
+    $row = AiUsageLedger::query()->sole();
+
+    expect($row->seller_id)->toBeNull()
+        ->and($row->store_page_id)->toBeNull()
+        ->and($row->funded_by)->toBe('platform')
+        ->and($row->status)->toBe('used')
+        ->and($row->task)->toBe('theme_and_color_preset')
+        ->and($row->tokens_in)->toBe(10)
+        ->and($row->tokens_out)->toBe(5);
+});
+
+it('records buyer-facing platform calls without charging the store', function () {
+    [$seller, $page] = sellerWithPage();
+    Prism::fake([StructuredResponseFake::make()->withStructured(['text' => 'A friendlier reply.'])->withUsage(new Usage(7, 3))]);
+
+    app(AiManager::class)->runPlatform('copy_rewrite', ['text' => 'Reply.'], $page);
+
+    $row = AiUsageLedger::query()->sole();
+
+    expect($row->seller_id)->toBeNull()
+        ->and($row->store_page_id)->toBe($page->id)
+        ->and($row->funded_by)->toBe('platform')
+        ->and($row->status)->toBe('used')
+        ->and($row->tokens_in)->toBe(7)
+        ->and(AiUsageLedger::query()->where('seller_id', $seller->id)->count())->toBe(0);
 });

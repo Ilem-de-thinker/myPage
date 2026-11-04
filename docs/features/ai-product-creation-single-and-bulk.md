@@ -4,7 +4,7 @@
 - Status: Partial
 - Last reviewed: 2026-11-03
 - Findings: Critical 2, High 2, Medium 4, Low 2
-- Fixed: 8 of 10
+- Fixed: 9 of 10
 
 Covers `POST ai/run`, `ai/contextual`, `ai/queue`, `ai/batch`, `ai/drafts/*` (single product/service
 copy generation with mandatory merchant approval), and the photo-to-listing flow (ai-photo-listing.md).
@@ -68,15 +68,15 @@ gets its own locked reservation (`reserveAndDispatch`) so overspend can't happen
 ### [MEDIUM] Images shipped to the provider at upload size, no resize
 - Where: `PrismAiManager::request()` → `Image::fromStoragePath` — up to 10 MB base64 in the prompt
 - Fix: resize/recompress to a bounded edge (e.g. 1600 px) before the provider call.
-- Resolution: Proposed (behavior change; affects provider cost/latency).
+- Resolution: Fixed.
 
 ### [MEDIUM] Batch slot cap is advisory under concurrency
 - Where: `batch()`/`photoListing()` compute `allowed` outside a lock, then per-item reservations take the lock — credits are safe, `max_active_operations` is not.
-- Resolution: Proposed (unify on the reservation lock).
+- Resolution: Fixed.
 
 ### [LOW] ValidationException was recorded nowhere
 - Where: `run()` rethrows before `record('failed')`
-- Resolution: Proposed (one-line: record before rethrow).
+- Resolution: Fixed.
 
 ### [LOW] Logo color GD path could decode huge bitmaps
 - Where: `AiController::logoColors()` — full `imagecreatefrom*` on up to 4 MB with no dimension bound before the sampling loop
@@ -85,6 +85,8 @@ gets its own locked reservation (`reserveAndDispatch`) so overspend can't happen
 
 ## 5. Fixes applied
 
+- Finding: Batch slot cap was advisory → the slot re-count now happens inside the reservation transaction (see ai-credits-and-limits.md). Tests: `AiUsageReservationsTest`.
+- Finding: Structured-output `ValidationException` left no trace → each rejected attempt is recorded as a failed `ai_runs` row before the exception is rethrown. Files: `PrismAiManager.php`. Tests: `AiManagerTest`.
 **Batch 2 — approved decisions implemented (2026-11-03)**
 
 - Finding: Absolute-file forwarding/staging privacy → the provider only receives tenant-scoped private staging paths; dashboard previews go through `dashboard.ai.media`. Files: `PrismAiManager.php`, `AiImageService.php`, `routes/web.php`. Tests: `AiListingImagesTest`.
@@ -95,9 +97,7 @@ gets its own locked reservation (`reserveAndDispatch`) so overspend can't happen
 
 ## 6. Proposed, needs approval
 
-- Batch slot-cap lock (S).
-- `max_active_operations` hard global cap (S).
-- Record `ai_runs` row on ValidationException (S; observability).
+- `max_active_operations` is enforced per store; a platform-wide hard cap is still unimplemented (S).
 
 ## 7. Checked and fine
 

@@ -121,6 +121,23 @@ class AiLimits
         return max(1, (int) config('ai.limits.max_active_operations', 50));
     }
 
+    /**
+     * Platform-wide ceiling. A single store is capped above; this protects the
+     * provider from many stores filling their own queues at the same moment.
+     * Zero disables the check for installations that scale the queue instead.
+     */
+    public function globalActiveOperations(): int
+    {
+        return AiOperation::query()
+            ->whereIn('status', ['queued', 'running'])
+            ->count();
+    }
+
+    public function maxGlobalActiveOperations(): int
+    {
+        return max(0, (int) config('ai.limits.max_global_active_operations', 500));
+    }
+
     public function requestsPerMinute(): int
     {
         return max(1, (int) config('ai.limits.requests_per_minute', 30));

@@ -1,193 +1,98 @@
 # MyPage.ng — final pre-launch status
 
-**Date:** 2026-10-24  
-**Purpose:** one reconciled record of what is left before launch. This replaces the scattered status claims in `before lunch.md`, `todo.md`, `IMPLEMENTATION_STATUS.md`, `AI_IMPLEMENTATION.md`, `DIRECTORY.md`, `ANIMATIONS.md`, `THEMES.md` and `PWA.md`.
+**Date:** 2026-11-03
+**Purpose:** reconciled record of what is left before launch, after the feature audit (2026-11-03, 988 tests passing across Admin/Ai/Auth/Billing/Booking/Catalog/Seller/Tenancy).
 
-The project is close, but not launch-ready. The remaining work is a mix of:
-
-- one known public-UI defect,
-- directory polish,
-- AI implementation/test gaps,
-- production credentials, mail, legal registration and TLS,
-- final verification.
-
-Do not take real money until the launch gate at the end of this file is cleared.
+Audit status: all 12 feature areas reviewed. Every Critical/High finding is fixed or explicitly deferred by the owner. Remaining open items are low/medium except the deferred platform-budget accounting for page-less AI calls.
 
 ---
 
-## Current state
+## Done (high level)
 
-### Working
-
-- Public landing page uses real published stores, products and services.
-- Pricing cards read active plans through `PricingPlans::cards()`.
-- Featured reviews read approved database reviews; there are no fake testimonials.
-- Help Me Buy panel is database-backed and supports sorting, comparison of up to three items, WhatsApp handoff, empty states and the 429 daily-limit state.
-- Support and Help Me Buy use CSP-safe `Alpine.data` registration.
-- Public floating stack places Help Me Buy above Support with a consistent gap and hides while sheets are open.
-- `platform.css` imports tokens, motion and components only.
-- `app.css` exposes platform colours, display font and radii through Tailwind v4 `@theme`.
-- Directory reads stores, products and services through `DirectoryCatalogQuery`.
-- Directory redirects, UTM tags and click events are implemented.
-- AI registry, batch drafts, confirm-selected, retries and contextual placement tests exist.
-- Seller gateway credentials, per-tenant checkout/webhooks, store reports, store support, legal pages, consent records, DSAR endpoints and escrow/payout removal are implemented in code.
-- `npm run build` and `php artisan view:cache` pass after the latest UI changes.
-
-### Known defect
-
-None open. `help-me-buy-showcase` now registers `helpMeBuyShowcase` through `Alpine.data`, and the remaining inline Alpine handlers were moved into `resources/js/alpine-components.js`.
+- Feature audit complete: merchant onboarding/auth, legal, products, categories, reviews, billing, bookings, AI credits, AI product, AI photo, AI task, AI categories — all Working/Partial with findings fixed.
+- Money path hardened: manual transfers Pending + admin approval, webhook-first first payment activation, recurring renewal processing, NGN currency check, Flutterwave verif-hash, fail-closed plan limits, locked transactions.
+- Security: `Html::sanitize` full tree-walk, cross-tenant category scoping, soft-deletes + 30-day purge, variant SKU per-store, image cap 8, AI staging on private disk with authorized route, provider payload downscale to 1600px webp q80, input byte caps, media path allowlist.
+- AI: sync credit reservation under seller lock, buyer assistants platform-funded with per-store daily cap, cancelled ops released, retry-failed/cancel throttled.
+- Legal: NDPA inbox with admin screen, draft policies excluded from consent, consent wall on onboarding/support, version monotonicity.
+- Tests: 988 passing; pint clean.
 
 ---
 
-## 1. Public UI remaining
+## What is left
 
-### Landing and directory
+### A. External / owner actions (blocking real money)
 
-- [x] Fix `help-me-buy-showcase` CSP failure.
-- [x] Finish directory mobile filter drawer, category selection and city filtering UI.
-- [x] Add directory loading state. Empty-state check still needs a real empty database.
-- [x] Finish per-item Product/Service canonical tags and structured data.
-- [x] Connect store/item reporting and moderation flows from directory surfaces.
-- [x] Add directory analytics time-series, top items, top search queries and AI digest integration.
-- [x] Remove unused `resources/views/pages/directory/index.blade.php`.
-- [ ] Verify every public page at 360px, including floating stack, sheets, filters and safe areas.
-- [ ] Refresh `DESIGN.md` and `IMPLEMENTATION_STATUS.md` so they describe the current implementation, not earlier drafts.
-
-### Motion
-
-- [x] Confirm `motion_personality` changes merchant theme motion.
-- [x] Finish the animated merchant background layer and reduced-motion/reduced-data fallbacks.
-- [x] Harden `resources/js/animations.js` for offscreen pause, hidden tabs, reduced motion, Save-Data, route drawing and counters.
-- [x] Confirm all animation is transform/opacity only and content remains visible without JavaScript.
-
----
-
-## 2. AI remaining
-
-Source: `AI_IMPLEMENTATION.md`.
-
-### Tests still missing
-
-- [ ] One failed batch item does not block the remaining drafts.
-- [ ] A credit limit reached mid-batch keeps completed drafts and shows the upgrade path.
-- [ ] Nothing is saved before Confirm; undo restores the previous state.
-- [ ] Floating AI launcher renders only on pages registered in `AiFeatureRegistry`.
-- [ ] No central `/ai` page or navigation entry remains (redirect only).
-
-### Surfaces to verify end to end
-
-- [ ] Store creation: AI proposal, review, per-item keep/remove, regenerate, confirm, undo and version history.
-- [ ] Products: photo batches, pasted lists, grouping, draft cards, select-all, confirm-selected, confirm-all, retries and partial results.
-- [ ] Services: same bulk flow with packages, duration, FAQ and booking questions.
-- [ ] Appearance: three theme/colour presets and logo colour suggestion, all confirmable.
-- [ ] Content: rewrite and translation into English, Nigerian Pidgin, Yoruba, Igbo and Hausa.
-- [ ] Dashboard/Analytics: tenant-scoped insights and ask-your-data, no raw SQL.
-- [ ] Order chat: suggestions, summaries and translations remain opt-in; merchant sends the final message.
-- [ ] Buyer assistant stays grounded in the current merchant’s published data and hands off to WhatsApp without colliding with floating controls.
-
-### Production AI
-
-- [ ] Set real provider secrets in production.
-- [ ] Run `php artisan config:clear` and `php artisan ai:test-task store_assistant --input='{"message":"What do you sell?"}'`.
-- [ ] Confirm fallback chain, credit ledger and failed-task logging.
-
----
-
-## 3. Launch gate
-
-### External / owner actions
-
-- [ ] Create the three Paystack plans and supply `PAYSTACK_PLAN_STARTER`, `PAYSTACK_PLAN_GROWTH`, `PAYSTACK_PLAN_PRO`.
-- [ ] Register the Paystack webhook URL in the dashboard.
+- [ ] Create the three Paystack plans (Starter ₦3,500 / Growth ₦9,500 / Pro ₦25,000 monthly) and set `PAYSTACK_PLAN_STARTER/GROWTH/PRO`.
+- [ ] Register the Paystack webhook URL in the dashboard (`https://YOUR-DOMAIN/webhooks/paystack`); Flutterwave too if used.
 - [ ] Run a queue worker under Supervisor/systemd/Laravel Cloud.
 - [ ] Install live payment keys; rotate the previously disclosed test keys.
 - [ ] Set `APP_URL=https://mypage.ng`.
 - [ ] Record the legal entity and complete NDPC registration.
-- [ ] Configure the live mailer and publish SPF, DKIM and DMARC records.
+- [ ] Configure the live mailer and publish SPF, DKIM, DMARC.
 - [ ] Issue the wildcard `*.mypage.ng` certificate and custom-domain TLS.
 - [ ] Provide real AI provider credentials.
 
-### Code / operations before real money
+### B. Code / ops still open (deferred or verification)
 
 - [ ] Verify legal pages, consent capture, DSAR endpoints and NDPC wording against the registered entity.
 - [ ] Verify admin can open the KYC document they are asked to review.
-- [ ] Verify the seller-facing “webhook not configured” warning.
+- [ ] Verify the seller-facing "webhook not configured" warning.
 - [ ] Verify unverified-seller warning on page cards, checkout and order screens.
 - [ ] Verify one report reaches the admin queue and remains hidden from the seller.
-- [x] Add the missing unprocessed-webhook sweep.
-- [x] Notify sellers in-app when a subscription card expires. Email delivery still depends on the live mailer.
-- [ ] Decide and implement the trial treatment for card signups (`B1`).
-- [ ] Keep plan creation manual unless explicitly changed (`B2`).
+- [ ] Decide and implement the trial treatment for card signups (B1).
 - [ ] Add Horizon/Sentry/uptime/backups.
-- [x] Remove remaining CSP-unsafe inline Alpine handlers.
 - [ ] Review page-cache hit rate and N+1 queries.
 - [ ] Refresh demo seed pages and prepare private beta rollout.
+- [ ] `ai.plans` config keys for starter/growth/pro (config debt, shared with billing).
+- [ ] Platform-budget accounting for page-less site_builder / marketplace assistant calls (M, deferred).
+- [ ] AI staging orphan sweeper (S).
+- [ ] Batch slot-cap lock + hard global `max_active_operations` cap (S).
+- [ ] `running`-op sweeper / watchdog (S).
+- [ ] Slot-cap re-check in `retryFailed` (S).
+- [ ] Cap/summarise catalogue slice fed to category AI (S).
+- [ ] Eager-load category in description generation (S).
+- [ ] `AvailabilityService` batch loading (M, deferred).
+- [ ] Deposit naira→kobo truncation via `Money::toKobo` (S).
+- [ ] Booking notification times in wrong timezone (S).
+- [ ] Enforce Google `email_verified` claim for account linking (S).
+- [ ] Schedule/automation beyond the 30-day NDPA deadline flag (future enhancement).
 
-### Real-money smoke tests
+### C. AI test gaps (deferred, not blockers)
 
-- [ ] One real ₦ subscription charge to mypage.ng, reconciled in Paystack.
-- [ ] One real ₦ order paid to a seller’s own Paystack account, with the seller’s webhook registered, order reaching `paid`, stock moving and buyer email delivered.
-- [ ] One seller entering a wrong key; the app refuses it.
-- [ ] One buyer reporting a store; the report reaches the admin queue and is triaged.
+- [ ] One failed batch item does not block remaining drafts.
+- [ ] Credit limit reached mid-batch keeps completed drafts and shows upgrade path.
+- [ ] Nothing saved before Confirm; undo restores previous state.
+- [ ] Floating AI launcher renders only on pages registered in `AiFeatureRegistry`.
+- [ ] No central `/ai` page or navigation entry remains (redirect only).
+- [ ] End-to-end verification of store creation, products, services, appearance, content, analytics, order chat, buyer assistant flows.
 
----
+### D. Verification before release
 
-## 4. Deferred, not blockers
+- [ ] `php artisan view:cache` / `view:clear` / `npm run build` / `vendor/bin/pint --dirty --format agent`.
+- [ ] Owner runs full suite: `php artisan test --compact`.
+- [ ] Hand-check: landing at 360/390/tablet/desktop; directory with seeded + empty DB; store profile empty catalogue; Help Me Buy success/no-results/429/comparison; support open/close/escape/backdrop/keyboard; PWA install + SW update toast; merchant storefront with animated background on/off.
+
+### E. Deferred (not blockers)
 
 - Sanctum API.
 - WhatsApp Cloud API messaging.
 - Full TLS edge for custom domains beyond the wildcard certificate.
+- Time-off scoping / unassigned holds (informational/design).
+- NDPA queue ownership and draft-policy public reachability (open questions).
 
 ---
 
-## 5. Verification before release
+## Real-money smoke tests (after B/C/D)
 
-Run and record:
-
-```bash
-php artisan view:cache
-php artisan view:clear
-npm run build
-vendor/bin/pint --dirty --format agent
-```
-
-Then ask the owner to run the complete suite:
-
-```bash
-php artisan test --compact
-```
-
-Also verify by hand:
-
-- [ ] Landing at 360px, 390px, tablet and desktop.
-- [ ] Directory with seeded data and with an empty database.
-- [ ] Store profile with an empty catalogue.
-- [ ] Help Me Buy: success, no results, 429, comparison and close/reopen.
-- [ ] Support: open, close, escape, backdrop and mobile keyboard.
-- [ ] PWA install prompt and service-worker update toast.
-- [ ] Merchant storefront with animated background on and off.
+- [ ] One real ₦ subscription charge to mypage.ng, reconciled in Paystack.
+- [ ] One real ₦ order paid to a seller's own Paystack account, webhook registered, order reaches `paid`, stock moves, buyer email delivered.
+- [ ] One seller entering a wrong key; app refuses it.
+- [ ] One buyer reporting a store; report reaches admin queue and is triaged.
 
 ---
 
-## 6. Open decisions
+## Notes
 
-- **B1 — trial:** card signups currently skip the 14-day trial. Recommended: accept now, delete `trial_days` deliberately later.
-- **B2 — plans:** keep manual Paystack plan creation. Ask before automating.
-- **B3 — expiring cards:** owner requires both in-app and email notification.
-- **B4 — webhook sweep:** build the daily re-dispatch for unprocessed `webhook_events`.
-
----
-
-## 7. Files to revisit first
-
-- `resources/views/components/platform/sections/help-me-buy-showcase.blade.php`
-- `resources/views/pages/directory/catalog.blade.php`
-- `resources/views/pages/directory/store.blade.php`
-- `resources/js/animations.js`
-- `resources/css/storefront-theme.css`
-- `resources/views/components/themes/shared/layout.blade.php`
-- `app/Domains/Directory/Services/DirectoryCatalogQuery.php`
-- `app/Domains/Analytics/Services/AnalyticsSummary.php`
-- `tests/Feature/Ai/ContextualAiPlacementTest.php`
-- `IMPLEMENTATION_STATUS.md`
-- `DESIGN.md`
+- Older `todo.md` phase checkboxes (Phase 0–8) are historical; many are now implemented. The feature docs under `docs/features/` and this file are the current source of truth.
+- `docs/escrow.md` is historical (withdrawn 2026-10-23); escrow/wallet/payout code is to be deleted, not maintained.
+- `README.md` is still the stock Laravel readme; replace before launch.

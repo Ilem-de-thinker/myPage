@@ -17,6 +17,9 @@ return [
         'fallback_monthly_credits' => (int) env('AI_FALLBACK_MONTHLY_CREDITS', 25),
         'reservation_ttl_minutes' => (int) env('AI_RESERVATION_TTL_MINUTES', 30),
         'max_active_operations' => (int) env('AI_MAX_ACTIVE_OPERATIONS', 50),
+        'max_global_active_operations' => (int) env('AI_MAX_GLOBAL_ACTIVE_OPERATIONS', 500),
+        'operation_stale_minutes' => (int) env('AI_OPERATION_STALE_MINUTES', 30),
+        'staging_ttl_hours' => (int) env('AI_STAGING_TTL_HOURS', 168),
     ],
     'default_timeout' => (int) env('AI_DEFAULT_TIMEOUT', 30),
     'default_retries' => (int) env('AI_DEFAULT_RETRIES', 1),
@@ -34,6 +37,9 @@ return [
         'free' => ['monthly_credits' => (int) env('AI_FREE_MONTHLY_CREDITS', 25), 'max_images_per_request' => 4],
         'trial' => ['monthly_credits' => (int) env('AI_TRIAL_MONTHLY_CREDITS', 50), 'max_images_per_request' => 4],
         'paid' => ['monthly_credits' => (int) env('AI_PAID_MONTHLY_CREDITS', 500), 'max_images_per_request' => 8],
+        'starter' => ['monthly_credits' => (int) env('AI_STARTER_MONTHLY_CREDITS', 50), 'max_images_per_request' => (int) env('AI_STARTER_MAX_IMAGES', 4)],
+        'growth' => ['monthly_credits' => (int) env('AI_GROWTH_MONTHLY_CREDITS', 200), 'max_images_per_request' => (int) env('AI_GROWTH_MAX_IMAGES', 8)],
+        'pro' => ['monthly_credits' => (int) env('AI_PRO_MONTHLY_CREDITS', 500), 'max_images_per_request' => (int) env('AI_PRO_MAX_IMAGES', 8)],
     ],
 
     /*

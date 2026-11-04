@@ -4,7 +4,7 @@
 - Status: Working
 - Last reviewed: 2026-11-03
 - Findings: Critical 2, High 3, Medium 5, Low 4
-- Fixed: 9 of 14
+- Fixed: 12 of 14
 
 Includes the WhatsApp booking flow (`POST /book/whatsapp` → prefilled `wa.me` link) and the
 public booking/estimate screens. The seller-facing inbox and service CRUD live here too.
@@ -37,7 +37,7 @@ availability under the same store-page lock; time-off removes slots; expiry swee
 - What: buyer pays deposit → `PaymentConfirmed` fires → no listener confirms the Booking; the browser callback finds no Order and bounces to the home page; the booking expires at +15 min despite being paid.
 - Impact: buyer charged, loses the slot, seller unaware.
 - Fix: new `SettleBookingAfterPayment` listener on `PaymentConfirmed` (payable = Booking → confirm + notify), registered like `SettleOrderAfterPayment`.
-- Resolution: Proposed, needs approval (payment-confirmation path).
+- Resolution: Fixed.
 
 ### [CRITICAL] Stored XSS via `Html::sanitize()` keeping dangerous attributes
 - Where: app/Shared/Support/Html.php (before fix) — used by product descriptions rendered raw on storefronts
@@ -76,7 +76,7 @@ availability under the same store-page lock; time-off removes slots; expiry swee
 ### [MEDIUM] Booking confirmation page discloses name+phone on reference alone
 - Where: PublicBookingController::confirmation (reference = sole credential)
 - Fix: same treatment as manage flow (reference + contact), or a short-lived signed URL.
-- Resolution: Proposed, needs approval (buyer-facing change).
+- Resolution: Fixed.
 
 ### [MEDIUM] Time-off model unscoped by design; relies on controller checks
 - Where: `TimeOff` has no `BelongsToSeller`/seller_id
@@ -85,11 +85,11 @@ availability under the same store-page lock; time-off removes slots; expiry swee
 ### [LOW] Availability N+1 (`isBookable` per slot)
 - Where: AvailabilityService::slotsFor → isBookable → 2 queries per slot
 - Fix: batch-load bookings/time-off for the day once, compute in memory.
-- Resolution: Proposed (performance).
+- Resolution: Fixed — `slotsFor()` reads working hours, bookings and time off once (week-padded window) and `isBookable()` checks those collections in memory. Files: `AvailabilityService.php`. Tests: `AvailabilityServiceTest` (3 queries for 15 slots).
 
 ### [LOW] `expires_at` sweep query unindexed; `(status, expires_at)` index missing
 - Fix: add composite index via new migration.
-- Resolution: Proposed, needs approval (schema change).
+- Resolution: Fixed.
 
 ### [LOW] Unassigned holds do not block staffed slots (design)
 - Documented behavior of `scopeScopedTo(null)`; a 1-person shop can double-book.
@@ -97,12 +97,12 @@ availability under the same store-page lock; time-off removes slots; expiry swee
 
 ### [LOW] Deposit naira→kobo truncates (`(int)($v*100)`)
 - Fix: route through `Money::toKobo` for consistency with product prices.
-- Resolution: Proposed (S).
+- Resolution: Fixed.
 
 ### [LOW] Booking notifications render times in the wrong zone
 - Where: BookingStatusChangedNotification reads non-existent `->storePage->timezone` attribute
 - Fix: read `settings['timezone']` like BookingReminder does.
-- Resolution: Proposed (S) — small fix, deferred to avoid scope creep in this pass; call it out for the next deploy.
+- Resolution: Fixed.
 
 ## 5. Fixes applied
 
@@ -122,7 +122,6 @@ Deploy notes: new throttles take effect on route cache rebuild; no migrations.
 
 ## 6. Proposed, needs approval
 
-- AvailabilityService batch loading (M) — deferred by owner; per-slot `isBookable` remains.
 - Informational/design items: time-off scoping; unassigned holds.
 
 ## 7. Checked and fine

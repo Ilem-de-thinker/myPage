@@ -4,10 +4,12 @@ namespace App\Domains\Ai\Http\Controllers;
 
 use App\Domains\Ai\Models\AiOperation;
 use App\Domains\Ai\Models\AiTask;
+use App\Domains\Ai\Services\AiLimits;
 use App\Domains\Ai\Services\AiUsageReservations;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Throwable;
 
 class AiTaskController extends Controller
 {
@@ -67,6 +69,12 @@ class AiTaskController extends Controller
     public function retryFailed(Request $request, int $task): JsonResponse
     {
         $page = $request->user()->storePages()->firstOrFail();
+        $limits = app(AiLimits::class);
+
+        if ($limits->availableSlots($page) < 1) {
+            return response()->json(['message' => 'This store has reached its active AI operation limit.'], 429);
+        }
+
         $task = AiTask::query()->where('store_page_id', $page->id)->findOrFail($task);
         $failed = AiOperation::query()->where('ai_task_id', $task->id)->where('status', 'failed')->get();
 
@@ -82,14 +90,46 @@ class AiTaskController extends Controller
         // cancelled while the retried jobs are running.
         $task->update(['status' => 'processing', 'cancelled_at' => null, 'completed_at' => null]);
 
+        $retried = 0;
+        $limited = false;
+
         foreach ($failed as $op) {
+            // Re-check per item: the reservation is the authoritative slot
+            // gate, and a batch that hits the cap stops instead of queueing
+            // work the store has no slot or credit for.
+            if ($limits->availableSlots($page) < 1) {
+                $limited = true;
+
+                break;
+            }
+
             $op->update(['status' => 'queued', 'error' => null, 'started_at' => null, 'completed_at' => null]);
-            app(AiUsageReservations::class)->reserveAndDispatch($op);
+
+            try {
+                app(AiUsageReservations::class)->reserveAndDispatch($op);
+            } catch (Throwable) {
+                $limited = true;
+
+                break;
+            }
+
+            $retried++;
         }
 
         $task->refreshProgress();
 
-        return response()->json(['retried' => $failed->count(), 'task' => $task->fresh()]);
+        if ($retried === 0) {
+            return response()->json([
+                'retried' => 0,
+                'message' => 'This store has reached its active AI operation limit.',
+            ], 429);
+        }
+
+        return response()->json([
+            'retried' => $retried,
+            'limit_reached' => $limited,
+            'task' => $task->fresh(),
+        ]);
     }
 
     public function status(Request $request, int $task): JsonResponse

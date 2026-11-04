@@ -45,7 +45,7 @@ on every change via `recalculateRating()`.
 - Where: ReviewInboxController::feature
 - What: pending/rejected reviews can be pinned; UI only offers the button for published rows, but the route accepts any review owned by the store.
 - Fix: enforce `status === approved` before toggling (or document pinning as pre-approval curation).
-- Resolution: Proposed, needs approval (behavior visible to merchants; trivial either way).
+- Resolution: Fixed.
 
 ### [LOW] Cross-tenant moderation is well-closed
 - Verified: `authorise()` returns 404 for foreign reviews; implicit binding is additionally constrained by the seller global scope. Counted as checked-fine, not a finding (see below).

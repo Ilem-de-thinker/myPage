@@ -288,3 +288,98 @@ it('does not charge a cancelled operation even when the provider already answere
     expect(AiUsageLedger::query()->count())->toBe(0)
         ->and(app(AiCreditService::class)->estimate($page, 1)['remaining'])->toBe(3);
 });
+
+it('rejects a reservation that would exceed the active-operation cap', function () {
+    [$seller, $page] = usageStore();
+    subscribeUsagePlan($seller, 'growth', 10);
+    config()->set('ai.limits.max_active_operations', 2);
+
+    $first = queuedOperation($seller->id, $page->id);
+    $second = queuedOperation($seller->id, $page->id);
+
+    $reservations = app(AiUsageReservations::class);
+    $reservations->reserve($first);
+    $reservations->reserve($second);
+
+    $third = queuedOperation($seller->id, $page->id);
+
+    try {
+        $reservations->reserve($third);
+        $this->fail('Expected the slot cap to reject the third operation.');
+    } catch (HttpException $exception) {
+        expect($exception->getStatusCode())->toBe(429);
+    }
+
+    // The rejected operation holds no reservation.
+    expect(AiUsageLedger::query()->where('operation_id', $third->id)->count())->toBe(0);
+});
+
+it('marks an operation failed when its slot is taken by a racing request', function () {
+    Queue::fake();
+
+    [$seller, $page] = usageStore();
+    subscribeUsagePlan($seller, 'growth', 10);
+    config()->set('ai.limits.max_active_operations', 1);
+
+    app(AiUsageReservations::class)->reserve(queuedOperation($seller->id, $page->id));
+
+    $operation = queuedOperation($seller->id, $page->id);
+
+    try {
+        app(AiUsageReservations::class)->reserveAndDispatch($operation);
+        $this->fail('Expected the operation to be rejected.');
+    } catch (HttpException $exception) {
+        expect($exception->getStatusCode())->toBe(429);
+    }
+
+    expect($operation->fresh()->status)->toBe('failed');
+});
+
+it('rejects work when the platform-wide operation cap is full', function () {
+    config()->set('ai.limits.max_active_operations', 50);
+    config()->set('ai.limits.max_global_active_operations', 2);
+
+    [$firstSeller, $firstPage] = usageStore();
+    [$secondSeller, $secondPage] = usageStore();
+    subscribeUsagePlan($firstSeller, 'growth', 10);
+    subscribeUsagePlan($secondSeller, 'growth', 10);
+
+    $reservations = app(AiUsageReservations::class);
+    $reservations->reserve(queuedOperation($firstSeller->id, $firstPage->id));
+    $reservations->reserve(queuedOperation($secondSeller->id, $secondPage->id));
+
+    [$thirdSeller, $thirdPage] = usageStore();
+    subscribeUsagePlan($thirdSeller, 'growth', 10);
+
+    $third = queuedOperation($thirdSeller->id, $thirdPage->id);
+
+    try {
+        $reservations->reserve($third);
+        $this->fail('Expected the platform-wide cap to reject the operation.');
+    } catch (HttpException $exception) {
+        expect($exception->getStatusCode())->toBe(429);
+    }
+
+    expect(AiUsageLedger::query()->where('operation_id', $third->id)->count())->toBe(0);
+});
+
+it('allows work again once the platform-wide cap has room', function () {
+    config()->set('ai.limits.max_global_active_operations', 2);
+
+    [$seller, $page] = usageStore();
+    subscribeUsagePlan($seller, 'growth', 10);
+
+    $reservations = app(AiUsageReservations::class);
+    $first = queuedOperation($seller->id, $page->id);
+    $reservations->reserve($first);
+
+    $second = queuedOperation($seller->id, $page->id);
+    $reservations->reserve($second);
+
+    $first->update(['status' => 'completed']);
+
+    $third = queuedOperation($seller->id, $page->id);
+    $reservations->reserve($third);
+
+    expect(AiUsageLedger::query()->where('operation_id', $third->id)->sole()->status)->toBe('pending');
+});

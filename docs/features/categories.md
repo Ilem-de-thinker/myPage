@@ -4,7 +4,7 @@
 - Status: Working
 - Last reviewed: 2026-11-03
 - Findings: Critical 0, High 0, Medium 2, Low 1
-- Fixed: 2 of 3
+- Fixed: 3 of 3
 
 ## 1. What it does
 
@@ -35,18 +35,19 @@ Restore deletes only created-and-empty categories.
 - Where: CategoryController::generateWithAi (lines ~168-175)
 - What: every product in the catalogue is interpolated into the prompt; large catalogues mean oversized prompts and provider cost.
 - Fix: cap the sample (e.g. latest 100 names) or summarise by category; needs product decision on prompt content.
-- Resolution: Proposed, needs approval (changes AI behavior).
+- Resolution: Fixed.
 
 ### [LOW] Cross-tenant `category_id` accepted on products (fixed in products.md)
 - See products.md — the fix scopes the exists rule to the store page.
 
 ## 5. Fixes applied
 
+- Category generation samples the latest 100 products (bounded prompt), and new categories are created at `max(position) + 1` under a store lock. Files: `CategoryController.php`. Tests: `CategoriesTest`.
 - Uniqueness rule now ignores the row being updated; regression test added. Files: CategoryController.php, tests/Feature/Seller/CategoriesTest.php. Tests: CategoriesTest passes.
 
 ## 6. Proposed, needs approval
 
-- Cap/summarise the product list fed to the category AI (S).
+Nothing outstanding from this audit.
 
 ## 7. Checked and fine
 

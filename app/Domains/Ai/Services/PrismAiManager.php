@@ -78,6 +78,13 @@ class PrismAiManager implements AiManager
                     return $result;
                 } catch (Throwable $exception) {
                     if ($exception instanceof ValidationException) {
+                        // Structured-output validation failures never reached
+                        // the provider-error path, so they left no ai_runs row.
+                        // Record them too: "the model answered but the answer
+                        // was unusable" is exactly the failure an operator
+                        // needs to see in the run history.
+                        $this->record($page, $task, $attempt, $definition, 'failed', null, $started, $exception->getMessage(), $operationId);
+
                         throw $exception;
                     }
 
@@ -709,13 +716,18 @@ class PrismAiManager implements AiManager
         if ($status === 'failed') {
             Log::warning('AI task failed', ['task' => $task, 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'seller_id' => $page?->seller_id, 'error' => $error]);
         }
-        if ($status === 'succeeded' && $page?->seller_id && ! $platformFunded) {
+        if ($status === 'succeeded' && ($platformFunded || $page === null)) {
+            // Calls made for a visitor or before a store exists are platform
+            // spend. They never touch merchant credits, but they still need a
+            // cost record so AI spend can be reported per task.
+            AiUsageLedger::create(['seller_id' => null, 'store_page_id' => $page?->id, 'funded_by' => 'platform', 'task' => $task, 'status' => 'used', 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'estimated_cost' => 0]);
+        } elseif ($status === 'succeeded' && $page?->seller_id) {
             if ($operationId !== null) {
                 app(AiUsageReservations::class)->markUsed($operationId, $page, $task, $attempt['provider'], $attempt['model'], $tokensIn, $tokensOut);
             } elseif ($reservation !== null) {
                 app(AiUsageReservations::class)->settleSync($reservation, $attempt['provider'], $attempt['model'], $tokensIn, $tokensOut);
             } else {
-                AiUsageLedger::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'task' => $task, 'status' => 'used', 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'estimated_cost' => 0]);
+                AiUsageLedger::create(['seller_id' => $page->seller_id, 'store_page_id' => $page->id, 'funded_by' => 'merchant', 'task' => $task, 'status' => 'used', 'provider' => $attempt['provider'], 'model' => $attempt['model'], 'tokens_in' => $tokensIn, 'tokens_out' => $tokensOut, 'estimated_cost' => 0]);
             }
         }
     }

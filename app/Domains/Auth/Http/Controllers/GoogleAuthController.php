@@ -122,6 +122,13 @@ class GoogleAuthController
             return $this->failed('Google did not share enough to sign you in.');
         }
 
+        // Defense in depth: only trust Google's claim that the address is
+        // verified. A missing claim is allowed (older clients); an explicit
+        // false refuses linking/registration.
+        if (($googleUser->user['email_verified'] ?? null) === false) {
+            return $this->failed('Google did not verify that email address.');
+        }
+
         $seller = Seller::where('google_id', $googleId)->first();
 
         if ($seller !== null) {
@@ -141,6 +148,14 @@ class GoogleAuthController
         $existing = Seller::where('email', $email)->first();
 
         if ($existing !== null) {
+            // Linking is the one path where an email match is treated as
+            // continuity. Google's explicit "verified" claim is required here,
+            // not merely "not false": a missing claim must never open an
+            // account that already exists.
+            if (($googleUser->user['email_verified'] ?? null) !== true) {
+                return $this->failed('Google did not verify that email address.');
+            }
+
             if ($existing->usesGoogle() && $existing->google_id !== $googleId) {
                 return $this->failed('That email is already linked to a different Google account.');
             }

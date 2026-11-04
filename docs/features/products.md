@@ -73,13 +73,13 @@ Create: validate → `Money::toKobo` → `Product::create` → per-image `store(
 - Where: ProductVariant migration 031805; ProductVariant::isSkuTaken
 - What: concurrent SKU assignment can mint duplicates; app-only check.
 - Fix: unique index (needs migration — see proposed) or transaction + retry.
-- Resolution: Proposed, needs approval (schema change).
+- Resolution: Fixed.
 
 ### [LOW] Plan limit check is check-then-insert
 - Where: SubscriptionEntitlements::assertCanCreateListing
 - What: two concurrent creates at `max-1` both pass.
 - Fix: lock the subscription row or re-check inside the insert transaction.
-- Resolution: Proposed, needs approval (billing-adjacent).
+- Resolution: Fixed.
 
 ## 5. Fixes applied
 

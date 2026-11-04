@@ -21,7 +21,10 @@ use Throwable;
  */
 final class AiUsageReservations
 {
-    public function __construct(private readonly AiCreditService $credits) {}
+    public function __construct(
+        private readonly AiCreditService $credits,
+        private readonly AiLimits $limits,
+    ) {}
 
     /**
      * Create the pending reservation and queue the operation in one place, so a
@@ -79,6 +82,32 @@ final class AiUsageReservations
 
             if ($page === null) {
                 return;
+            }
+
+            // The seller lock is also the slot lock. Checking the active
+            // operation count here (rather than only before inserting) makes
+            // concurrent batches share one authoritative gate: the row this
+            // operation already added counts, so the batch stops at the cap
+            // instead of sailing past a stale pre-flight count.
+            $active = AiOperation::query()
+                ->where('seller_id', $operation->seller_id)
+                ->whereIn('status', ['queued', 'running'])
+                ->count();
+
+            abort_if(
+                $active > $this->limits->maxActiveOperations(),
+                429,
+                'This store already has the maximum number of Mercho tasks running. Wait for one to finish and try again.'
+            );
+
+            $globalMax = $this->limits->maxGlobalActiveOperations();
+
+            if ($globalMax > 0) {
+                abort_if(
+                    $this->limits->globalActiveOperations() > $globalMax,
+                    429,
+                    'Mercho is handling the maximum number of tasks right now. Try again in a moment.'
+                );
             }
 
             $estimate = $this->credits->estimate($page, 1, $operation->task);

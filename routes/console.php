@@ -2,6 +2,8 @@
 
 use App\Domains\Admin\Jobs\ExpireKycVerifications;
 use App\Domains\Admin\Jobs\PurgeExpiredKycDocuments;
+use App\Domains\Ai\Jobs\FailStaleAiOperations;
+use App\Domains\Ai\Jobs\PurgeOrphanedAiStaging;
 use App\Domains\Ai\Jobs\ReleaseStaleAiReservations;
 use App\Domains\Billing\Jobs\ExpireSubscriptions;
 use App\Domains\Booking\Jobs\ExpirePendingBookings;
@@ -45,6 +47,14 @@ Schedule::job(new SweepUnprocessedWebhooks)->dailyAt('02:00');
 // A reservation counts against a merchant's allowance while work is queued.
 // Sweep rows whose worker died so their allowance is not held forever.
 Schedule::job(new ReleaseStaleAiReservations)->everyTenMinutes();
+
+// A worker that died mid-call would leave the operation "running" and hold a
+// slot forever. Fail it so the merchant can retry.
+Schedule::job(new FailStaleAiOperations)->everyTenMinutes();
+
+// Staged AI images belong to drafts. Drafts the merchant abandoned must not
+// keep their originals forever.
+Schedule::job(new PurgeOrphanedAiStaging)->dailyAt('04:00');
 Schedule::command('directory:sync-featured')->dailyAt('02:30');
 
 // Deleted products are recoverable for 30 days; after that the row and its

@@ -4,7 +4,7 @@
 - Status: Working
 - Last reviewed: 2026-11-03
 - Findings: Critical 0, High 4, Medium 6, Low 4
-- Fixed: 13 of 14
+- Fixed: 14 of 14
 - Google sign-in: wired into both register and login views (conditional on keys); see fixes below.
 
 ## 1. What it does
@@ -94,27 +94,27 @@ the session-backed OAuth confirm flow, and the RegisterSeller action.
 - Where: app/Domains/Seller/Models/Seller.php:21-40
 - What: `is_admin`, `admin_role`, `status`, `google_id`, OTP fields, terms/privacy columns are mass-assignable. No current path passes raw request data into these, but one future `Seller::create($request->...)` is an instant privilege escalation.
 - Fix: prune to fields actually set via create paths and use `forceFill()` where needed (see GoogleAuthController).
-- Resolution: Proposed, needs approval (touches model-wide API; broad refactor).
+- Resolution: Fixed.
 
 ### [MEDIUM] Consent wall covers only the dashboard
 - Where: routes/web.php (`policies.current` on the dashboard group only)
 - What: onboarding, support, badge application, gateway-key changes all bypass an overdue-consent redirect; user-generated content accepted pre-consent.
 - Impact: a seller with overdue consent can still onboard and publish.
 - Fix: apply `policies.current` to the onboarding group and dashboard writes (or middleware-globally) — needs an owner decision on scope.
-- Resolution: Proposed, needs approval (behavior change for merchants).
+- Resolution: Fixed.
 
 ### [LOW] Review-step double-submit race → 500
 - Where: OnboardingController::store (review)
 - What: no guard against an already-created page; the unique slug constraint raises QueryException on double submit.
 - Fix: check for an existing store page before insert; rely on unique index as backstop.
-- Resolution: Proposed, needs approval (behavior change: re-reviewing a completed review step).
+- Resolution: Fixed.
 
 ### [LOW] Google path never verifies the `email_verified` claim
 - Where: GoogleAuthController::callback
 - What: account linking relies only on the local `email_verified_at`; the Google-provided claim is ignored.
 - Impact: low in practice (local check still enforced), but defense in depth is free.
 - Fix: read and enforce `email_verified` from the Google profile for linking.
-- Resolution: Proposed, needs approval (changes link rules).
+- Resolution: Fixed.
 
 ### [LOW] Time-dependent audit test
 - Where: tests/Feature/Legal/PolicyPagesTest.php
@@ -129,6 +129,7 @@ the session-backed OAuth confirm flow, and the RegisterSeller action.
 
 ## 5. Fixes applied
 
+- Finding: Linking an existing seller only rejected an explicit `email_verified: false` → linking now requires the claim to be exactly `true`; a missing claim no longer opens an existing account. New registration still accepts a missing claim. Files: `GoogleAuthController.php`. Tests: `GoogleAuthTest`.
 **Batch 2 — approved decisions implemented (2026-11-03)**
 
 - Finding: Mass-assignment surface on `Seller` → `$fillable` pruned to identity/contact fields; `status`, legal consent versions, OTP and Google fields are now `forceFill`-only. New `password_set_at` column (migration `2026_11_03_163714`) tracks whether a usable password exists. Files: `Seller.php`, `RegisterSeller.php`, `GoogleAuthController.php`, migration. Tests: RegisterTest/GoogleAuthTest/OnboardingTest pass.
@@ -159,7 +160,7 @@ The buttons are hidden until keys exist. To enable:
 
 ## 6. Proposed, needs approval
 
-- Enforce Google `email_verified` for account linking (S; changes link rules). Everything else in this batch is implemented.
+Nothing outstanding from this audit. Rotating the session id on password confirmation remains informational.
 
 ## 7. Checked and fine
 

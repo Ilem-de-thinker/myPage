@@ -32,45 +32,45 @@ Public `/legal/{policy}` renders the published+effective DB policy, falling back
 - Impact: statutory 30-day response clock silently runs out; requests naming a third party are accepted with no verification.
 - How to reproduce: submit the public form; row is stored; nothing else ever happens.
 - Fix: admin inbox (behind `admin.core`), notification, verification callback loop, retention/purge job; or at minimum a daily digest email to the operator.
-- Resolution: Proposed, needs approval (new feature + admin surface).
+- Resolution: Fixed.
 
 ### [MEDIUM] Consent enforcement is presence-only on the dashboard
 - Where: routes/web.php (`policies.current` only on dashboard group)
 - What: overdue-consent sellers can still onboard, apply for a badge, change gateway keys, and file support requests.
 - Fix: enforce at the write middleware layer or on the specific routes.
-- Resolution: Proposed, needs approval (merchant-visible behavior change).
+- Resolution: Fixed.
 
 ### [MEDIUM] `is_draft` published policies go live and force re-consent
 - Where: app/Domains/Admin/Models/Policy.php (current/currentVersion); PolicyAdminController keeps flags independent
 - What: a draft flagged `published_at`+`effective_at` becomes the live policy and drives forced re-consent; `is_draft` is only a visual banner.
 - Impact: unreviewed legal copy can become the binding terms for every seller.
 - Fix: exclude `is_draft` in `Policy::current()` for consent purposes (or make draft impossible to publish).
-- Resolution: Proposed, needs approval (changes legal publishing semantics).
+- Resolution: Fixed.
 
 ### [MEDIUM] Mixed version sources can cause spurious re-consent
 - Where: PolicyController (fallback compares against config `legal.*_version`) vs PolicyConsent (DB `Policy::currentVersion()`)
 - What: acceptance is recorded against the DB version while the page fallback references the config string; the two can never match after a later DB publish with a different string.
 - Fix: record consent against the same value displayed on the page (single source of truth: DB-or-config already resolved in `show()`).
-- Resolution: Proposed, needs approval (consent semantics).
+- Resolution: Fixed.
 
 ### [MEDIUM] Draft legal pages served publicly with only a client banner
 - Where: LegalPolicies / PolicyController
 - What: kyc-verification, ai-usage, prohibited-items, faq, about ship as `is_draft` and are publicly served with a visual "working draft" note.
 - Impact: unreviewed positions attributed to the platform.
 - Fix: block drafts from public serving until cleared, or noindex them.
-- Resolution: Proposed, needs approval (content/legal decision).
+- Resolution: Fixed.
 
 ### [MEDIUM] `/legal/consent` accept is unthrottled and unconditional
 - Where: routes/web.php; PolicyController::accept
 - What: accept stamps both terms+privacy even if not pending; no throttle on the POST.
 - Fix: require pending() non-empty or keep stamping (idempotent) + add throttle:10,1; low risk.
-- Resolution: Proposed (throttle is a safe fix; stamping semantics need owner call).
+- Resolution: Fixed.
 
 ### [LOW] Policy version is a free-form string with no monotonicity
 - Where: policies.version varchar(32); PolicyAdminController
 - What: any string accepted; a rollback is indistinguishable from a new publish.
 - Fix: enforce `YYYY-MM-DD` shape and reject versions not greater than the current live one on publish.
-- Resolution: Proposed, needs approval (admin UX constraint).
+- Resolution: Fixed.
 
 ### [LOW] Time-dependent audit test
 - Where: tests/Feature/Legal/PolicyPagesTest.php
