@@ -62,6 +62,43 @@
       </section>
 
       <section class="rounded-2xl border border-rule bg-card p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold">Platform Paystack keys</h2>
+            <p class="mt-1 text-sm text-ink-3">Used for seller subscriptions only. Buyer payments still run on each seller's own keys.</p>
+          </div>
+          <span class="rounded-full border border-rule px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
+            {{ $paystackConfigured ? $paystackEnvironment : 'not configured' }}
+          </span>
+        </div>
+
+        <div class="mt-5 grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="text-xs font-semibold">Secret key</span>
+            <input type="password" name="paystack_secret" autocomplete="new-password"
+                   placeholder="{{ $paystackConfigured ? 'Saved — leave blank to keep it' : 'sk_test_… or sk_live_…' }}"
+                   class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+            <span class="mt-1 block text-xs text-ink-3">Checked against Paystack before it is saved. Stored encrypted; never shown again.</span>
+            @error('paystack_secret') <span class="mt-1 block text-xs text-danger-text">{{ $message }}</span> @enderror
+          </label>
+
+          <label class="block">
+            <span class="text-xs font-semibold">Public key</span>
+            <input type="text" name="paystack_public" value="{{ old('paystack_public', $paystackPublic) }}"
+                   placeholder="pk_test_… or pk_live_…"
+                   class="mt-1 w-full rounded-xl border border-rule-strong bg-card px-3 py-2.5 text-sm focus:border-brand focus:outline-none">
+            @error('paystack_public') <span class="mt-1 block text-xs text-danger-text">{{ $message }}</span> @enderror
+          </label>
+        </div>
+
+        <label class="mt-4 flex items-center gap-2 text-xs text-ink-2">
+          <input type="checkbox" name="remove_paystack" value="1" @checked(old('remove_paystack')) class="size-4 accent-brand">
+          Remove the saved platform keys and fall back to <code class="font-semibold">.env</code>
+        </label>
+        @error('remove_paystack') <p class="mt-1 text-xs text-danger-text">{{ $message }}</p> @enderror
+      </section>
+
+      <section class="rounded-2xl border border-rule bg-card p-6">
         <h2 class="text-base font-bold">Maps</h2>
         <p class="mt-1 text-sm text-ink-3">Choose the map provider used for the business location picker.</p>
 

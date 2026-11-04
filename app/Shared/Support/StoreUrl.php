@@ -87,13 +87,15 @@ final class StoreUrl
     public static function onCurrentHost(StorePage $page, string $name, array $parameters = []): string
     {
         $request = request();
-        $canonical = $page->slug.'.'.config('mypage.domain');
 
         if (! $request) {
             return route($name, $parameters);
         }
 
         $host = (string) $request->server('ORIGINAL_HOST', $request->getHost());
+        $canonical = StorefrontMode::usesPaths()
+            ? (string) config('mypage.domain')
+            : $page->slug.'.'.config('mypage.domain');
 
         $isShopHost = $host === $canonical
             || app(SlugResolver::class)->resolveByHost($host)?->is($page) === true;

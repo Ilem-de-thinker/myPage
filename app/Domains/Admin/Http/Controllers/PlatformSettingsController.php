@@ -6,6 +6,10 @@ use App\Domains\Admin\Actions\RecordAdminAction;
 use App\Domains\Admin\Models\PlatformSetting;
 use App\Domains\Billing\Services\GracePeriod;
 use App\Domains\Billing\Services\SubscriptionAvailability;
+use App\Domains\Payments\Data\GatewayCredentials;
+use App\Domains\Payments\Exceptions\GatewayVerificationUnavailable;
+use App\Domains\Payments\Exceptions\InvalidGatewayCredentials;
+use App\Domains\Payments\Services\VerifyGatewayCredentials;
 use App\Shared\Support\MapProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +38,9 @@ class PlatformSettingsController extends Controller
             'logoPath' => PlatformSetting::value('platform_logo_path'),
             'subscriptionsEnabled' => $availability->enabled(),
             'graceDays' => $grace->days(),
+            'paystackPublic' => PlatformSetting::value('payments.paystack.public', config('services.paystack.public')),
+            'paystackConfigured' => filled(PlatformSetting::value('payments.paystack.secret', config('services.paystack.secret'))),
+            'paystackEnvironment' => GatewayCredentials::platform('paystack')->environment,
         ]);
     }
 
@@ -41,7 +48,11 @@ class PlatformSettingsController extends Controller
         Request $request,
         SubscriptionAvailability $availability,
         RecordAdminAction $audit,
+        VerifyGatewayCredentials $verifier,
     ): RedirectResponse {
+        $paystackSecret = trim((string) $request->input('paystack_secret'));
+        $request->request->remove('paystack_secret');
+
         $data = $request->validate([
             'platform_name' => ['required', 'string', 'max:80'],
             'support_email' => ['nullable', 'email', 'max:190'],
@@ -57,7 +68,29 @@ class PlatformSettingsController extends Controller
             'subscriptions_enabled' => ['sometimes', 'boolean'],
             'grace_days' => ['sometimes', 'integer', 'min:0', 'max:90'],
             'map_provider' => ['sometimes', Rule::in([MapProvider::OPENSTREETMAP, MapProvider::GOOGLE])],
+            'paystack_public' => ['nullable', 'string', 'max:255', 'regex:/^pk_(test|live)_/'],
+            'remove_paystack' => ['sometimes', 'boolean'],
         ]);
+
+        if ($paystackSecret !== '') {
+            if (preg_match('/^sk_(test|live)_/', $paystackSecret) !== 1) {
+                return back()
+                    ->withErrors(['paystack_secret' => 'A Paystack secret key starts with sk_test_ or sk_live_.'])
+                    ->withInput();
+            }
+
+            try {
+                $verifier->handle('paystack', $paystackSecret);
+            } catch (InvalidGatewayCredentials $exception) {
+                return back()
+                    ->withErrors(['paystack_secret' => $exception->getMessage()])
+                    ->withInput();
+            } catch (GatewayVerificationUnavailable $exception) {
+                return back()
+                    ->withErrors(['paystack_secret' => $exception->getMessage().' Nothing was saved; try again shortly.'])
+                    ->withInput();
+            }
+        }
 
         if (! $request->boolean('store_theme_enabled') && ! $request->boolean('service_theme_enabled')) {
             return back()
@@ -92,6 +125,19 @@ class PlatformSettingsController extends Controller
             $availability->enable();
         } else {
             $availability->disable();
+        }
+
+        if ($request->boolean('remove_paystack')) {
+            PlatformSetting::forget('payments.paystack.secret');
+            PlatformSetting::forget('payments.paystack.public');
+        } else {
+            if ($paystackSecret !== '') {
+                PlatformSetting::put('payments.paystack.secret', $paystackSecret, 'encrypted');
+            }
+
+            if (filled($data['paystack_public'] ?? null)) {
+                PlatformSetting::put('payments.paystack.public', trim($data['paystack_public']));
+            }
         }
 
         if ($request->boolean('remove_logo')) {

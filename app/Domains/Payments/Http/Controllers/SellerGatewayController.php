@@ -6,6 +6,7 @@ use App\Domains\Payments\Actions\SaveSellerGateway;
 use App\Domains\Payments\Exceptions\GatewayVerificationUnavailable;
 use App\Domains\Payments\Exceptions\InvalidGatewayCredentials;
 use App\Domains\Payments\Models\SellerGateway;
+use App\Shared\Support\StorefrontMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -42,7 +43,11 @@ class SellerGatewayController extends Controller
             'environments' => [
                 'expected' => app()->isProduction() ? 'live' : 'test',
             ],
-            'webhookBase' => $page ? $page->slug.'.'.config('mypage.domain') : null,
+            'webhookBase' => $page
+                ? (StorefrontMode::usesPaths()
+                    ? (string) config('mypage.domain')
+                    : $page->slug.'.'.config('mypage.domain'))
+                : null,
         ]);
     }
 

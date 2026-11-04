@@ -13,9 +13,15 @@ return [
      */
     'domain' => $platformDomain,
     /*
-     * Retired. Storefronts live on {store}.{domain} and nowhere else, so the
-     * slug is never a path segment. Kept as a config key only because removing
-     * it would break config caching in environments that still set it.
+     * How a storefront is addressed. `subdomain` is the production default:
+     * {store}.{domain}. `path` serves the same routes at /store/{slug} on the
+     * apex, for hosts that cannot provide wildcard DNS or TLS. The routes and
+     * canonical links follow this value; the storefront itself does not change.
+     */
+    'storefront_mode' => env('STOREFRONT_MODE') === 'path' ? 'path' : 'subdomain',
+    /*
+     * Retired. Kept as a config key only because removing it would break config
+     * caching in environments that still set it.
      */
     'path_routes' => env('STOREFRONT_PATH_ROUTES', false),
     'gateway' => env('PAYMENT_GATEWAY', 'paystack'),

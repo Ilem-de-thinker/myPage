@@ -31,6 +31,11 @@ php -r 'exit(version_compare(PHP_VERSION, "8.3.0", ">=") ? 0 : 1);' \
 for ext in pdo mbstring openssl curl fileinfo gd; do
     php -m | grep -qi "^${ext}$" && pass "php extension: $ext" || warn "php extension missing: $ext"
 done
+case "$(env_value DB_CONNECTION)" in
+    mysql|mariadb)
+        php -m | grep -qi '^pdo_mysql$' && pass "php extension: pdo_mysql" || fail "pdo_mysql is required for the configured database"
+        ;;
+esac
 [ -f vendor/autoload.php ] && pass "composer dependencies installed" || fail "vendor/ missing — run composer install"
 
 echo
@@ -48,6 +53,12 @@ case "$(env_value APP_URL)" in
     *) pass "APP_URL is set" ;;
 esac
 [ -n "$(env_value APP_DOMAIN)" ] && pass "APP_DOMAIN is set" || warn "APP_DOMAIN is empty — tenant subdomains fall back to APP_URL host"
+
+case "$(env_value STOREFRONT_MODE)" in
+    path) pass "STOREFRONT_MODE=path — shops are served at /store/{slug}, no wildcard DNS needed" ;;
+    subdomain|"") warn "STOREFRONT_MODE=subdomain — wildcard DNS and a wildcard TLS certificate are required" ;;
+    *) fail "STOREFRONT_MODE must be 'subdomain' or 'path' (got '$(env_value STOREFRONT_MODE)')" ;;
+esac
 
 db="$(env_value DB_CONNECTION)"
 case "$db" in

@@ -13,6 +13,7 @@ use App\Shared\Middleware\EnsureSellerIsVerified;
 use App\Shared\Middleware\ForwardCustomDomainToStorefront;
 use App\Shared\Middleware\ResolveStorePage;
 use App\Shared\Middleware\SecurityHeaders;
+use App\Shared\Support\StorefrontMode;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -34,13 +35,23 @@ return Application::configure(basePath: dirname(__DIR__))
              | constraint does not match at all, so nothing here can swallow a
              | platform path.
              */
-            Route::middleware(['web', 'resolve.store', 'store.open'])
-                ->domain('{slug}.'.config('mypage.domain'))
-                ->group(base_path('routes/storefront.php'));
+            if (StorefrontMode::usesPaths()) {
+                Route::middleware(['web', 'resolve.store', 'store.open'])
+                    ->prefix(StorefrontMode::prefix())
+                    ->group(base_path('routes/storefront.php'));
 
-            Route::middleware(['web', 'resolve.store', 'store.open'])
-                ->domain('{slug}.'.config('mypage.domain'))
-                ->group(base_path('routes/checkout.php'));
+                Route::middleware(['web', 'resolve.store', 'store.open'])
+                    ->prefix(StorefrontMode::prefix())
+                    ->group(base_path('routes/checkout.php'));
+            } else {
+                Route::middleware(['web', 'resolve.store', 'store.open'])
+                    ->domain('{slug}.'.config('mypage.domain'))
+                    ->group(base_path('routes/storefront.php'));
+
+                Route::middleware(['web', 'resolve.store', 'store.open'])
+                    ->domain('{slug}.'.config('mypage.domain'))
+                    ->group(base_path('routes/checkout.php'));
+            }
 
             /*
              | The apex routes. ForwardCustomDomainToStorefront answers a seller's

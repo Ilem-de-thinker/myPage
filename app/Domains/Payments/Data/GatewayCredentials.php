@@ -2,6 +2,7 @@
 
 namespace App\Domains\Payments\Data;
 
+use App\Domains\Admin\Models\PlatformSetting;
 use App\Domains\Payments\Models\SellerGateway;
 
 /**
@@ -39,13 +40,31 @@ final readonly class GatewayCredentials
      */
     public static function platform(string $gateway): self
     {
+        $secret = (string) (PlatformSetting::value("payments.{$gateway}.secret")
+            ?? config("services.{$gateway}.secret"));
+
         return new self(
             gateway: $gateway,
-            environment: app()->isProduction() ? 'live' : 'test',
-            publicKey: config("services.{$gateway}.public"),
-            secretKey: (string) config("services.{$gateway}.secret"),
-            webhookSecret: config("services.{$gateway}.secret_hash")
-                ?? config("services.{$gateway}.secret"),
+            environment: self::environmentFor($secret),
+            publicKey: PlatformSetting::value("payments.{$gateway}.public", config("services.{$gateway}.public")),
+            secretKey: $secret,
+            webhookSecret: PlatformSetting::value("payments.{$gateway}.secret_hash")
+                ?? config("services.{$gateway}.secret_hash")
+                ?? $secret,
         );
+    }
+
+    /**
+     * Test keys are allowed on a production host while an operator is
+     * validating checkout; the key prefix, not APP_ENV, is what tells the
+     * gateway and the operator which money is moving.
+     */
+    private static function environmentFor(string $secret): string
+    {
+        return match (true) {
+            str_starts_with($secret, 'sk_live_'), str_starts_with($secret, 'FLWSECK-') => 'live',
+            str_starts_with($secret, 'sk_test_'), str_starts_with($secret, 'FLWSECK_TEST-') => 'test',
+            default => app()->isProduction() ? 'live' : 'test',
+        };
     }
 }
