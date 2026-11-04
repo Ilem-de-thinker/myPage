@@ -8,9 +8,8 @@
     RewriteRule (^\.|/\.) - [F,L]
 
     RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(.*)$ public/$1 [L]
-</IfModule>
+    RewriteRule ^$ public/index.php [L]
 
-<IfModule mod_dir.c>
-    DirectoryIndex public/index.php
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
