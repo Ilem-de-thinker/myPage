@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('slug');
             $table->text('description')->nullable();
             $table->unsignedInteger('price_kobo');
-            $table->decimal('price', 10, 2)->nullable()->after('price_kobo');
+            $table->decimal('price', 10, 2)->nullable();
             $table->unsignedInteger('compare_at_kobo')->nullable();
             $table->string('sku')->nullable();
             $table->boolean('track_stock')->default(false);

@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::table('store_sections', function (Blueprint $table) {
             $table->string('page', 32)->default('home')->after('store_page_id');
+            $table->index('store_page_id');
             $table->dropUnique(['store_page_id', 'key']);
             $table->unique(['store_page_id', 'page', 'key']);
             $table->index(['store_page_id', 'page', 'position']);
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->dropUnique(['store_page_id', 'page', 'key']);
             $table->dropIndex(['store_page_id', 'page', 'position']);
             $table->unique(['store_page_id', 'key']);
+            $table->dropIndex(['store_page_id']);
             $table->dropColumn('page');
         });
     }

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
             $table->foreignId('transaction_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('payout_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('payout_id')->nullable();
             $table->enum('direction', ['debit', 'credit']);
             $table->integer('amount_kobo');
             $table->integer('balance_after_kobo');
