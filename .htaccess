@@ -7,11 +7,13 @@
 
     RewriteRule (^\.|/\.) - [F,L]
 
-    # Already mapped to public/ - never rewrite again, no matter what pass this is.
-    # [END] also stops any re-processing in per-directory context.
-    RewriteRule ^public/ - [END]
+    # Already mapped to public/ - stop applying THIS ruleset, but let Apache
+    # continue into public/.htaccess so non-file URLs reach Laravel's front
+    # controller. [L], never [END]: END would block public/.htaccess too and
+    # every Laravel route would 404.
+    RewriteRule ^public/ - [L]
 
-    RewriteRule ^$ public/index.php [L,END]
+    RewriteRule ^$ public/index.php [L]
 
-    RewriteRule ^(.*)$ public/$1 [L,END]
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
