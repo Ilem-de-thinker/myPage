@@ -38,5 +38,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Pinned so the suite asserts tenant-domain routing deterministically.
+             Path mode is exercised explicitly by tests/Feature/StorefrontPathModeTest.php. -->
+        <env name="STOREFRONT_MODE" value="subdomain"/>
     </php>
 </phpunit>
