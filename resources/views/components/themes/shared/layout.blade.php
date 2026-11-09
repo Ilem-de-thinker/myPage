@@ -68,8 +68,7 @@
       style="background: var(--paper); color: var(--ink); font-family: var(--font-body-stack)"
       data-store="{{ $page->slug }}"
       data-theme-preset="{{ $themePreset }}"
-      x-data="{ mobileNavOpen: false, scrolled: {{ $heroPhoto ? 'false' : 'true' }}, closeMobileNav() { this.mobileNavOpen = false; }, dispatchAndClose(name) { this.mobileNavOpen = false; this.$dispatch(name); } }"
-      @scroll.window="scrolled = window.pageYOffset > 24">
+      x-data="themeShell({ scrolled: {{ $heroPhoto ? 'false' : 'true' }} })">
 
   <x-themes.shared.animated-background :page="$page" />
 

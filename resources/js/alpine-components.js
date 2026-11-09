@@ -1425,3 +1425,38 @@ Alpine.data('categoryAiPreview', (config = {}) => ({
         }
     },
 }));
+
+// Registered components keep the CSP build of Alpine honest: expressions inside
+// x-data may not declare functions, so the shell state and the delivery-zone
+// editor live here instead of in template strings.
+Alpine.data('themeShell', (config = {}) => ({
+    mobileNavOpen: false,
+    scrolled: config.scrolled ?? true,
+
+    init() {
+        window.addEventListener('scroll', () => {
+            this.scrolled = window.pageYOffset > 24;
+        }, { passive: true });
+    },
+
+    closeMobileNav() {
+        this.mobileNavOpen = false;
+    },
+
+    dispatchAndClose(name) {
+        this.mobileNavOpen = false;
+        this.$dispatch(name);
+    },
+}));
+
+Alpine.data('deliveryZoneForm', (config = {}) => ({
+    rows: config.rows ?? [],
+
+    addRow() {
+        this.rows.push({ name: '', state: '', fee: '' });
+    },
+
+    removeRow(index) {
+        this.rows.splice(index, 1);
+    },
+}));

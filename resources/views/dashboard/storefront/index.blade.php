@@ -289,11 +289,7 @@
             </div>
 
             <div class="rounded-2xl border border-rule bg-card p-6"
-                 x-data="{
-                     rows: @js($zoneRows),
-                     addRow() { this.rows.push({ name: '', state: '', fee: '' }); },
-                     removeRow(index) { this.rows.splice(index, 1); },
-                 }">
+                 x-data="deliveryZoneForm(@jsExpr(['rows' => $zoneRows]))">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 class="text-sm font-bold text-ink">Delivery areas</h2>
