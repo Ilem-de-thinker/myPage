@@ -7,9 +7,11 @@
 
     RewriteRule (^\.|/\.) - [F,L]
 
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^$ public/index.php [L]
+    # Already mapped to public/ - never rewrite again, no matter what pass this is.
+    # [END] also stops any re-processing in per-directory context.
+    RewriteRule ^public/ - [END]
 
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(.*)$ public/$1 [L]
+    RewriteRule ^$ public/index.php [L,END]
+
+    RewriteRule ^(.*)$ public/$1 [L,END]
 </IfModule>
