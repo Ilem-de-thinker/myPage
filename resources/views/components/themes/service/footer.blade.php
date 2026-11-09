@@ -30,7 +30,7 @@
                     <span style="font-family: var(--font-heading)">{{ $page->name }}</span>
                 </a>
                 @if ($page->bio)
-                    <p class="t-body text-xs text-[var(--ink-3)] leading-relaxed t-measure-narrow">{{ $page->bio }}</p>
+                    <p class="t-body text-xs text-[var(--ink-3)] leading-relaxed t-measure-narrow">{{ \Illuminate\Support\Str::limit($page->bio, 120) }}</p>
                 @endif
                 @if ($where)
                     <p class="t-meta">{{ $where }}</p>
