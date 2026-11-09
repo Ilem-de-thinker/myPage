@@ -98,9 +98,16 @@ class OnboardingController extends Controller
                 if (! empty($data['ai_result'])) {
                     $keep = $request->input('starter_keep', array_keys($data['ai_result']['listings'] ?? []));
                     $data['ai_result']['listings'] = collect($data['ai_result']['listings'] ?? [])->only($keep)->values()->all();
+
+                    $keepCategories = $request->input('starter_categories', $data['ai_result']['categories'] ?? []);
+                    $data['ai_result']['categories'] = collect($data['ai_result']['categories'] ?? [])
+                        ->filter(fn ($name): bool => is_string($name) && filled($name) && in_array($name, $keepCategories, true))
+                        ->values()
+                        ->all();
                 }
 
                 $page = $createStorePage->handle($request->user(), $data);
+                $this->createStarterCategories($page, $data['ai_result']['categories'] ?? []);
                 $listings = $data['ai_result']['listings'] ?? [];
                 $limit = $entitlements->listingLimit($page);
                 $this->createStarterDrafts($page, $limit === null ? $listings : array_slice($listings, 0, $limit));
@@ -152,6 +159,16 @@ class OnboardingController extends Controller
         $request->session()->put('onboarding', $onboarding);
 
         return redirect()->route('onboarding.show', 'review');
+    }
+
+    /** @param list<string> $categories */
+    private function createStarterCategories(StorePage $page, array $categories): void
+    {
+        foreach ($categories as $name) {
+            if (filled($name)) {
+                Category::firstOrCreate(['store_page_id' => $page->id, 'name' => $name]);
+            }
+        }
     }
 
     /** @param list<array<string, mixed>> $listings */

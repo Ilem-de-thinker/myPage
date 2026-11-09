@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Ai\Contracts\AiManager;
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Seller\Models\Seller;
 use App\Domains\Seller\Models\StorePage;
 
@@ -148,6 +149,51 @@ it('blocks suspended sellers from dashboard routes', function () {
     StorePage::factory()->for($seller)->create();
 
     actingAs($seller)->get('/dashboard')->assertSessionHasErrors('email');
+});
+
+it('shows the proposed categories on the review page and creates the kept ones on confirm', function () {
+    $seller = Seller::factory()->create();
+
+    $onboarding = [
+        'name' => 'Gadget Hub', 'slug' => 'gadget-hub', 'theme' => 'store',
+        'brand_color' => '#16a34a', 'whatsapp' => '+2348031234567',
+        'ai_result' => [
+            'business_type' => 'store', 'tagline' => 'Everyday gadgets',
+            'about' => 'Gadgets and accessories.', 'categories' => ['Smartphones', 'Audio', 'Accessories'],
+            'listings' => [],
+        ],
+    ];
+
+    actingAs($seller)
+        ->withSession(['onboarding' => $onboarding])
+        ->get(route('onboarding.show', 'review'))
+        ->assertOk()
+        ->assertSee('Smartphones')
+        ->assertSee('Audio')
+        ->assertSee('Accessories');
+
+    actingAs($seller)
+        ->withSession(['onboarding' => $onboarding])
+        ->post('/onboarding/review', ['starter_categories' => ['', 'Smartphones', 'Audio']])
+        ->assertRedirect(route('dashboard'));
+
+    $page = StorePage::where('slug', 'gadget-hub')->firstOrFail();
+    expect(Category::where('store_page_id', $page->id)->pluck('name')->sort()->values()->all())
+        ->toBe(['Audio', 'Smartphones']);
+});
+
+it('creates no categories when every proposed category is unticked', function () {
+    $seller = Seller::factory()->create();
+
+    actingAs($seller)
+        ->withSession(['onboarding' => [
+            'name' => 'Gadget Hub', 'slug' => 'gadget-hub-2', 'theme' => 'store',
+            'ai_result' => ['business_type' => 'store', 'categories' => ['Smartphones'], 'listings' => []],
+        ]])
+        ->post('/onboarding/review', ['starter_categories' => ['']])
+        ->assertRedirect(route('dashboard'));
+
+    expect(Category::count())->toBe(0);
 });
 
 it('treats a repeated review submission as already done instead of creating a second page', function () {
