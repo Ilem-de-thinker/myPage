@@ -304,7 +304,7 @@
     for; nothing is printed here when they have not uploaded any, because a stock
     photograph of somebody else's studio is worse than no photograph.
   --}}
-  @if ($showroom->isNotEmpty())
+  @if ($showroom->count() >= 2)
     <div class="mt-16 rounded-[var(--radius-lg)] border border-[var(--rule)] overflow-hidden shadow-sm">
       <div class="grid grid-cols-1 md:grid-cols-3">
         <div class="plate aspect-[4/3] md:aspect-auto">
