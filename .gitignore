@@ -32,3 +32,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Root markdown working notes (keep README.md)
+/*.md
+!README.md
